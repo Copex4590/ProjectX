@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="utf-8">
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+
+html,body,#map{
+    width:100%;
+    height:100%;
+    margin:0;
+    padding:0;
+}
+
+.ship-container{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    white-space:nowrap;
+    pointer-events:none;
+}
+
+.ship-icon{
+    width:30px;
+    height:30px;
+    transition:transform .3s linear;
+}
+
+.ship-name{
+
+    background:rgba(0,0,0,.65);
+    color:white;
+
+    padding:2px 6px;
+
+    border-radius:4px;
+
+    font-size:12px;
+
+    font-family:sans-serif;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<script>
+
+const map=L.map("map").setView([47.4979,19.0402],12);
+
+L.tileLayer(
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+maxZoom:19
+}).addTo(map);
+
+const ships={};
+
+function addShip(mmsi,name,lat,lon,heading=0){
+
+    if(ships[mmsi]){
+
+        updateShip(mmsi,lat,lon,heading);
+
+        return;
+
+    }
+
+    const icon=L.divIcon({
+
+        className:"",
+
+        iconSize:[180,32],
+
+        iconAnchor:[15,15],
+
+        html:`
+
+<div
+id="ship_${mmsi}"
+class="ship-container">
+
+<img
+class="ship-icon"
+src="../icons/ship.svg"
+style="transform:rotate(${heading}deg);">
+
+<div class="ship-name">
+
+${name}
+
+</div>
+
+</div>
+
+`
+
+    });
+
+    const marker=L.marker([lat,lon],{
+
+        icon:icon
+
+    });
+
+    marker.addTo(map);
+
+    marker.bindPopup(
+
+`<b>${name}</b><br>MMSI: ${mmsi}`
+
+);
+
+    ships[mmsi]=marker;
+
+}
+
+function updateShip(mmsi,lat,lon,heading=0){
+
+    if(!ships[mmsi]) return;
+
+    ships[mmsi].setLatLng([lat,lon]);
+
+    const ship=document.getElementById(
+
+        "ship_"+mmsi
+
+    );
+
+    if(ship){
+
+        const img=ship.querySelector(".ship-icon");
+
+        if(img)
+
+            img.style.transform=
+
+                `rotate(${heading}deg)`;
+
+    }
+
+}
+
+function removeShip(mmsi){
+
+    if(!ships[mmsi]) return;
+
+    map.removeLayer(ships[mmsi]);
+
+    delete ships[mmsi];
+
+}
+
+</script>
+
+</body>
+</html>
