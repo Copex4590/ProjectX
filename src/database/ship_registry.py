@@ -19,32 +19,36 @@ class ShipRegistry:
 
         with self._lock:
 
-            old = self._ships.get(ship.mmsi)
+            current = self._ships.get(ship.mmsi)
 
-            if old:
-
-                old.name = ship.name
-                old.callsign = ship.callsign
-                old.ship_type = ship.ship_type
-                old.lat = ship.lat
-                old.lon = ship.lon
-                old.speed = ship.speed
-                old.course = ship.course
-                old.heading = ship.heading
-                old.destination = ship.destination
-                old.eta = ship.eta
-                old.source = ship.source
-                old.last_seen = ship.last_seen
-                old.ais_visible = ship.ais_visible
-                old.rtl_visible = ship.rtl_visible
-                old.camera_visible = ship.camera_visible
-
-                old.add_history()
-
-            else:
+            if current is None:
 
                 ship.add_history()
                 self._ships[ship.mmsi] = ship
+                return
+
+            current.name = ship.name
+            current.callsign = ship.callsign
+            current.ship_type = ship.ship_type
+
+            current.lat = ship.lat
+            current.lon = ship.lon
+
+            current.speed = ship.speed
+            current.course = ship.course
+            current.heading = ship.heading
+
+            current.destination = ship.destination
+            current.eta = ship.eta
+
+            current.source = ship.source
+            current.last_seen = ship.last_seen
+
+            current.ais_visible = ship.ais_visible
+            current.rtl_visible = ship.rtl_visible
+            current.camera_visible = ship.camera_visible
+
+            current.add_history()
 
     def get(self, mmsi: int):
 
