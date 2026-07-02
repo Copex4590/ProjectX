@@ -41,25 +41,39 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
 
         root = QHBoxLayout(central)
-
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
         self.pages = QStackedWidget()
 
-        self.pages.addWidget(DashboardPage())
-        self.pages.addWidget(MapPage())
-        self.pages.addWidget(VesselsPage())
-        self.pages.addWidget(CameraPage())
+        self.dashboard_page = DashboardPage()
+        self.map_page = MapPage()
+        self.vessels_page = VesselsPage()
+        self.camera_page = CameraPage()
+
+        self.pages.addWidget(self.dashboard_page)   # 0
+        self.pages.addWidget(self.map_page)         # 1
+        self.pages.addWidget(self.vessels_page)     # 2
+        self.pages.addWidget(self.camera_page)      # 3
 
         self.sidebar = Sidebar()
         self.sidebar.pageSelected.connect(self.pages.setCurrentIndex)
+
+        self.vessels_page.shipSelected.connect(
+            self.focus_ship
+        )
 
         root.addWidget(self.sidebar)
         root.addWidget(self.pages, 1)
         root.addWidget(ConnectionPanel())
 
         self.setStatusBar(StatusPanel())
+
+    def focus_ship(self, mmsi):
+
+        self.pages.setCurrentIndex(1)
+
+        self.map_page.map.focus_ship(mmsi)
 
     def closeEvent(self, event):
 

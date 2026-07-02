@@ -18,7 +18,33 @@ class ShipRegistry:
     def add(self, ship: Ship):
 
         with self._lock:
-            self._ships[ship.mmsi] = ship
+
+            old = self._ships.get(ship.mmsi)
+
+            if old:
+
+                old.name = ship.name
+                old.callsign = ship.callsign
+                old.ship_type = ship.ship_type
+                old.lat = ship.lat
+                old.lon = ship.lon
+                old.speed = ship.speed
+                old.course = ship.course
+                old.heading = ship.heading
+                old.destination = ship.destination
+                old.eta = ship.eta
+                old.source = ship.source
+                old.last_seen = ship.last_seen
+                old.ais_visible = ship.ais_visible
+                old.rtl_visible = ship.rtl_visible
+                old.camera_visible = ship.camera_visible
+
+                old.add_history()
+
+            else:
+
+                ship.add_history()
+                self._ships[ship.mmsi] = ship
 
     def get(self, mmsi: int):
 

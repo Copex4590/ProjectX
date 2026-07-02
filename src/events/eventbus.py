@@ -32,10 +32,21 @@ class EventBus:
     def publish(self, event_name: str, *args, **kwargs):
 
         with self._lock:
-            listeners = list(self._listeners[event_name])
+            listeners = tuple(self._listeners.get(event_name, ()))
 
         for callback in listeners:
-            callback(*args, **kwargs)
+            try:
+                callback(*args, **kwargs)
+            except Exception as e:
+                print(
+                    f"[EventBus] '{event_name}' -> "
+                    f"{callback.__qualname__}: {e}"
+                )
+
+    def listener_count(self, event_name: str):
+
+        with self._lock:
+            return len(self._listeners.get(event_name, ()))
 
     def clear(self):
 

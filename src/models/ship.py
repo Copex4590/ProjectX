@@ -5,6 +5,7 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from collections import deque
 
 
 @dataclass
@@ -41,3 +42,24 @@ class Ship:
     rtl_visible: bool = False
 
     camera_visible: bool = False
+
+    # Utolsó 100 pozíció
+    history: deque = field(
+        default_factory=lambda: deque(maxlen=100),
+        repr=False
+    )
+
+    def add_history(self):
+
+        if not self.history:
+            self.history.append((self.lat, self.lon))
+            return
+
+        last_lat, last_lon = self.history[-1]
+
+        if (
+            abs(last_lat - self.lat) > 0.00001
+            or
+            abs(last_lon - self.lon) > 0.00001
+        ):
+            self.history.append((self.lat, self.lon))
