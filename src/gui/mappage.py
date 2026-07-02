@@ -20,7 +20,9 @@ class MapPage(QWidget):
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_ships)
-        self.timer.start(1000)
+
+        # 5 FPS frissítés – alap a smooth mozgáshoz
+        self.timer.start(200)
 
     def update_ships(self):
 
