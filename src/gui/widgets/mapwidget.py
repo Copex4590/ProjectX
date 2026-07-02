@@ -9,12 +9,28 @@ class MapWidget(QWebEngineView):
     def __init__(self):
         super().__init__()
 
-        print("🚢 MapWidget START")
-
         settings = self.settings()
-        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
-        settings.setAttribute(QWebEngineSettings.JavascriptEnabled, True)
+        settings.setAttribute(
+            QWebEngineSettings.LocalContentCanAccessRemoteUrls,
+            True,
+        )
+        settings.setAttribute(
+            QWebEngineSettings.JavascriptEnabled,
+            True,
+        )
 
-        html_path = Path(__file__).resolve().parents[3] / "src" / "resources" / "map" / "map.html"
+        html_path = (
+            Path(__file__).resolve().parents[3]
+            / "src"
+            / "resources"
+            / "map"
+            / "map.html"
+        )
 
         self.load(QUrl.fromLocalFile(str(html_path)))
+
+    def focus_ship(self, mmsi):
+
+        self.page().runJavaScript(
+            f"focusShip({int(mmsi)});"
+        )

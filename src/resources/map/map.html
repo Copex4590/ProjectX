@@ -1,22 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8" />
-    <title>RTL Map</title>
+    <meta charset="utf-8">
+    <title>Project X Map</title>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-        }
-
-        #map {
+        html, body, #map {
             width: 100%;
             height: 100%;
+            margin: 0;
+            padding: 0;
         }
     </style>
 </head>
@@ -26,68 +22,87 @@
 <div id="map"></div>
 
 <script>
-    // 🚢 MAP INIT
-    const map = L.map('map').setView([47.4979, 19.0402], 11);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+const map = L.map("map").setView([47.4979, 19.0402], 11);
+
+L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
         maxZoom: 19,
-        attribution: '© OpenStreetMap'
-    }).addTo(map);
+        attribution: "© OpenStreetMap"
+    }
+).addTo(map);
 
-    // =========================
-    // 🚢 SHIPS + TRAILS
-    // =========================
+const ships = {};
+const trails = {};
 
-    const ships = {};
-    const trails = {};
+function updateShips(list)
+{
+    const active = new Set();
 
-    function updateShip(mmsi, lat, lon, heading) {
+    for (const ship of list)
+    {
+        const mmsi = ship.mmsi;
+        active.add(mmsi);
 
-        const pos = [lat, lon];
+        const pos = [ship.lat, ship.lon];
 
-        // 🚢 marker
-        if (!ships[mmsi]) {
+        if (!ships[mmsi])
+        {
             ships[mmsi] = L.marker(pos).addTo(map);
-        } else {
+        }
+        else
+        {
             ships[mmsi].setLatLng(pos);
         }
 
-        // 🚢 trail init
-        if (!trails[mmsi]) {
+        if (!trails[mmsi])
+        {
             trails[mmsi] = L.polyline([], {
-                color: 'red',
+                color: "red",
                 weight: 1
             }).addTo(map);
         }
 
-        // 🚢 add point to trail
         const line = trails[mmsi].getLatLngs();
+
         line.push(pos);
 
-        // limit (ne nőjön végtelenre)
-        if (line.length > 50) {
+        if (line.length > 50)
             line.shift();
-        }
 
         trails[mmsi].setLatLngs(line);
     }
 
-    function removeShip(mmsi) {
-
-        if (ships[mmsi]) {
+    for (const mmsi in ships)
+    {
+        if (!active.has(Number(mmsi)))
+        {
             map.removeLayer(ships[mmsi]);
             delete ships[mmsi];
-        }
 
-        if (trails[mmsi]) {
-            map.removeLayer(trails[mmsi]);
-            delete trails[mmsi];
+            if (trails[mmsi])
+            {
+                map.removeLayer(trails[mmsi]);
+                delete trails[mmsi];
+            }
         }
     }
+}
 
-    function updateTrail() {
-        // nem használjuk külön
-    }
+function focusShip(mmsi)
+{
+    if (!ships[mmsi])
+        return;
+
+    map.setView(
+        ships[mmsi].getLatLng(),
+        15,
+        {
+            animate: true
+        }
+    );
+}
 
 </script>
 
