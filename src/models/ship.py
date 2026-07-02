@@ -3,9 +3,9 @@
 # Ship Model
 # ============================================================================
 
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
-from collections import deque
 
 
 @dataclass
@@ -14,23 +14,17 @@ class Ship:
     mmsi: int
 
     name: str = ""
-
     callsign: str = ""
-
     ship_type: str = ""
 
     lat: float = 0.0
-
     lon: float = 0.0
 
     speed: float = 0.0
-
     course: float = 0.0
-
     heading: float = 0.0
 
     destination: str = ""
-
     eta: str = ""
 
     source: str = ""
@@ -38,18 +32,31 @@ class Ship:
     last_seen: datetime = field(default_factory=datetime.now)
 
     ais_visible: bool = False
-
     rtl_visible: bool = False
-
     camera_visible: bool = False
 
-    # Utolsó 100 pozíció
     history: deque = field(
         default_factory=lambda: deque(maxlen=100),
-        repr=False
+        repr=False,
     )
 
+    previous_lat: float = 0.0
+    previous_lon: float = 0.0
+
+    target_lat: float = 0.0
+    target_lon: float = 0.0
+
     def add_history(self):
+
+        if self.target_lat == 0.0 and self.target_lon == 0.0:
+            self.target_lat = self.lat
+            self.target_lon = self.lon
+
+        self.previous_lat = self.target_lat
+        self.previous_lon = self.target_lon
+
+        self.target_lat = self.lat
+        self.target_lon = self.lon
 
         if not self.history:
             self.history.append((self.lat, self.lon))
