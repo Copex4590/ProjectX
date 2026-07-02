@@ -1,7 +1,8 @@
-from PySide6.QtWebEngineWidgets import QWebEngineView
+from pathlib import Path
+
 from PySide6.QtCore import QUrl
 from PySide6.QtWebEngineCore import QWebEngineSettings
-from pathlib import Path
+from PySide6.QtWebEngineWidgets import QWebEngineView
 
 
 class MapWidget(QWebEngineView):
@@ -19,7 +20,7 @@ class MapWidget(QWebEngineView):
             True,
         )
 
-        html_path = (
+        html = (
             Path(__file__).resolve().parents[3]
             / "src"
             / "resources"
@@ -27,10 +28,16 @@ class MapWidget(QWebEngineView):
             / "map.html"
         )
 
-        self.load(QUrl.fromLocalFile(str(html_path)))
+        self.load(QUrl.fromLocalFile(str(html)))
 
-    def focus_ship(self, mmsi):
+    def focus_ship(self, mmsi: int):
 
         self.page().runJavaScript(
             f"focusShip({int(mmsi)});"
+        )
+
+    def update_ships(self, payload: str):
+
+        self.page().runJavaScript(
+            f"updateShips({payload});"
         )

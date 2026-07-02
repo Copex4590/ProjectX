@@ -1,8 +1,10 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout
-from PySide6.QtCore import QTimer
-from gui.widgets.mapwidget import MapWidget
-from database import registry
 import json
+
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QVBoxLayout, QWidget
+
+from database import registry
+from gui.widgets.mapwidget import MapWidget
 
 
 class MapPage(QWidget):
@@ -22,22 +24,17 @@ class MapPage(QWidget):
 
     def update_ships(self):
 
-        ships = []
-
-        for ship in registry.all():
-
-            ships.append({
+        payload = json.dumps([
+            {
                 "mmsi": ship.mmsi,
                 "lat": ship.lat,
                 "lon": ship.lon,
                 "heading": ship.heading or 0,
-                "speed": ship.speed,
                 "course": ship.course,
+                "speed": ship.speed,
                 "name": ship.name,
-            })
+            }
+            for ship in registry.all()
+        ])
 
-        payload = json.dumps(ships)
-
-        self.map.page().runJavaScript(
-            f"updateShips({payload});"
-        )
+        self.map.update_ships(payload)
