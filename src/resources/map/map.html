@@ -50,11 +50,20 @@ function updateShips(list)
         if (!ships[mmsi])
         {
             ships[mmsi] = L.marker(pos).addTo(map);
+
+            ships[mmsi].bindPopup("");
         }
         else
         {
             ships[mmsi].setLatLng(pos);
         }
+
+        ships[mmsi].setPopupContent(`
+            <b>${ship.name || "Unknown"}</b><br>
+            MMSI: ${ship.mmsi}<br>
+            Speed: ${Number(ship.speed).toFixed(1)} kn<br>
+            Heading: ${ship.heading}
+        `);
 
         if (!trails[mmsi])
         {
@@ -102,6 +111,8 @@ function focusShip(mmsi)
             animate: true
         }
     );
+
+    ships[mmsi].openPopup();
 }
 
 </script>
