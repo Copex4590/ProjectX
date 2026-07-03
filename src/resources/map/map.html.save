@@ -14,12 +14,6 @@
             margin: 0;
             padding: 0;
         }
-        .ship-icon {
-        font-size: 22px;
-        text-align: center;
-        line-height: 24px;
-        transform-origin: center center;
-        }
     </style>
 </head>
 
@@ -53,21 +47,7 @@ function updateShips(list)
 
         const pos = [ship.lat, ship.lon];
 
-                if (!ships[mmsi])
-        {
-            const icon = L.divIcon({
-                className: "ship-icon",
-                html: "🚢",
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
-            });
-
-            ships[mmsi] = L.marker(pos, {
-                icon: icon
-            }).addTo(map);
-
-            ships[mmsi].bindPopup("");
-        }
+        
         else
         {
             ships[mmsi].setLatLng(pos);
