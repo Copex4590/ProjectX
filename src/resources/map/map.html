@@ -14,21 +14,286 @@
             margin: 0;
             padding: 0;
         }
+
         .ship-icon {
-        font-size: 22px;
-        text-align: center;
-        line-height: 24px;
-        transform-origin: center center;
+            font-size: 22px;
+            text-align: center;
+            line-height: 24px;
+            transform-origin: center center;
         }
+
         .ship-body {
-        color: #1976d2;
-        font-size: 20px;
-        font-weight: bold;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+            color: #1976d2;
+            font-size: 20px;
+            font-weight: bold;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: transparent !important;
+            box-shadow: none !important;
+            border-radius: 18px !important;
+            padding: 0 !important;
+        }
+
+        .leaflet-popup-content {
+            margin: 0 !important;
+            width: auto !important;
+            min-width: 0 !important;
+            line-height: 1.4;
+        }
+
+        .leaflet-popup-tip-container {
+            margin-top: -1px;
+        }
+
+        .leaflet-popup-tip {
+            background: rgba(18, 22, 30, 0.82) !important;
+            box-shadow: none !important;
+        }
+
+        .vessel-card {
+            --vc-bg: rgba(18, 22, 30, 0.82);
+            --vc-border: rgba(255, 255, 255, 0.1);
+            --vc-text: #eef2f7;
+            --vc-muted: #8b95a5;
+            --vc-label: #5c6675;
+            --vc-accent: #5b9cf5;
+            --vc-radius: 14px;
+
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+            color: var(--vc-text);
+            background: var(--vc-bg);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid var(--vc-border);
+            border-radius: var(--vc-radius);
+            box-shadow:
+                0 10px 32px rgba(0, 0, 0, 0.42),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            overflow: hidden;
+            width: min(360px, calc(100vw - 48px));
+        }
+
+        .vessel-card__header {
+            padding: 13px 15px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            background: linear-gradient(
+                180deg,
+                rgba(255, 255, 255, 0.04) 0%,
+                transparent 100%
+            );
+        }
+
+        .vessel-card__header:not(:has(.vessel-card__badge)) {
+            padding-bottom: 13px;
+        }
+
+        .vessel-card__name {
+            margin: 0 0 7px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            line-height: 1.15;
+            word-break: break-word;
+            color: #f8fafc;
+        }
+
+        .vessel-card__badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .vessel-card__badges:empty {
+            display: none;
+        }
+
+        .vessel-card__badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 9px 2px 7px;
+            border-radius: 999px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            border: 1px solid transparent;
+            line-height: 1.3;
+        }
+
+        .vessel-card__badge-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 6px currentColor;
+        }
+
+        .vessel-card__badge--type {
+            color: #b8c5d9;
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.09);
+        }
+
+        .vessel-card__badge--type .vessel-card__badge-dot {
+            background: #94a3b8;
+            box-shadow: none;
+        }
+
+        .vessel-card__badge--source {
+            color: #fff;
+        }
+
+        .vessel-card__badge--rtl {
+            background: linear-gradient(
+                135deg,
+                rgba(245, 158, 11, 0.3),
+                rgba(217, 119, 6, 0.16)
+            );
+            border-color: rgba(251, 191, 36, 0.42);
+            color: #fde68a;
+            box-shadow: 0 0 14px rgba(245, 158, 11, 0.12);
+        }
+
+        .vessel-card__badge--rtl .vessel-card__badge-dot {
+            background: #fbbf24;
+        }
+
+        .vessel-card__badge--ais {
+            background: linear-gradient(
+                135deg,
+                rgba(59, 130, 246, 0.3),
+                rgba(37, 99, 235, 0.16)
+            );
+            border-color: rgba(96, 165, 250, 0.42);
+            color: #bfdbfe;
+            box-shadow: 0 0 14px rgba(59, 130, 246, 0.12);
+        }
+
+        .vessel-card__badge--ais .vessel-card__badge-dot {
+            background: #60a5fa;
+        }
+
+        .vessel-card__badge--hybrid {
+            background: linear-gradient(
+                135deg,
+                rgba(139, 92, 246, 0.3),
+                rgba(109, 40, 217, 0.16)
+            );
+            border-color: rgba(167, 139, 250, 0.42);
+            color: #ddd6fe;
+            box-shadow: 0 0 14px rgba(139, 92, 246, 0.12);
+        }
+
+        .vessel-card__badge--hybrid .vessel-card__badge-dot {
+            background: #a78bfa;
+        }
+
+        .vessel-card__body {
+            padding: 8px 11px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .vessel-card__block {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.045);
+            border-radius: 10px;
+            padding: 7px 10px;
+        }
+
+        .vessel-card__block-title {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin: 0 0 5px;
+            font-size: 0.58rem;
+            font-weight: 700;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+            color: #7a8494;
+        }
+
+        .vessel-card__block-icon {
+            width: 11px;
+            height: 11px;
+            flex-shrink: 0;
+            stroke: var(--vc-accent);
+            opacity: 0.85;
+        }
+
+        .vessel-card__grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 5px 10px;
+            margin: 0;
+        }
+
+        .vessel-card__item {
+            min-width: 0;
+        }
+
+        .vessel-card__item--full {
+            grid-column: 1 / -1;
+        }
+
+        .vessel-card__label {
+            display: block;
+            font-size: 0.56rem;
+            font-weight: 600;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--vc-label);
+            margin-bottom: 1px;
+        }
+
+        .vessel-card__value {
+            display: block;
+            font-size: 0.76rem;
+            font-weight: 500;
+            color: var(--vc-text);
+            word-break: break-word;
+            line-height: 1.25;
+        }
+
+        .vessel-card__value--mono {
+            font-variant-numeric: tabular-nums;
+            font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #dce4ef;
+        }
+
+        .vessel-card__value--empty {
+            color: #5f6b7a;
+            font-weight: 400;
+        }
+
+        .vessel-card__value--on {
+            color: #5eead4;
+            font-weight: 600;
+        }
+
+        .vessel-card__value--off {
+            color: #5f6b7a;
+            font-weight: 400;
+        }
+
+        @media (max-width: 320px) {
+            .vessel-card__grid {
+                grid-template-columns: 1fr;
+            }
+
+            .vessel-card__item--full {
+                grid-column: auto;
+            }
         }
     </style>
 </head>
@@ -52,6 +317,214 @@ L.tileLayer(
 const ships = {};
 const trails = {};
 
+function esc(value)
+{
+    if (value === null || value === undefined)
+        return "";
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function isEmpty(value)
+{
+    return (
+        value === null
+        || value === undefined
+        || value === ""
+        || value === "None"
+        || value === "null"
+    );
+}
+
+function dash(value)
+{
+    if (isEmpty(value))
+        return "—";
+
+    return value;
+}
+
+function formatCoord(value)
+{
+    if (isEmpty(value) || Number.isNaN(Number(value)))
+        return "—";
+
+    return Number(value).toFixed(5) + "°";
+}
+
+function formatNumber(value, digits)
+{
+    if (isEmpty(value) || Number.isNaN(Number(value)))
+        return "—";
+
+    return Number(value).toFixed(digits);
+}
+
+function formatAngle(value)
+{
+    if (isEmpty(value) || Number.isNaN(Number(value)))
+        return "—";
+
+    return Number(value).toFixed(1) + "°";
+}
+
+function formatSpeed(value)
+{
+    if (isEmpty(value) || Number.isNaN(Number(value)))
+        return "—";
+
+    return Number(value).toFixed(1) + " kn";
+}
+
+function formatDistance(value)
+{
+    if (isEmpty(value) || Number.isNaN(Number(value)))
+        return "—";
+
+    return Number(value).toFixed(2) + " km";
+}
+
+function formatBool(value)
+{
+    if (value === true)
+        return { text: "Yes", className: "vessel-card__value--on" };
+
+    if (value === false)
+        return { text: "No", className: "vessel-card__value--off" };
+
+    return { text: "—", className: "vessel-card__value--empty" };
+}
+
+function formatLastSeen(value)
+{
+    if (isEmpty(value))
+        return "—";
+
+    const parsed = new Date(value);
+
+    if (Number.isNaN(parsed.getTime()))
+        return esc(dash(value));
+
+    return esc(parsed.toLocaleString());
+}
+
+function normalizeSource(source)
+{
+    const text = dash(source);
+
+    if (text === "—")
+        return { label: "—", className: "vessel-card__badge--unknown" };
+
+    const upper = String(source).trim().toUpperCase();
+
+    if (upper.includes("HYBRID"))
+        return { label: "Hybrid", className: "vessel-card__badge--hybrid" };
+
+    if (upper === "RTL" || upper.includes("RTL"))
+        return { label: "RTL", className: "vessel-card__badge--rtl" };
+
+    if (upper === "AIS" || upper.includes("AIS"))
+        return { label: "AIS", className: "vessel-card__badge--ais" };
+
+    return { label: esc(text), className: "vessel-card__badge--unknown" };
+}
+
+function fieldItem(label, value, options = {})
+{
+    const empty = isEmpty(value) || value === "—";
+    const classes = [
+        "vessel-card__value",
+        options.mono ? "vessel-card__value--mono" : "",
+        options.stateClass || "",
+        empty ? "vessel-card__value--empty" : "",
+    ].filter(Boolean).join(" ");
+
+    const itemClass = options.full ? "vessel-card__item vessel-card__item--full" : "vessel-card__item";
+
+    return `
+        <div class="${itemClass}">
+            <span class="vessel-card__label">${esc(label)}</span>
+            <span class="${classes}">${value}</span>
+        </div>
+    `;
+}
+
+function buildVesselCard(ship)
+{
+    const name = isEmpty(ship.name) ? "Unknown Vessel" : esc(ship.name);
+    const typeLabel = isEmpty(ship.ship_type) ? "—" : esc(dash(ship.ship_type));
+    const source = normalizeSource(ship.source);
+
+    const ais = formatBool(ship.ais_visible);
+    const rtl = formatBool(ship.rtl_visible);
+    const camera = formatBool(ship.camera_visible);
+
+    const iconId = `<svg class="vessel-card__block-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h4"/><path d="M7 12h10"/><path d="M7 16h6"/></svg>`;
+    const iconPos = `<svg class="vessel-card__block-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`;
+    const iconNav = `<svg class="vessel-card__block-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/><path d="m14.5 9.5-5 2 2 5 5-2-2-5z"/></svg>`;
+    const iconVoy = `<svg class="vessel-card__block-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="M6 18l2-8h8l2 8"/><path d="M8 10V6h8v4"/><path d="M12 6V4"/></svg>`;
+    const iconVis = `<svg class="vessel-card__block-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>`;
+
+    return `
+        <div class="vessel-card">
+            <header class="vessel-card__header">
+                <h2 class="vessel-card__name">${name}</h2>
+                <div class="vessel-card__badges">
+                    ${isEmpty(ship.ship_type) ? "" : `<span class="vessel-card__badge vessel-card__badge--type"><span class="vessel-card__badge-dot"></span>${typeLabel}</span>`}
+                    ${source.label === "—" ? "" : `<span class="vessel-card__badge vessel-card__badge--source ${source.className}"><span class="vessel-card__badge-dot"></span>${source.label}</span>`}
+                </div>
+            </header>
+            <div class="vessel-card__body">
+                <section class="vessel-card__block">
+                    <h3 class="vessel-card__block-title">${iconId}Identification</h3>
+                    <div class="vessel-card__grid">
+                        ${fieldItem("MMSI", esc(dash(ship.mmsi)), { mono: true })}
+                        ${fieldItem("Callsign", esc(dash(ship.callsign)))}
+                    </div>
+                </section>
+                <section class="vessel-card__block">
+                    <h3 class="vessel-card__block-title">${iconPos}Position</h3>
+                    <div class="vessel-card__grid">
+                        ${fieldItem("Latitude", formatCoord(ship.lat), { mono: true })}
+                        ${fieldItem("Longitude", formatCoord(ship.lon), { mono: true })}
+                        ${fieldItem("Distance", formatDistance(ship.distance_km), { mono: true })}
+                        ${fieldItem("Direction", esc(dash(ship.direction)))}
+                    </div>
+                </section>
+                <section class="vessel-card__block">
+                    <h3 class="vessel-card__block-title">${iconNav}Navigation</h3>
+                    <div class="vessel-card__grid">
+                        ${fieldItem("Speed", formatSpeed(ship.speed), { mono: true })}
+                        ${fieldItem("Course", formatAngle(ship.course), { mono: true })}
+                        ${fieldItem("Heading", formatAngle(ship.heading), { mono: true })}
+                        ${fieldItem("Text Heading", esc(dash(ship.text_heading)))}
+                    </div>
+                </section>
+                <section class="vessel-card__block">
+                    <h3 class="vessel-card__block-title">${iconVoy}Voyage</h3>
+                    <div class="vessel-card__grid">
+                        ${fieldItem("Destination", esc(dash(ship.destination)), { full: true })}
+                        ${fieldItem("ETA", esc(dash(ship.eta)))}
+                        ${fieldItem("Last Seen", formatLastSeen(ship.last_seen))}
+                    </div>
+                </section>
+                <section class="vessel-card__block">
+                    <h3 class="vessel-card__block-title">${iconVis}Visibility</h3>
+                    <div class="vessel-card__grid">
+                        ${fieldItem("AIS Visible", esc(ais.text), { stateClass: ais.className })}
+                        ${fieldItem("RTL Visible", esc(rtl.text), { stateClass: rtl.className })}
+                        ${fieldItem("Camera Visible", esc(camera.text), { stateClass: camera.className })}
+                    </div>
+                </section>
+            </div>
+        </div>
+    `;
+}
+
 function updateShips(list)
 {
     const active = new Set();
@@ -63,7 +536,7 @@ function updateShips(list)
 
         const pos = [ship.lat, ship.lon];
 
-                if (!ships[mmsi])
+        if (!ships[mmsi])
         {
             const icon = L.divIcon({
                 className: "ship-icon",
@@ -83,12 +556,7 @@ function updateShips(list)
             ships[mmsi].setLatLng(pos);
         }
 
-        ships[mmsi].setPopupContent(`
-            <b>${ship.name || "Unknown"}</b><br>
-            MMSI: ${ship.mmsi}<br>
-            Speed: ${Number(ship.speed).toFixed(1)} kn<br>
-            Heading: ${ship.heading}
-        `);
+        ships[mmsi].setPopupContent(buildVesselCard(ship));
 
         if (!trails[mmsi])
         {
