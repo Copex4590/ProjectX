@@ -1,3 +1,4 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
@@ -14,7 +15,9 @@ from gui.dashboardpage import DashboardPage
 from gui.mappage import MapPage
 from gui.vesselspage import VesselsPage
 from gui.camerapage import CameraPage
+from gui.eventbridge import EventBridge
 
+from engines.ais.ais_catcher_launcher import ensure_ais_catcher_ready
 from engines.rtl.hybrid_engine import HybridEngine
 
 
@@ -30,8 +33,38 @@ class MainWindow(QMainWindow):
 
         self.build_ui()
 
-        print("🚢 Hybrid Engine indítása...")
-        self.hybrid_engine.start()
+        self.event_bridge = EventBridge()
+        self._connect_event_bridge()
+
+        if ensure_ais_catcher_ready():
+            print("🚢 Hybrid Engine indítása...")
+            self.hybrid_engine.start()
+        else:
+            print(
+                "⚠️ AIS-catcher nem elérhető – "
+                "Hybrid Engine nem indul."
+            )
+
+    def _connect_event_bridge(self):
+
+        connection = Qt.ConnectionType.QueuedConnection
+
+        self.event_bridge.ship_updated.connect(
+            self.vessels_page.refresh,
+            connection,
+        )
+        self.event_bridge.ship_updated.connect(
+            self.dashboard_page.on_ship_updated,
+            connection,
+        )
+        self.event_bridge.ais_status.connect(
+            self.connection_panel.on_ais_status,
+            connection,
+        )
+        self.event_bridge.rtl_status.connect(
+            self.connection_panel.on_rtl_status,
+            connection,
+        )
 
     def build_ui(self):
 
@@ -65,7 +98,8 @@ class MainWindow(QMainWindow):
 
         root.addWidget(self.sidebar)
         root.addWidget(self.pages, 1)
-        root.addWidget(ConnectionPanel())
+        self.connection_panel = ConnectionPanel()
+        root.addWidget(self.connection_panel)
 
         self.setStatusBar(StatusPanel())
 

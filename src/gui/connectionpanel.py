@@ -5,8 +5,6 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from events import eventbus
-
 
 class ConnectionPanel(QFrame):
 
@@ -56,8 +54,6 @@ class ConnectionPanel(QFrame):
 
         layout.addStretch()
 
-        eventbus.subscribe("ais.status", self.on_ais_status)
-
     def on_ais_status(self, status):
 
         if status == "connected":
@@ -66,3 +62,12 @@ class ConnectionPanel(QFrame):
             self.ais.setText("🟡 AISStream")
         else:
             self.ais.setText("⚪ AISStream")
+
+    def on_rtl_status(self, status):
+
+        if status == "connected":
+            self.rtl.setText("🟢 RTL Receiver")
+        elif status == "connecting":
+            self.rtl.setText("🟡 RTL Receiver")
+        else:
+            self.rtl.setText("⚪ RTL Receiver")

@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal
 
 from database import registry
-from events import eventbus
 
 
 class VesselsPage(QWidget):
@@ -49,11 +48,6 @@ class VesselsPage(QWidget):
 
         self.refresh()
 
-        eventbus.subscribe(
-            "ship.updated",
-            self.ship_updated
-        )
-
     def refresh(self):
 
         ships = sorted(
@@ -84,7 +78,3 @@ class VesselsPage(QWidget):
 
         if mmsi is not None:
             self.shipSelected.emit(mmsi)
-
-    def ship_updated(self, ship):
-
-        self.refresh()

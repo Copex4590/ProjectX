@@ -44,9 +44,13 @@ class ShipRegistry:
             current.source = ship.source
             current.last_seen = ship.last_seen
 
-            current.ais_visible = ship.ais_visible
-            current.rtl_visible = ship.rtl_visible
+            current.ais_visible = current.ais_visible or ship.ais_visible
+            current.rtl_visible = current.rtl_visible or ship.rtl_visible
             current.camera_visible = ship.camera_visible
+
+            current.distance_km = ship.distance_km
+            current.direction = ship.direction
+            current.text_heading = ship.text_heading
 
             current.add_history()
 

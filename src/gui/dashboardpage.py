@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
 )
 
 from database import registry
-from events import eventbus
 
 
 class InfoCard(QFrame):
@@ -83,11 +82,6 @@ class DashboardPage(QWidget):
 
         self.update_dashboard()
 
-        eventbus.subscribe(
-            "ship.updated",
-            self.ship_updated
-        )
-
     def update_dashboard(self):
 
         ships = registry.all()
@@ -99,12 +93,13 @@ class DashboardPage(QWidget):
         else:
             self.last.value.setText("--")
 
-    def ship_updated(self, ship):
+    def on_ship_updated(self):
 
-        self.ships.value.setText(
-            str(registry.count())
-        )
+        ships = registry.all()
 
-        self.last.value.setText(
-            ship.name
-        )
+        self.ships.value.setText(str(len(ships)))
+
+        if ships:
+            self.last.value.setText(ships[-1].name)
+        else:
+            self.last.value.setText("--")
