@@ -4,7 +4,12 @@ from engines.camera.providers.base_provider import (
     ProviderState,
     ProviderStatus,
 )
-from engines.camera.providers.hls_provider import HLSProvider
+from engines.camera.providers.hls_provider import (
+    HLSProvider,
+    HLSReadinessStatus,
+    HLSSession,
+    HLSValidationResult,
+)
 from engines.camera.providers.provider_registry import ProviderRegistry, provider_registry
 from engines.camera.providers.rtsp_provider import RTSPProvider
 from engines.camera.providers.snapshot_provider import SnapshotProvider
@@ -35,6 +40,9 @@ __all__ = [
     "ProviderRegistry",
     "provider_registry",
     "HLSProvider",
+    "HLSReadinessStatus",
+    "HLSSession",
+    "HLSValidationResult",
     "RTSPProvider",
     "SnapshotProvider",
     "YouTubeProvider",
