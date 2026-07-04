@@ -107,6 +107,7 @@ class MainWindow(QMainWindow):
 
         self.pages.setCurrentIndex(1)
 
+        self.map_page.select_vessel(mmsi)
         self.map_page.map.focus_ship(mmsi)
 
     def closeEvent(self, event):
