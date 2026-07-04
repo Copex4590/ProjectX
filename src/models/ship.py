@@ -29,6 +29,12 @@ class Ship:
 
     source: str = ""
 
+
+    # --- Hybrid Monitor migration fields ---
+    distance_km: float = 0.0
+    direction: str = ""
+    text_heading: str = ""
+
     last_seen: datetime = field(default_factory=datetime.now)
 
     ais_visible: bool = False

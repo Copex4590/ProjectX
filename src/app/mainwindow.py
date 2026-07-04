@@ -15,7 +15,7 @@ from gui.mappage import MapPage
 from gui.vesselspage import VesselsPage
 from gui.camerapage import CameraPage
 
-from engines.ais import AISStreamEngine
+from engines.rtl.hybrid_engine import HybridEngine
 
 
 class MainWindow(QMainWindow):
@@ -26,12 +26,12 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Project X")
         self.resize(1600, 900)
 
-        self.ais_engine = AISStreamEngine()
+        self.hybrid_engine = HybridEngine()
 
         self.build_ui()
 
-        print("🚢 AIS Engine indítása...")
-        self.ais_engine.start()
+        print("🚢 Hybrid Engine indítása...")
+        self.hybrid_engine.start()
 
     def build_ui(self):
 
@@ -77,8 +77,8 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
 
-        print("🛑 AIS Engine leállítása...")
+        print("🛑 Hybrid Engine leállítása...")
 
-        self.ais_engine.stop()
+        self.hybrid_engine.stop()
 
         super().closeEvent(event)
