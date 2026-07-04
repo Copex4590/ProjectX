@@ -1,0 +1,17 @@
+{
+  "country": "AT",
+  "name": "Austria",
+  "cameras": [
+    {
+      "id": "at-vienna-danube-west",
+      "name": "Vienna Danube West",
+      "lat": 48.220000,
+      "lon": 16.410000,
+      "direction_deg": 90.0,
+      "fov_deg": 75.0,
+      "visibility_radius_km": 4.0,
+      "enabled": true,
+      "description": "Sample Austrian Danube camera"
+    }
+  ]
+}

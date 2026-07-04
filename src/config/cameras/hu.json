@@ -1,0 +1,17 @@
+{
+  "country": "HU",
+  "name": "Hungary",
+  "cameras": [
+    {
+      "id": "hu-budapest-duna-north",
+      "name": "Budapest Duna North",
+      "lat": 47.501539,
+      "lon": 19.039856,
+      "direction_deg": 180.0,
+      "fov_deg": 90.0,
+      "visibility_radius_km": 5.0,
+      "enabled": true,
+      "description": "Primary Danube monitoring camera"
+    }
+  ]
+}

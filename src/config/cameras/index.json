@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "countries": [
+    {
+      "code": "HU",
+      "name": "Hungary",
+      "file": "hu.json"
+    },
+    {
+      "code": "AT",
+      "name": "Austria",
+      "file": "at.json"
+    }
+  ]
+}
