@@ -21,6 +21,7 @@ class Sidebar(QFrame):
         ("Alert Center", 7),
         ("Alert Rules", 8),
         ("Settings", 9),
+        ("System Health", 10),
     )
 
     _PAGE_ICONS = (
@@ -34,6 +35,7 @@ class Sidebar(QFrame):
         "🔔",
         "⚙",
         "🔧",
+        "🩺",
     )
 
     def __init__(self):

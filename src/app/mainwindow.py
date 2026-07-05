@@ -2,6 +2,7 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
+    QMessageBox,
     QStackedWidget,
     QWidget,
 )
@@ -23,11 +24,12 @@ from gui.statisticspage import StatisticsPage
 from gui.alertcenterpage import AlertCenterPage
 from gui.rulespage import RulesPage
 from gui.settingspage import SettingsPage
+from gui.systemhealthpage import SystemHealthPage
 from gui.eventbridge import EventBridge
 from camera import camera_manager
 from gui.firstrunwizard import FirstRunWizard
 
-from i18n import language_manager
+from i18n import language_manager, tr
 from observation import observation_manager
 from preferences import preferences_manager
 from inspector.inspector import PROJECT_VERSION
@@ -37,6 +39,9 @@ from engines.rtl.hybrid_engine import HybridEngine
 from logbook import logbook_recorder
 from ais import ais_manager
 from rtl import rtl_manager
+from gui.aiswizard import AISWizard
+from gui.rtlsdrdiagnosticsdialog import RTLSdrDiagnosticsDialog
+from gui.rtlsdrwizard import RTLSdrWizard
 
 
 class MainWindow(QMainWindow):
@@ -184,6 +189,7 @@ class MainWindow(QMainWindow):
         self.alert_center_page = AlertCenterPage()
         self.rules_page = RulesPage()
         self.settings_page = SettingsPage()
+        self.system_health_page = SystemHealthPage()
 
         self.pages.addWidget(self.dashboard_page)        # 0
         self.pages.addWidget(self.map_page)              # 1
@@ -195,6 +201,9 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self.alert_center_page)     # 7
         self.pages.addWidget(self.rules_page)            # 8
         self.pages.addWidget(self.settings_page)         # 9
+        self.pages.addWidget(self.system_health_page)    # 10
+
+        self.system_health_page.attach_hybrid_engine(self.hybrid_engine)
 
         self.sidebar = Sidebar()
         self.sidebar.pageSelected.connect(self.pages.setCurrentIndex)
@@ -219,6 +228,8 @@ class MainWindow(QMainWindow):
             self.focus_ship
         )
 
+        self._connect_system_health()
+
         root.addWidget(self.sidebar)
         root.addWidget(self.pages, 1)
         self.connection_panel = ConnectionPanel()
@@ -242,6 +253,7 @@ class MainWindow(QMainWindow):
             self.alert_center_page,
             self.rules_page,
             self.settings_page,
+            self.system_health_page,
         ):
             refresh = getattr(page, "refresh_translations", None)
 
@@ -270,6 +282,72 @@ class MainWindow(QMainWindow):
 
         if callable(status_refresh):
             status_refresh()
+
+    def _connect_system_health(self) -> None:
+
+        page = self.system_health_page
+
+        page.configureAisRequested.connect(self._open_ais_configure)
+        page.testAisRequested.connect(self._test_ais_from_health)
+        page.rtlSetupRequested.connect(self._open_rtl_setup)
+        page.rtlDiagnosticsRequested.connect(self._open_rtl_diagnostics)
+        page.openSettingsRequested.connect(lambda: self.pages.setCurrentIndex(9))
+        page.openDashboardRequested.connect(lambda: self.pages.setCurrentIndex(0))
+        page.openMapRequested.connect(lambda: self.pages.setCurrentIndex(1))
+        page.cameraDiagnosticsRequested.connect(self._open_camera_diagnostics)
+
+    def _open_ais_configure(self) -> None:
+
+        self.pages.setCurrentIndex(0)
+        wizard = AISWizard(self)
+
+        if wizard.exec() == AISWizard.DialogCode.Accepted:
+            self.dashboard_page.refresh_ais()
+
+        self.system_health_page.refresh()
+
+    def _test_ais_from_health(self) -> None:
+
+        self.pages.setCurrentIndex(0)
+        result = ais_manager.test_current()
+
+        if result.success:
+            QMessageBox.information(
+                self,
+                tr("AIS Source"),
+                tr(result.message) if result.message else tr("Connection successful"),
+            )
+        else:
+            QMessageBox.warning(
+                self,
+                tr("AIS Source"),
+                tr(result.message) if result.message else tr("AIS source is not configured yet."),
+            )
+
+        self.dashboard_page.refresh_ais()
+        self.system_health_page.refresh()
+
+    def _open_rtl_setup(self) -> None:
+
+        self.pages.setCurrentIndex(0)
+        wizard = RTLSdrWizard(self)
+
+        if wizard.exec() == RTLSdrWizard.DialogCode.Accepted:
+            self.dashboard_page.refresh_rtl()
+            self.dashboard_page.refresh_ais()
+
+        self.system_health_page.refresh()
+
+    def _open_rtl_diagnostics(self) -> None:
+
+        dialog = RTLSdrDiagnosticsDialog(self)
+        dialog.exec()
+        self.system_health_page.refresh()
+
+    def _open_camera_diagnostics(self) -> None:
+
+        self.pages.setCurrentIndex(9)
+        self.settings_page.camera_diagnostics.refresh()
 
     def focus_ship(self, mmsi):
 
