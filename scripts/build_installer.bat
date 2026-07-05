@@ -5,11 +5,11 @@ rem ============================================================================
 rem Project X — Compile Windows Inno Setup installer (SAVE-076)
 rem ============================================================================
 rem Requires: dist\projectx\projectx.exe from PyInstaller
-rem Produces: website\downloads\windows\ProjectX-Setup.exe
+rem Produces: release\windows\ProjectX-Setup.exe
 
 cd /d "%~dp0.."
 set "ROOT=%CD%"
-set "INSTALLER=%ROOT%\website\downloads\windows\ProjectX-Setup.exe"
+set "INSTALLER=%ROOT%\release\windows\ProjectX-Setup.exe"
 set "ISCC="
 
 if not exist "%ROOT%\dist\projectx\projectx.exe" (

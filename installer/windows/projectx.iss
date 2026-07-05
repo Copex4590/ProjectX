@@ -7,7 +7,8 @@
 ;   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\windows\projectx.iss
 ;
 ; Output:
-;   website\downloads\windows\ProjectX-Setup.exe
+;   release\windows\ProjectX-Setup.exe
+;   (sync to website via scripts/prepare_release.sh)
 ;
 ; Silent install:
 ;   ProjectX-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
@@ -34,7 +35,7 @@ DefaultDirName={autopf}\Project X
 DefaultGroupName={#MyAppName}
 DisableDirPage=auto
 DisableProgramGroupPage=no
-OutputDir=..\..\website\downloads\windows
+OutputDir=..\..\release\windows
 OutputBaseFilename={#MyAppOutput}
 SetupIconFile=..\..\src\resources\branding\projectx.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}

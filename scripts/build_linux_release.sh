@@ -291,12 +291,7 @@ EOF
 }
 
 write_checksums() {
-    local sums="${RELEASE_DIR}/SHA256SUMS"
-    (
-        cd "$RELEASE_DIR"
-        sha256sum ProjectX-*-x86_64.AppImage projectx_*_amd64.deb 2>/dev/null || true
-    ) > "$sums"
-    echo "[OK] Checksums: $sums"
+    bash "$ROOT/scripts/generate_release_checksums.sh"
 }
 
 verify_release_packages() {

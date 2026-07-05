@@ -145,7 +145,7 @@ if /I "%SKIP_INSTALLER%"=="1" (
 call "%ROOT%\scripts\build_installer.bat"
 if errorlevel 1 exit /b 1
 
-echo [OK] Verified: website\downloads\windows\ProjectX-Setup.exe
+echo [OK] Verified: release\windows\ProjectX-Setup.exe
 echo.
 exit /b 0
 
@@ -153,12 +153,13 @@ exit /b 0
 call :banner "BUILD SUCCESSFUL"
 echo Application bundle:
 echo   %ROOT%\dist\projectx\projectx.exe
-if exist "%ROOT%\website\downloads\windows\ProjectX-Setup.exe" (
+if exist "%ROOT%\release\windows\ProjectX-Setup.exe" (
     echo Windows installer:
-    echo   %ROOT%\website\downloads\windows\ProjectX-Setup.exe
+    echo   %ROOT%\release\windows\ProjectX-Setup.exe
     echo.
     echo Next steps:
     echo   1. Run scripts\verify_windows_installer.bat
+    echo   2. Run scripts\prepare_release.sh on Linux or sync website copies manually
     echo   2. On a clean VM: install, confirm First Run Wizard, smoke-test map
 ) else (
     echo.

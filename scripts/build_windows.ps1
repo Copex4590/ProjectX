@@ -84,7 +84,7 @@ try {
     Write-Host ""
     Write-Banner "BUILD SUCCESSFUL"
     Write-Host "Application bundle:`n  $exePath"
-    $installerPath = Join-Path $Root "website\downloads\windows\ProjectX-Setup.exe"
+    $installerPath = Join-Path $Root "release\windows\ProjectX-Setup.exe"
     if (Test-Path $installerPath) {
         Write-Host "Windows installer:`n  $installerPath`n"
     }

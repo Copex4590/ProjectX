@@ -33,13 +33,17 @@ scripts/fetch_leaflet.sh
 | `scripts/verify_windows_installer.bat` | Silent install/uninstall verification (Windows) |
 | `scripts/build_windows.ps1` | PowerShell alternative to `build_windows.bat` |
 | `scripts/build_linux_release.sh` | **Official Linux release packages → `release/linux/`** |
+| `scripts/prepare_release.sh` | Sync notes, website copies, checksums |
+| `scripts/generate_release_checksums.sh` | SHA256 checksum generation |
+| `scripts/verify_release.sh` | Full public release verification |
 | `scripts/verify_linux_release.sh` | Verify AppImage / .deb contents |
 | `scripts/build_linux.sh` | PyInstaller one-dir bundle → `dist/projectx/` (Linux smoke-test) |
 | `scripts/build_windows.sh` | Linux asset/path checks; optional WSL alternative |
 | `scripts/clean_build.sh` | Remove `build/` and `dist/` |
 
 Full Windows workflow: **`BUILD_WINDOWS.md`**  
-Full Linux release workflow: **`docs/LINUX_INSTALLER.md`**
+Full Linux release workflow: **`docs/LINUX_INSTALLER.md`**  
+Public release workflow: **`RELEASE_PROCESS.md`**
 
 ## Linux release packages (SAVE-077)
 

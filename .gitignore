@@ -28,6 +28,7 @@ dist/
 .install-test/
 
 # Windows release installer binary (build on Windows, upload for website publish)
+release/windows/*.exe
 website/downloads/windows/*.exe
 
 # Linux release packages (build on Linux, upload for website publish)

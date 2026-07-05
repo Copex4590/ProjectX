@@ -3,7 +3,7 @@
 Documentation for the first installable Windows release using **Inno Setup 6** and **PyInstaller**.
 
 Application version: **0.3.0-alpha**  
-Installer output: **`website/downloads/windows/ProjectX-Setup.exe`**
+Installer output: **`release/windows/ProjectX-Setup.exe`**
 
 ---
 
@@ -127,7 +127,7 @@ The release portal reads `website/releases.json`:
 }
 ```
 
-Download URL: `website/downloads/windows/ProjectX-Setup.exe`
+Download URL: `website/downloads/windows/ProjectX-Setup.exe` (synced by `scripts/prepare_release.sh`)
 
 After building on Windows, publish the installer binary to the web host (the `.exe` is gitignored; upload separately or attach to a GitHub Release).
 
@@ -147,7 +147,7 @@ Verify website config:
 | `scripts/build_windows.bat` | Full Windows release build |
 | `scripts/build_installer.bat` | Compile installer only |
 | `scripts/verify_windows_installer.bat` | Silent install/uninstall test |
-| `website/downloads/windows/ProjectX-Setup.exe` | Release artifact (generated) |
+| `release/windows/ProjectX-Setup.exe` | Release artifact (generated) |
 
 ---
 
