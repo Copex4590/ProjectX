@@ -6,6 +6,7 @@
 from threading import Lock
 
 from database.vessel_sync import vessel_sync
+from engines.timeline.arrival_departure_engine import arrival_departure_engine
 from models.ship import Ship
 from timeline.timeline_recorder import timeline_recorder
 
@@ -61,6 +62,7 @@ class ShipRegistry:
 
         vessel_sync.enqueue(merged)
         timeline_recorder.enqueue(merged)
+        arrival_departure_engine.notify(merged)
 
     def get(self, mmsi: int):
 
