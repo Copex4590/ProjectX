@@ -1,11 +1,14 @@
 import json
+import math
 from collections import Counter
 
 from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 
+from cameras import camera_manager
 from database import registry
 from engines.camera import camera_selection_engine
+from engines.rtl.hybrid_engine import CAMERA_LAT, CAMERA_LON
 from gui.vesselcard import vessel_card_layout_manager
 from gui.widgets.camerapreviewpanel import CameraPreviewPanel
 from gui.widgets.mapwidget import MapWidget
@@ -126,21 +129,67 @@ def _timeline_events(mmsi: int, limit: int = 3) -> list[dict]:
     ]
 
 
-def _enrich_camera_fields(ship, payload: dict) -> None:
+def _bearing_deg_from(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    dlon = math.radians(lon2 - lon1)
+
+    x = math.sin(dlon) * math.cos(lat2_rad)
+    y = (
+        math.cos(lat1_rad) * math.sin(lat2_rad)
+        - math.sin(lat1_rad) * math.cos(lat2_rad) * math.cos(dlon)
+    )
+
+    bearing = math.degrees(math.atan2(x, y))
+    return (bearing + 360.0) % 360.0
+
+
+def _display_camera_for_ship(ship):
 
     match = camera_selection_engine.get_best_camera(ship)
 
-    if match is None:
-        payload["camera_name"] = None
-        payload["camera_bearing_deg"] = None
+    if match is not None:
+        return match.camera, match.distance_km
+
+    cameras = camera_manager.enabled()
+
+    if cameras:
+        camera = min(
+            cameras,
+            key=lambda item: item.distance_km_to(ship.lat, ship.lon),
+        )
+        return camera, camera.distance_km_to(ship.lat, ship.lon)
+
+    return None, None
+
+
+def _enrich_camera_fields(ship, payload: dict) -> None:
+
+    camera, distance_km = _display_camera_for_ship(ship)
+
+    if camera is not None:
+        payload["camera_name"] = camera.name
+        payload["camera_distance_km"] = round(distance_km, 2)
+        payload["camera_bearing_deg"] = camera.bearing_deg_to(
+            ship.lat,
+            ship.lon,
+        )
         return
 
-    payload["camera_name"] = match.camera.name
-    payload["camera_distance_km"] = round(match.distance_km, 2)
-    payload["camera_bearing_deg"] = match.camera.bearing_deg_to(
-        ship.lat,
-        ship.lon,
-    )
+    payload["camera_name"] = None
+    payload["camera_distance_km"] = None
+
+    if ship.lat is not None and ship.lon is not None:
+        payload["camera_bearing_deg"] = _bearing_deg_from(
+            CAMERA_LAT,
+            CAMERA_LON,
+            ship.lat,
+            ship.lon,
+        )
+        return
+
+    payload["camera_bearing_deg"] = None
 
 
 def _enrich_statistics_fields(mmsi: int, payload: dict) -> None:
