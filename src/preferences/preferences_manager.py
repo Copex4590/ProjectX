@@ -78,6 +78,35 @@ class PreferencesManager:
         current.ais_configured = bool(configured)
         return self.save(Preferences.from_dict(current.to_dict()))
 
+    def set_rtl_configuration(
+        self,
+        *,
+        owned: bool | None = None,
+        configured: bool | None = None,
+        auto_start_ais_catcher: bool | None = None,
+        setup_os: str | None = None,
+        setup_completed: bool | None = None,
+    ) -> Preferences:
+
+        current = self.get()
+
+        if owned is not None:
+            current.rtl_sdr_owned = bool(owned)
+
+        if configured is not None:
+            current.rtl_sdr_configured = bool(configured)
+
+        if auto_start_ais_catcher is not None:
+            current.rtl_auto_start_ais_catcher = bool(auto_start_ais_catcher)
+
+        if setup_os is not None:
+            current.rtl_setup_os = str(setup_os).strip().lower()
+
+        if setup_completed is not None:
+            current.rtl_setup_completed = bool(setup_completed)
+
+        return self.save(Preferences.from_dict(current.to_dict()))
+
     def _load(self) -> Preferences:
 
         if not self._path.exists():

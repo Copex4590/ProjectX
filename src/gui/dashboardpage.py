@@ -20,6 +20,8 @@ from engines.rtl.hybrid_engine import CAMERA_LAT, CAMERA_LON
 from ais import ais_manager
 from camera import camera_manager
 from gui.aiswizard import AISWizard
+from gui.rtlsdrdiagnosticsdialog import RTLSdrDiagnosticsDialog
+from gui.rtlsdrwizard import RTLSdrWizard
 from gui.camerawizard import CameraWizard
 from gui.i18n_support import bind_language_refresh
 from gui.observationwizard import ObservationWizard
@@ -27,6 +29,7 @@ from gui.widgets.observationmapwidget import ObservationMapWidget
 from i18n import tr
 from logbook import logbook_manager
 from observation import observation_manager
+from rtl import rtl_manager
 
 
 class InfoCard(QFrame):
@@ -417,6 +420,85 @@ class DashboardPage(QWidget):
         ais_layout.addLayout(ais_button_row)
         layout.addWidget(self._ais_card)
 
+        self._rtl_card = QFrame()
+        self._rtl_card.setStyleSheet("""
+            QFrame {
+                background: #252a31;
+                border: 1px solid #40444b;
+                border-radius: 10px;
+            }
+        """)
+        rtl_layout = QVBoxLayout(self._rtl_card)
+        rtl_layout.setContentsMargins(16, 16, 16, 16)
+        rtl_layout.setSpacing(10)
+
+        self._rtl_title = QLabel()
+        self._rtl_title.setStyleSheet(
+            "font-size: 16pt; font-weight: bold; color: white;"
+        )
+        rtl_layout.addWidget(self._rtl_title)
+
+        rtl_grid = QGridLayout()
+        self._rtl_status_caption = QLabel()
+        self._rtl_status_value = QLabel()
+        self._rtl_connection_caption = QLabel()
+        self._rtl_connection_value = QLabel()
+        self._rtl_messages_caption = QLabel()
+        self._rtl_messages_value = QLabel()
+
+        for caption in (
+            self._rtl_status_caption,
+            self._rtl_connection_caption,
+            self._rtl_messages_caption,
+        ):
+            caption.setStyleSheet("color: #9aa4af;")
+
+        for value in (
+            self._rtl_status_value,
+            self._rtl_connection_value,
+            self._rtl_messages_value,
+        ):
+            value.setStyleSheet("color: white; font-weight: 600;")
+
+        rtl_grid.addWidget(self._rtl_status_caption, 0, 0)
+        rtl_grid.addWidget(self._rtl_status_value, 0, 1)
+        rtl_grid.addWidget(self._rtl_connection_caption, 1, 0)
+        rtl_grid.addWidget(self._rtl_connection_value, 1, 1)
+        rtl_grid.addWidget(self._rtl_messages_caption, 2, 0)
+        rtl_grid.addWidget(self._rtl_messages_value, 2, 1)
+        rtl_layout.addLayout(rtl_grid)
+
+        rtl_button_row = QHBoxLayout()
+        rtl_button_row.setSpacing(8)
+        self._rtl_setup_button = QPushButton()
+        self._rtl_test_button = QPushButton()
+        self._rtl_diagnostics_button = QPushButton()
+
+        for button in (
+            self._rtl_setup_button,
+            self._rtl_test_button,
+            self._rtl_diagnostics_button,
+        ):
+            button.setStyleSheet("""
+                QPushButton {
+                    background: #343a42;
+                    color: white;
+                    border: 1px solid #4a5159;
+                    border-radius: 6px;
+                    padding: 6px 12px;
+                }
+                QPushButton:hover {
+                    background: #3f464f;
+                }
+            """)
+
+        rtl_button_row.addWidget(self._rtl_setup_button)
+        rtl_button_row.addWidget(self._rtl_test_button)
+        rtl_button_row.addWidget(self._rtl_diagnostics_button)
+        rtl_button_row.addStretch()
+        rtl_layout.addLayout(rtl_button_row)
+        layout.addWidget(self._rtl_card)
+
         grid = QGridLayout()
 
         self.ships = InfoCard("Ships")
@@ -448,6 +530,9 @@ class DashboardPage(QWidget):
         self._ais_configure_button.clicked.connect(self._configure_ais)
         self._ais_test_button.clicked.connect(self._test_ais)
         self._ais_change_button.clicked.connect(self._change_ais)
+        self._rtl_setup_button.clicked.connect(self._setup_rtl)
+        self._rtl_test_button.clicked.connect(self._test_rtl)
+        self._rtl_diagnostics_button.clicked.connect(self._rtl_diagnostics)
 
         bind_language_refresh(self.refresh_translations)
 
@@ -492,10 +577,18 @@ class DashboardPage(QWidget):
         self._ais_configure_button.setText(tr("Configure"))
         self._ais_test_button.setText(tr("Test"))
         self._ais_change_button.setText(tr("Change"))
+        self._rtl_title.setText(tr("RTL-SDR"))
+        self._rtl_status_caption.setText(tr("Status"))
+        self._rtl_connection_caption.setText(tr("RTL Status"))
+        self._rtl_messages_caption.setText(tr("AIS Messages"))
+        self._rtl_setup_button.setText(tr("Setup"))
+        self._rtl_test_button.setText(tr("Test"))
+        self._rtl_diagnostics_button.setText(tr("Diagnostics"))
 
         self.refresh_observation()
         self.refresh_cameras()
         self.refresh_ais()
+        self.refresh_rtl()
 
     def refresh_observation(self) -> None:
 
@@ -629,6 +722,7 @@ class DashboardPage(QWidget):
 
         if wizard.exec() == QDialog.DialogCode.Accepted:
             self.refresh_ais()
+        self.refresh_rtl()
 
     def _change_ais(self) -> None:
 
@@ -659,6 +753,63 @@ class DashboardPage(QWidget):
             tr("AIS Source"),
             tr(result.message),
         )
+
+    def refresh_rtl(self) -> None:
+
+        status = rtl_manager.status_label()
+
+        if status == "connected":
+            self._rtl_status_value.setText(tr("Connected"))
+            self._rtl_status_value.setStyleSheet("color: #66bb6a; font-weight: 600;")
+            self._rtl_connection_value.setText("🟢 " + tr("Connected"))
+        elif status == "configured":
+            self._rtl_status_value.setText(tr("Configured"))
+            self._rtl_status_value.setStyleSheet("color: #bbbbbb; font-weight: 600;")
+            self._rtl_connection_value.setText("⚪ " + tr("Disconnected"))
+        else:
+            self._rtl_status_value.setText(tr("Not configured"))
+            self._rtl_status_value.setStyleSheet("color: #9aa4af; font-weight: 600;")
+            self._rtl_connection_value.setText("⚪ " + tr("Disconnected"))
+
+        stats = rtl_manager.reception_stats()
+        self._rtl_messages_value.setText(str(stats.message_count))
+
+    def _setup_rtl(self) -> None:
+
+        wizard = RTLSdrWizard(self)
+
+        if wizard.exec() == QDialog.DialogCode.Accepted:
+            self.refresh_rtl()
+            self.refresh_ais()
+        else:
+            self.refresh_rtl()
+
+    def _test_rtl(self) -> None:
+
+        result = rtl_manager.test_reception(duration_seconds=8.0)
+
+        if result.success:
+            QMessageBox.information(
+                self,
+                tr("RTL-SDR"),
+                f"✓ {tr('Reception test successful')}\n"
+                f"{tr('AIS messages received')}: {result.message_count}\n"
+                f"{tr('Ships detected')}: {result.ships_detected}",
+            )
+        else:
+            QMessageBox.warning(
+                self,
+                tr("RTL-SDR"),
+                result.message or tr("No AIS messages received yet."),
+            )
+
+        self.refresh_rtl()
+
+    def _rtl_diagnostics(self) -> None:
+
+        dialog = RTLSdrDiagnosticsDialog(self)
+        dialog.exec()
+        self.refresh_rtl()
 
     def _import_legacy_logbook(self) -> None:
 
@@ -926,3 +1077,4 @@ class DashboardPage(QWidget):
             self.last.value.setText("--")
 
         self.refresh_ais()
+        self.refresh_rtl()

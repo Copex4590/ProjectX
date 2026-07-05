@@ -36,6 +36,7 @@ from engines.ais.ais_catcher_launcher import ensure_ais_catcher_ready
 from engines.rtl.hybrid_engine import HybridEngine
 from logbook import logbook_recorder
 from ais import ais_manager
+from rtl import rtl_manager
 
 
 class MainWindow(QMainWindow):
@@ -50,6 +51,7 @@ class MainWindow(QMainWindow):
         self.hybrid_engine = HybridEngine()
         logbook_recorder.start()
         ais_manager.start()
+        rtl_manager.start()
 
         self.build_ui()
 
@@ -93,6 +95,10 @@ class MainWindow(QMainWindow):
         )
         self.event_bridge.rtl_status.connect(
             self.dashboard_page.refresh_ais,
+            connection,
+        )
+        self.event_bridge.rtl_status.connect(
+            self.dashboard_page.refresh_rtl,
             connection,
         )
 

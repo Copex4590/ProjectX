@@ -7,5 +7,10 @@
   "aisstream_api_key": "",
   "ais_local_host": "localhost",
   "ais_local_port": 10110,
-  "ais_configured": false
+  "ais_configured": false,
+  "rtl_sdr_owned": null,
+  "rtl_sdr_configured": false,
+  "rtl_auto_start_ais_catcher": true,
+  "rtl_setup_os": "",
+  "rtl_setup_completed": false
 }

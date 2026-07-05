@@ -45,6 +45,11 @@ class Preferences:
     ais_local_host: str = DEFAULT_AIS_LOCAL_HOST
     ais_local_port: int = DEFAULT_AIS_LOCAL_PORT
     ais_configured: bool = False
+    rtl_sdr_owned: bool | None = None
+    rtl_sdr_configured: bool = False
+    rtl_auto_start_ais_catcher: bool = True
+    rtl_setup_os: str = ""
+    rtl_setup_completed: bool = False
     version: int = SCHEMA_VERSION
 
     def to_dict(self) -> dict:
@@ -59,6 +64,11 @@ class Preferences:
             "ais_local_host": self.ais_local_host,
             "ais_local_port": self.ais_local_port,
             "ais_configured": self.ais_configured,
+            "rtl_sdr_owned": self.rtl_sdr_owned,
+            "rtl_sdr_configured": self.rtl_sdr_configured,
+            "rtl_auto_start_ais_catcher": self.rtl_auto_start_ais_catcher,
+            "rtl_setup_os": self.rtl_setup_os,
+            "rtl_setup_completed": self.rtl_setup_completed,
         }
 
     @classmethod
@@ -94,6 +104,13 @@ class Preferences:
         except (TypeError, ValueError):
             ais_local_port = DEFAULT_AIS_LOCAL_PORT
 
+        owned_value = data.get("rtl_sdr_owned", None)
+
+        if owned_value is None:
+            rtl_sdr_owned = None
+        else:
+            rtl_sdr_owned = bool(owned_value)
+
         return cls(
             language=language,
             vessel_card_layout=layout,
@@ -105,6 +122,13 @@ class Preferences:
             ).strip() or DEFAULT_AIS_LOCAL_HOST,
             ais_local_port=ais_local_port,
             ais_configured=bool(data.get("ais_configured", False)),
+            rtl_sdr_owned=rtl_sdr_owned,
+            rtl_sdr_configured=bool(data.get("rtl_sdr_configured", False)),
+            rtl_auto_start_ais_catcher=bool(
+                data.get("rtl_auto_start_ais_catcher", True)
+            ),
+            rtl_setup_os=str(data.get("rtl_setup_os", "")).strip().lower(),
+            rtl_setup_completed=bool(data.get("rtl_setup_completed", False)),
             version=int(data.get("version", SCHEMA_VERSION)),
         )
 
@@ -149,5 +173,15 @@ class Preferences:
             migrated["ais_local_port"] = DEFAULT_AIS_LOCAL_PORT
 
         migrated["ais_configured"] = bool(migrated.get("ais_configured", False))
+
+        if "rtl_sdr_owned" not in data:
+            migrated["rtl_sdr_owned"] = None
+        else:
+            migrated["rtl_sdr_owned"] = bool(migrated.get("rtl_sdr_owned"))
+
+        migrated.setdefault("rtl_sdr_configured", False)
+        migrated.setdefault("rtl_auto_start_ais_catcher", True)
+        migrated.setdefault("rtl_setup_os", "")
+        migrated.setdefault("rtl_setup_completed", False)
 
         return migrated
