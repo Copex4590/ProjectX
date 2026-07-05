@@ -103,6 +103,9 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=str(BRANDING / "projectx.ico"),
+    # PyInstaller 6+ defaults to _internal/ for onedir datas; legacy layout keeps
+    # resources/ next to the executable (Inno Setup, AppImage, verify scripts).
+    contents_directory=".",
 )
 
 coll = COLLECT(

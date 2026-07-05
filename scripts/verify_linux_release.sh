@@ -10,6 +10,7 @@ cd "$ROOT"
 
 PYTHON="${PROJECTX_PYTHON:-python3}"
 RELEASE_DIR="${ROOT}/release/linux"
+CHECKSUM_DIR="${ROOT}/release/checksums"
 FAILED=0
 
 read_names() {
@@ -78,18 +79,37 @@ else
 fi
 
 if [[ -f "$DEB" ]]; then
-    dpkg-deb -c "$DEB" | grep -q 'opt/projectx/projectx' && ok ".deb contains application" || fail ".deb missing application"
-    dpkg-deb -c "$DEB" | grep -q 'usr/share/applications/projectx.desktop' && ok ".deb contains menu entry" || fail ".deb missing desktop file"
-    dpkg-deb -c "$DEB" | grep -q 'usr/share/icons/hicolor/256x256/apps/projectx.png' && ok ".deb contains icon" || fail ".deb missing icon"
-    dpkg-deb -c "$DEB" | grep -q 'usr/bin/projectx' && ok ".deb contains usr/bin launcher" || fail ".deb missing usr/bin/projectx"
+    DEB_EXTRACT="$(mktemp -d)"
+    dpkg-deb -x "$DEB" "$DEB_EXTRACT"
+    [[ -x "$DEB_EXTRACT/opt/projectx/projectx" ]] && ok ".deb contains application" || fail ".deb missing application"
+    [[ -f "$DEB_EXTRACT/usr/share/applications/projectx.desktop" ]] && ok ".deb contains menu entry" || fail ".deb missing desktop file"
+    [[ -f "$DEB_EXTRACT/usr/share/icons/hicolor/256x256/apps/projectx.png" ]] && ok ".deb contains icon" || fail ".deb missing icon"
+    [[ -x "$DEB_EXTRACT/usr/bin/projectx" ]] && ok ".deb contains usr/bin launcher" || fail ".deb missing usr/bin/projectx"
+    rm -rf "$DEB_EXTRACT"
 else
-    echo "[WARN] .deb package not found (optional): $DEB"
+    fail ".deb package not found: $DEB"
 fi
 
 WEB_COPY="${ROOT}/website/downloads/linux/$(basename "$APPIMAGE")"
-[[ -f "$WEB_COPY" ]] && ok "Website download copy: $WEB_COPY" || echo "[WARN] Website copy missing: $WEB_COPY"
+[[ -f "$WEB_COPY" ]] && ok "Website download copy: $WEB_COPY" || fail "Website copy missing: $WEB_COPY"
 
-[[ -f "${RELEASE_DIR}/SHA256SUMS" ]] && ok "SHA256SUMS present" || echo "[WARN] SHA256SUMS missing"
+DEB_WEB_COPY="${ROOT}/website/downloads/linux/$(basename "$DEB")"
+if [[ -f "$DEB" ]]; then
+    [[ -f "$DEB_WEB_COPY" ]] && ok "Website .deb copy: $DEB_WEB_COPY" || fail "Website .deb copy missing: $DEB_WEB_COPY"
+fi
+
+COMBINED_SUMS="${CHECKSUM_DIR}/SHA256SUMS"
+if [[ -f "$COMBINED_SUMS" ]]; then
+    ok "SHA256SUMS present: $COMBINED_SUMS"
+    grep -Fq "$(basename "$APPIMAGE")" "$COMBINED_SUMS" && ok "SHA256SUMS lists AppImage" || fail "SHA256SUMS missing AppImage entry"
+    if [[ -f "$DEB" ]]; then
+        grep -Fq "$(basename "$DEB")" "$COMBINED_SUMS" && ok "SHA256SUMS lists .deb" || fail "SHA256SUMS missing .deb entry"
+        [[ -f "${CHECKSUM_DIR}/$(basename "$DEB").sha256" ]] && ok "Per-file checksum: $(basename "$DEB").sha256" || fail "Missing checksum sidecar: $(basename "$DEB").sha256"
+    fi
+    [[ -f "${CHECKSUM_DIR}/$(basename "$APPIMAGE").sha256" ]] && ok "Per-file checksum: $(basename "$APPIMAGE").sha256" || fail "Missing checksum sidecar: $(basename "$APPIMAGE").sha256"
+else
+    fail "SHA256SUMS missing: $COMBINED_SUMS"
+fi
 
 echo ""
 if [[ "$FAILED" -eq 0 ]]; then

@@ -331,18 +331,30 @@ verify_release_packages() {
     echo "[OK] AppImage contents verified (app, icon, desktop, resources, translations, branding)."
 
     if [[ -f "${RELEASE_DIR}/${DEB_NAME}" ]]; then
-        dpkg-deb -c "${RELEASE_DIR}/${DEB_NAME}" | grep -q "opt/projectx/projectx" || {
+        local deb_extract
+        deb_extract="$(mktemp -d)"
+        dpkg-deb -x "${RELEASE_DIR}/${DEB_NAME}" "$deb_extract"
+        [[ -x "$deb_extract/opt/projectx/projectx" ]] || {
             echo "[FAIL] .deb missing application binary." >&2
+            rm -rf "$deb_extract"
             exit 1
         }
-        dpkg-deb -c "${RELEASE_DIR}/${DEB_NAME}" | grep -q "usr/share/applications/projectx.desktop" || {
+        [[ -f "$deb_extract/usr/share/applications/projectx.desktop" ]] || {
             echo "[FAIL] .deb missing desktop file." >&2
+            rm -rf "$deb_extract"
             exit 1
         }
-        dpkg-deb -c "${RELEASE_DIR}/${DEB_NAME}" | grep -q "usr/share/icons/hicolor/256x256/apps/projectx.png" || {
+        [[ -f "$deb_extract/usr/share/icons/hicolor/256x256/apps/projectx.png" ]] || {
             echo "[FAIL] .deb missing icon." >&2
+            rm -rf "$deb_extract"
             exit 1
         }
+        [[ -x "$deb_extract/usr/bin/projectx" ]] || {
+            echo "[FAIL] .deb missing usr/bin launcher." >&2
+            rm -rf "$deb_extract"
+            exit 1
+        }
+        rm -rf "$deb_extract"
         echo "[OK] .deb contents verified (menu entry, icon, application)."
     fi
 }
