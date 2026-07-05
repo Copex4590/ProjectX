@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 # ============================================================================
-# Project X — Windows PyInstaller build orchestration
+# Project X — Windows build helper (Linux / Git Bash)
 # ============================================================================
 #
-# PyInstaller is not a cross-compiler. Native Windows binaries must be built
-# with a Windows Python interpreter. From Linux, use one of:
-#   - WSL + Windows Python (auto-detected under /mnt/c/Users/...)
-#   - PROJECTX_WINDOWS_PYTHON=/path/to/python.exe
-#   - Run this script on a Windows host (Git Bash / MSYS)
+# Primary Windows release workflow (SAVE-068):
+#   Boot into native Windows and run:  scripts\build_windows.bat
+#
+# This shell script is for:
+#   - Asset/path verification on Linux (--prepare-only)
+#   - Optional WSL alternative (not recommended)
+#
+# PyInstaller is not a cross-compiler. Linux Python cannot produce Windows .exe.
 
 set -euo pipefail
 
@@ -20,29 +23,20 @@ PREPARE_ONLY=0
 
 usage() {
     cat <<EOF
-Project X Windows build
+Project X Windows build helper (Linux / Git Bash)
 
-Usage: $0 [options]
+Primary workflow on Windows:
+  scripts\\build_windows.bat
 
-Options:
-  --prepare-only   Fetch bundled assets and verify paths; do not run PyInstaller
-  -h, --help       Show this help
+This script:
+  --prepare-only   Verify bundled assets and paths on Linux (no PyInstaller)
+  (default)        WSL alternative only — requires Windows Python
 
 Environment:
-  PROJECTX_WINDOWS_PYTHON   Windows python.exe (required on Linux unless auto-detected in WSL)
-  PROJECTX_PYTHON           Linux python3 used for asset prep and verification (default: python3 or .venv)
-  PROJECTX_BUILD            Build label (optional)
+  PROJECTX_WINDOWS_PYTHON   Path to Windows python.exe (WSL alternative)
+  PROJECTX_PYTHON           Linux Python for --prepare-only checks
 
-Examples:
-  # WSL on a Windows machine (auto-detect Windows Python):
-  ./scripts/build_windows.sh
-
-  # Linux with explicit Windows interpreter path:
-  PROJECTX_WINDOWS_PYTHON='/mnt/c/Users/you/AppData/Local/Programs/Python/Python312/python.exe' \\
-    ./scripts/build_windows.sh
-
-  # Native Windows (Git Bash):
-  ./scripts/build_windows.sh
+See BUILD_WINDOWS.md for the dual-boot workflow.
 EOF
 }
 
@@ -114,18 +108,22 @@ assert paths.resource_path("map", "map.html").exists(), "map.html missing"
 print("paths.py resolves bundled resources correctly.")
 PY
 
-    local violations
-    violations="$(rg -n '"/home/' "$ROOT/src" --glob '*.py' \
-        | rg -v 'hybrid_engine\.py|aiscatcher\.py|ship_registry\.py|ais/parser' \
-        || true)"
+    if command -v rg >/dev/null 2>&1; then
+        local violations
+        violations="$(rg -n '"/home/' "$ROOT/src" --glob '*.py' \
+            | rg -v 'hybrid_engine\.py|aiscatcher\.py|ship_registry\.py|ais/parser' \
+            || true)"
 
-    if [[ -n "$violations" ]]; then
-        echo "WARNING: Hardcoded Linux paths found outside excluded modules:" >&2
-        echo "$violations" >&2
-        exit 1
+        if [[ -n "$violations" ]]; then
+            echo "WARNING: Hardcoded Linux paths found outside excluded modules:" >&2
+            echo "$violations" >&2
+            exit 1
+        fi
+
+        echo "No disallowed hardcoded Linux paths detected."
+    else
+        echo "Skipped hardcoded-path scan (ripgrep not installed)."
     fi
-
-    echo "No disallowed hardcoded Linux paths detected."
 }
 
 detect_windows_python() {
@@ -135,14 +133,8 @@ detect_windows_python() {
     fi
 
     if is_windows_host; then
-        if command -v py >/dev/null 2>&1; then
-            echo "py -3"
-            return 0
-        fi
-        if command -v python >/dev/null 2>&1; then
-            echo "python"
-            return 0
-        fi
+        echo "Use scripts\\build_windows.bat for native Windows builds." >&2
+        return 1
     fi
 
     if is_wsl; then
@@ -161,11 +153,6 @@ detect_windows_python() {
 to_windows_path() {
     local path="$1"
 
-    if is_windows_host; then
-        echo "$path"
-        return
-    fi
-
     if command -v wslpath >/dev/null 2>&1; then
         wslpath -w "$path"
         return
@@ -176,14 +163,13 @@ to_windows_path() {
 
 run_pyinstaller_windows() {
     local win_python="$1"
-    local spec_path root_win spec_win
+    local spec_path spec_win
 
     spec_path="$ROOT/installer/projectx.spec"
-    root_win="$(to_windows_path "$ROOT")"
     spec_win="$(to_windows_path "$spec_path")"
 
-    echo "Using Windows Python: $win_python"
-    echo "Project root (Windows path): $root_win"
+    echo "WSL alternative build using: $win_python"
+    echo "Prefer native Windows: scripts\\build_windows.bat"
 
     "$win_python" -m pip install --upgrade pip
     "$win_python" -m pip install -r "$(to_windows_path "$ROOT/requirements.txt")" pyinstaller
@@ -193,8 +179,12 @@ run_pyinstaller_windows() {
         "$win_python" -m PyInstaller --noconfirm "$spec_win"
     )
 
-    echo "Windows bundle written to: $ROOT/dist/projectx/"
-    echo "Next step: compile installer/windows/projectx.iss with Inno Setup on Windows."
+    if [[ -f "$ROOT/dist/projectx/projectx.exe" ]]; then
+        echo "Windows bundle written to: $ROOT/dist/projectx/"
+    else
+        echo "ERROR: dist/projectx/projectx.exe was not created." >&2
+        exit 1
+    fi
 }
 
 if [[ -z "$HOST_PYTHON" ]]; then
@@ -210,22 +200,37 @@ verify_paths
 
 if [[ "$PREPARE_ONLY" -eq 1 ]]; then
     echo "Prepare-only complete."
+    echo "Next: boot into Windows and run scripts\\build_windows.bat"
     exit 0
+fi
+
+if is_windows_host; then
+    cat >&2 <<EOF
+ERROR: Use the native Windows build script instead:
+
+  scripts\\build_windows.bat
+
+See BUILD_WINDOWS.md
+EOF
+    exit 2
 fi
 
 if ! WINDOWS_PYTHON="$(detect_windows_python)"; then
     cat >&2 <<EOF
-ERROR: No Windows Python interpreter found.
+ERROR: No Windows Python interpreter found for the WSL alternative.
 
-PyInstaller cannot produce native Windows executables from Linux alone.
-Use one of these options:
+Recommended workflow (dual-boot):
+  1. git pull on Windows
+  2. scripts\\build_windows.bat
 
-  1. WSL on a Windows PC (this script auto-detects Windows Python under /mnt/c/Users/...)
-  2. Set PROJECTX_WINDOWS_PYTHON to a Windows python.exe path
-  3. Run this script on Windows (Git Bash / MSYS)
-  4. Run asset preparation only: $0 --prepare-only
+WSL alternative (optional):
+  export PROJECTX_WINDOWS_PYTHON='/mnt/c/Users/you/AppData/Local/Programs/Python/Python312/python.exe'
+  ./scripts/build_windows.sh
 
-See BUILD_WINDOWS.md for the full workflow.
+Asset checks only:
+  ./scripts/build_windows.sh --prepare-only
+
+See BUILD_WINDOWS.md
 EOF
     exit 2
 fi

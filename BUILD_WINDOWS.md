@@ -1,253 +1,209 @@
-# Project X — Windows Build Pipeline (SAVE-067)
+# Project X — Windows Release Pipeline (SAVE-068)
 
-This document describes how to produce a native Windows release of Project X from a Linux development environment. No application features are involved — only build and packaging.
+This document describes the **recommended dual-boot workflow**: develop on **Linux Mint**, build and validate releases on **native Windows**. No WSL, Wine, or cross-compilation is required.
+
+Application functionality is unchanged — this covers build and packaging only.
 
 ---
 
-## 1. Build requirements audit
+## Recommended workflow
 
-### Application stack
+### Linux (development)
 
-| Component | Version / notes |
-|-----------|-----------------|
-| Python | 3.10+ recommended |
-| PySide6 | GUI + **Qt WebEngine** (maps) |
-| websocket-client | AIS WebSocket client |
-| openpyxl | Logbook / export |
-| PyInstaller | 6.x (bundling) |
-| Inno Setup | 6.x (Windows installer, optional) |
-
-### Bundled runtime assets (must be present before build)
-
-| Asset | Location |
-|-------|----------|
-| Leaflet (offline maps) | `src/resources/map/leaflet/` |
-| Translations | `src/resources/translations/en.json`, `hu.json` |
-| Map HTML / JS / CSS | `src/resources/map/*.html`, `leaflet/` |
-| Flags, icons, logos | `src/resources/flags/`, `icons/`, `branding/` |
-| Read-only config | `src/config/cameras/`, `camera_packs/`, `playback.json`, `*.example` |
-| Seed data | `data/` |
-
-Prepare assets automatically:
+Daily work happens entirely on Linux:
 
 ```bash
-chmod +x scripts/fetch_leaflet.sh scripts/build_windows.sh scripts/build_linux.sh scripts/clean_build.sh
-./scripts/build_windows.sh --prepare-only
+git add .
+git commit -m "Your change"
+git push
 ```
 
-### Can Windows binaries be built from Linux?
+That is all the Linux side needs for a Windows release. Bundled assets (Leaflet, branding, translations) are committed in the repository.
 
-**Not with Linux Python alone.** PyInstaller, Nuitka, and cx_Freeze all target the host OS they run on. A Linux-hosted Python toolchain produces Linux binaries only.
-
-Practical options from a Linux workstation:
-
-| Method | Works for Project X? |
-|--------|----------------------|
-| **WSL + Windows Python** | Yes — recommended when the dev PC dual-boots or runs Windows |
-| **Windows VM / physical Windows** | Yes — run `scripts/build_windows.sh` in Git Bash |
-| **`PROJECTX_WINDOWS_PYTHON` pointing at `python.exe`** | Yes — from WSL or a mounted Windows drive |
-| **Pure Linux Python → Windows .exe** | No — not supported reliably |
-| **Wine + Windows Python** | Not recommended (Qt WebEngine breaks easily) |
-
-The repository scripts automate asset prep, path checks, dependency install, and PyInstaller invocation once a **Windows Python** interpreter is available.
-
----
-
-## 2. Build strategy
-
-### Options evaluated
-
-| Tool | PySide6 + Qt WebEngine | Cross-compile Linux → Windows | Maturity in this repo |
-|------|------------------------|-------------------------------|------------------------|
-| **PyInstaller** | Good; `collect_all` hooks for WebEngine | No (needs Windows Python) | **Already integrated** (SAVE-066) |
-| **Nuitka** | Possible but complex; long compile; WebEngine plugin setup | Limited / experimental | Not configured |
-| **cx_Freeze** | Weaker PySide6/WebEngine docs and hooks | No | Not configured |
-
-### Recommendation: **PyInstaller**
-
-Reasons:
-
-1. **Already in use** — `installer/projectx.spec` bundles resources, config, Qt WebEngine, and branding.
-2. **Best fit for Qt WebEngine** — `collect_all('PySide6.QtWebEngineCore')` pulls process helpers and resources maps need.
-3. **One-dir layout** — Required for WebEngine subprocess and large asset trees; matches Inno Setup expectations (`dist/projectx/`).
-4. **Lowest migration cost** — Nuitka would need a full rebuild of hooks, compile flags, and CI; cx_Freeze would need new spec format and untested WebEngine support.
-
-Nuitka may be reconsidered later for startup time or binary protection, but it is not justified for the first Windows release.
-
----
-
-## 3. Build scripts
-
-| Script | Purpose |
-|--------|---------|
-| `scripts/build_linux.sh` | Linux one-dir PyInstaller bundle → `dist/projectx/` |
-| `scripts/build_windows.sh` | Windows bundle via Windows Python (WSL auto-detect or explicit path) |
-| `scripts/clean_build.sh` | Remove `build/`, `dist/`, `__pycache__` |
-
-Common flags:
-
-- `--prepare-only` — fetch Leaflet, verify branding, run path checks; skip PyInstaller.
-
-Environment variables:
-
-| Variable | Purpose |
-|----------|---------|
-| `PROJECTX_PYTHON` | Linux/host Python for prep (default `python3`; build uses `.venv` on Linux) |
-| `PROJECTX_WINDOWS_PYTHON` | Path to Windows `python.exe` when building from WSL/Linux |
-| `PROJECTX_BUILD` | Optional build label (see `installer/README.md`) |
-
----
-
-## 4. PyInstaller spec
-
-File: `installer/projectx.spec`
-
-Includes:
-
-- **Qt WebEngine** — `collect_all` for `PySide6.QtWebEngineWidgets`, `QtWebEngineCore`, `QtWebChannel`
-- **Leaflet** — via `src/resources/map/leaflet/` inside `resources/`
-- **Translations** — `src/resources/translations/`
-- **Icons / flags / logos** — full `src/resources/` tree
-- **HTML / CSS / JavaScript** — map pages under `src/resources/map/`
-- **Runtime config samples** — read-only `config/` subset (user JSON excluded)
-- **Seed `data/`** — bundled under `data/`
-- **Windows icon** — `projectx.ico` on the executable
-
-Output: **one-dir** bundle `dist/projectx/` with `projectx.exe` (Windows) or `projectx` (Linux).
-
----
-
-## 5. Runtime paths
-
-All packaged runtime lookups go through `src/app/paths.py`:
-
-| Function | Development | Frozen (Windows) |
-|----------|-------------|------------------|
-| `bundle_dir()` | `src/` | PyInstaller `_MEIPASS` |
-| `resource_path(...)` | `src/resources/...` | Bundled resources |
-| `runtime_config_dir()` | `src/config/` | `%APPDATA%/Project X/config/` |
-| `runtime_data_dir()` | `<repo>/data/` | `%APPDATA%/Project X/data/` |
-
-Build scripts fail if new hardcoded `"/home/..."` paths appear outside intentionally excluded legacy modules.
-
-**Known legacy exceptions (unchanged by design):**
-
-- `src/engines/rtl/hybrid_engine.py` — deployment-specific Linux paths
-- `src/config/aiscatcher.py` — default AIS-Catcher build path (override with `PROJECTX_AIS_CATCHER_EXECUTABLE`)
-
----
-
-## 6. Build steps (Windows release)
-
-### Step 1 — Prepare (from Linux or WSL)
+Optional local Linux bundle for smoke-testing:
 
 ```bash
-./scripts/build_windows.sh --prepare-only
+./scripts/build_linux.sh
 ```
 
-### Step 2 — Build the bundle
+### Windows (release build)
 
-**WSL (Windows Python auto-detected):**
+Boot into Windows, clone or pull the repository, then run **one command**:
 
-```bash
-./scripts/build_windows.sh
+```bat
+scripts\build_windows.bat
 ```
 
-**Explicit Windows Python:**
+PowerShell alternative:
 
-```bash
-export PROJECTX_WINDOWS_PYTHON='/mnt/c/Users/you/AppData/Local/Programs/Python/Python312/python.exe'
-./scripts/build_windows.sh
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\build_windows.ps1
 ```
 
-**Native Windows (Git Bash):**
+Prerequisites on a fresh Windows machine:
 
-```bash
-./scripts/build_windows.sh
-```
+| Tool | Purpose |
+|------|---------|
+| [Git for Windows](https://git-scm.com/download/win) | Clone / pull the repository |
+| [Python 3.10+](https://www.python.org/downloads/) | Build virtual environment (enable **Add to PATH**) |
 
-### Step 3 — Output
+The batch file automatically:
+
+1. Creates `.venv` if missing
+2. Upgrades `pip`
+3. Installs `requirements.txt`
+4. Installs PyInstaller
+5. Runs `installer/projectx.spec`
+6. Produces `dist/projectx/`
+7. Verifies `dist/projectx/projectx.exe` exists
+8. Prints a clear success or failure report
+9. Offers to compile `installer/windows/projectx.iss` when Inno Setup is installed
+
+### Output
 
 ```
 dist/projectx/
   projectx.exe
   projectx.ico
   projectx-logo.png
-  resources/          # translations, maps, leaflet, flags, branding
-  config/             # bundled read-only config
-  data/               # seed data
-  ... PySide6 / Qt WebEngine runtime DLLs ...
+  resources/
+  config/
+  data/
+  ... PySide6 / Qt WebEngine runtime ...
 ```
 
-Smoke-test on a clean Windows machine:
+Smoke-test after build:
 
-1. Run `projectx.exe`
-2. Complete first-run wizard
-3. Open Dashboard map (Qt WebEngine + offline Leaflet)
-4. Switch language (translations load from bundle)
-5. Confirm user config appears under `%APPDATA%\Project X\config\`
+1. Run `dist\projectx\projectx.exe`
+2. Complete the first-run wizard
+3. Open the Dashboard map (Qt WebEngine + offline Leaflet)
+4. Switch language (translations load from the bundle)
+5. Confirm user config under `%APPDATA%\Project X\config\`
 
-### Step 4 — Installer preparation
+### Installer (optional)
 
-On Windows, compile the Inno Setup script:
+If [Inno Setup 6](https://jrsoftware.org/isinfo.php) is installed, `build_windows.bat` offers to compile:
 
 ```
 installer/windows/projectx.iss
 ```
 
-Prerequisites:
+Manual compile:
 
-- Build output in `dist/projectx/` (Step 2)
-- [Inno Setup 6](https://jrsoftware.org/isinfo.php)
-
-The installer creates Start Menu / optional desktop shortcuts and copies the full `dist/projectx/` tree to `{autopf}\Project X`.
-
-Optional metadata before building:
-
-```bash
-export PROJECTX_BUILD="2026.07.05"
-export PROJECTX_GITHUB_URL="https://github.com/Copex4590/ProjectX"
+```bat
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\windows\projectx.iss
 ```
 
-### Step 5 — Clean rebuild
+Output: `installer/windows/Output/ProjectX-Setup.exe` (default Inno Setup output path).
+
+If Inno Setup is not installed, the build script prints a friendly message with the download link — the application bundle in `dist/projectx/` is still complete.
+
+---
+
+## Build strategy
+
+**PyInstaller** remains the chosen bundler (`installer/projectx.spec`):
+
+- Qt WebEngine via `collect_all` hooks
+- One-dir layout required for WebEngine subprocess and large assets
+- Matches Inno Setup expectations (`dist/projectx/`)
+
+Nuitka and cx_Freeze were evaluated in SAVE-067 and not adopted.
+
+---
+
+## Build scripts reference
+
+| Script | Platform | Purpose |
+|--------|----------|---------|
+| **`scripts/build_windows.bat`** | **Windows** | **Primary release build (one command)** |
+| `scripts/build_windows.ps1` | Windows | PowerShell alternative to the batch file |
+| `scripts/build_linux.sh` | Linux | Optional local Linux bundle |
+| `scripts/build_windows.sh` | Linux / Git Bash | Asset prep; WSL alternative only |
+| `scripts/clean_build.sh` | Linux | Remove `build/` and `dist/` |
+
+---
+
+## PyInstaller spec
+
+File: `installer/projectx.spec`
+
+Bundles:
+
+- Qt WebEngine (`PySide6.QtWebEngineWidgets`, `QtWebEngineCore`, `QtWebChannel`)
+- Leaflet (`src/resources/map/leaflet/`)
+- Translations (`src/resources/translations/`)
+- Map HTML / CSS / JavaScript
+- Icons, flags, branding logos
+- Read-only config samples and seed `data/`
+- Windows icon on `projectx.exe`
+
+Writable runtime files use `src/app/paths.py` (`%APPDATA%/Project X/` on Windows).
+
+---
+
+## Alternative: WSL (not recommended)
+
+WSL is **not** part of the primary workflow. Use it only if you cannot reboot into Windows.
+
+From WSL with Git Bash tools:
 
 ```bash
-./scripts/clean_build.sh
+./scripts/build_windows.sh --prepare-only   # asset/path checks on Linux
+export PROJECTX_WINDOWS_PYTHON='/mnt/c/Users/you/AppData/Local/Programs/Python/Python312/python.exe'
 ./scripts/build_windows.sh
 ```
 
+Limitations:
+
+- Requires a Windows Python install reachable from WSL
+- More fragile than native `build_windows.bat`
+- Not supported: Wine, Linux Python cross-compile
+
 ---
 
-## 7. Known limitations
+## Runtime paths
+
+| Function | Development (Linux) | Frozen (Windows) |
+|----------|---------------------|------------------|
+| `bundle_dir()` | `src/` | PyInstaller `_MEIPASS` |
+| `resource_path(...)` | `src/resources/...` | Bundled resources |
+| `runtime_config_dir()` | `src/config/` | `%APPDATA%/Project X/config/` |
+| `runtime_data_dir()` | `<repo>/data/` | `%APPDATA%/Project X/data/` |
+
+**Known legacy exceptions (unchanged):**
+
+- `src/engines/rtl/hybrid_engine.py` — deployment-specific Linux paths
+- `src/config/aiscatcher.py` — default AIS-Catcher path (override with `PROJECTX_AIS_CATCHER_EXECUTABLE`)
+
+---
+
+## Known limitations
 
 | Limitation | Notes |
 |------------|-------|
-| **No true cross-compile** | Linux Python cannot emit Windows `.exe`; use WSL + Windows Python or a Windows host |
-| **Qt WebEngine size** | Bundle is large (~150–300 MB); expected for Chromium-based maps |
+| **Dual-boot required** | Windows `.exe` must be built on Windows; Linux dev machine cannot emit native Windows binaries |
+| **Qt WebEngine size** | Bundle is large (~150–300 MB) |
 | **AIS-Catcher not bundled** | External binary; set `PROJECTX_AIS_CATCHER_EXECUTABLE` on Windows |
-| **HybridEngine paths** | Legacy Linux deployment paths; RTL/AIS file playback not portable without env overrides |
-| **Code signing** | Unsigned builds may trigger SmartScreen; sign `projectx.exe` and the installer for production |
-| **UPX compression** | Enabled in spec; disable if antivirus false-positives occur |
-| **Map tiles** | Leaflet is offline; tiles still load from OpenStreetMap CDN unless cached separately |
+| **HybridEngine paths** | Legacy Linux deployment paths only |
+| **Code signing** | Unsigned builds may trigger SmartScreen |
+| **Map tiles** | Leaflet is offline; tiles load from OpenStreetMap CDN unless cached separately |
 
----
+Optional build metadata:
 
-## 8. Linux bundle (optional)
-
-To validate the same spec on Linux (creates `.venv` automatically if needed):
-
-```bash
-./scripts/build_linux.sh
+```bat
+set PROJECTX_BUILD=2026.07.05
+set PROJECTX_GITHUB_URL=https://github.com/Copex4590/ProjectX
+scripts\build_windows.bat
 ```
 
-Produces `dist/projectx/projectx` for local smoke-testing. This does not replace `installer/linux/install.sh` (source-tree install for development).
-
 ---
 
-## Verification checklist (SAVE-067)
+## Verification checklist (SAVE-068)
 
-- [x] Build strategy selected — **PyInstaller**
-- [x] Build scripts — `build_linux.sh`, `build_windows.sh`, `clean_build.sh`
-- [x] Spec file — `installer/projectx.spec` with WebEngine hooks and full resource bundle
-- [x] Runtime paths — verified via `paths.py`; build scripts grep for disallowed hardcoded paths
-- [x] `BUILD_WINDOWS.md` — this document
+- [x] Dual-boot workflow documented — Linux dev, Windows `build_windows.bat`
+- [x] `scripts/build_windows.bat` — full automated Windows build
+- [x] `scripts/build_windows.ps1` — optional PowerShell equivalent
+- [x] Inno Setup offer / friendly fallback message
+- [x] WSL documented as alternative only
+- [x] `BUILD_WINDOWS.md` updated

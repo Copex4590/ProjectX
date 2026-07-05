@@ -24,12 +24,14 @@ chmod +x scripts/fetch_leaflet.sh
 scripts/fetch_leaflet.sh
 ```
 
-## Build scripts (SAVE-067)
+## Build scripts (SAVE-067 / SAVE-068)
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/build_linux.sh` | PyInstaller one-dir bundle → `dist/projectx/` |
-| `scripts/build_windows.sh` | Windows bundle (requires Windows Python; see `BUILD_WINDOWS.md`) |
+| **`scripts/build_windows.bat`** | **Native Windows release build (primary — dual-boot workflow)** |
+| `scripts/build_windows.ps1` | PowerShell alternative to `build_windows.bat` |
+| `scripts/build_linux.sh` | PyInstaller one-dir bundle → `dist/projectx/` (Linux smoke-test) |
+| `scripts/build_windows.sh` | Linux asset/path checks; optional WSL alternative |
 | `scripts/clean_build.sh` | Remove `build/` and `dist/` |
 
 Full Windows workflow: **`BUILD_WINDOWS.md`**
@@ -58,14 +60,13 @@ installer/linux/uninstall.sh
 
 ## Windows installer
 
-1. Build the PyInstaller bundle:
+1. Build the PyInstaller bundle on native Windows:
 
-```bash
-pip install pyinstaller
-pyinstaller installer/projectx.spec
+```bat
+scripts\build_windows.bat
 ```
 
-2. Compile the Inno Setup script `installer/windows/projectx.iss` using [Inno Setup](https://jrsoftware.org/isinfo.php).
+2. Compile the Inno Setup script `installer/windows/projectx.iss` (offered automatically when Inno Setup is installed).
 
 The installer provides:
 
