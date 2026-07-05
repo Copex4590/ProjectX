@@ -5,6 +5,7 @@
 
 from threading import Lock
 
+from database.vessel_sync import vessel_sync
 from models.ship import Ship
 
 
@@ -25,34 +26,39 @@ class ShipRegistry:
 
                 ship.add_history()
                 self._ships[ship.mmsi] = ship
-                return
 
-            current.name = ship.name
-            current.callsign = ship.callsign
-            current.ship_type = ship.ship_type
+            else:
 
-            current.lat = ship.lat
-            current.lon = ship.lon
+                current.name = ship.name
+                current.callsign = ship.callsign
+                current.ship_type = ship.ship_type
 
-            current.speed = ship.speed
-            current.course = ship.course
-            current.heading = ship.heading
+                current.lat = ship.lat
+                current.lon = ship.lon
 
-            current.destination = ship.destination
-            current.eta = ship.eta
+                current.speed = ship.speed
+                current.course = ship.course
+                current.heading = ship.heading
 
-            current.source = ship.source
-            current.last_seen = ship.last_seen
+                current.destination = ship.destination
+                current.eta = ship.eta
 
-            current.ais_visible = current.ais_visible or ship.ais_visible
-            current.rtl_visible = current.rtl_visible or ship.rtl_visible
-            current.camera_visible = ship.camera_visible
+                current.source = ship.source
+                current.last_seen = ship.last_seen
 
-            current.distance_km = ship.distance_km
-            current.direction = ship.direction
-            current.text_heading = ship.text_heading
+                current.ais_visible = current.ais_visible or ship.ais_visible
+                current.rtl_visible = current.rtl_visible or ship.rtl_visible
+                current.camera_visible = ship.camera_visible
 
-            current.add_history()
+                current.distance_km = ship.distance_km
+                current.direction = ship.direction
+                current.text_heading = ship.text_heading
+
+                current.add_history()
+
+            merged = self._ships.get(ship.mmsi)
+
+        vessel_sync.enqueue(merged)
 
     def get(self, mmsi: int):
 
