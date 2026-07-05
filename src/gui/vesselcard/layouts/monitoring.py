@@ -134,12 +134,20 @@ def _status_rows(translations: dict[str, str], ship: dict) -> str:
         return _row(translations, "Status", value, allow_html=True)
 
     kmh = speed_kn * _KN_TO_KMH
-    underway = escape_text(translate(translations, "UNDERWAY"))
-    value = (
-        f"🚢 {underway}<br>"
-        f"{kmh:.1f} km/h ({speed_kn:.1f} kn)"
-    )
-    return _row(translations, "Status", value, allow_html=True)
+    speed_value = f"{kmh:.1f} km/h ({speed_kn:.1f} kn)"
+
+    course = ship.get("course")
+    if is_empty(course):
+        course = ship.get("heading")
+
+    return "".join([
+        _row(translations, "Speed", speed_value),
+        _row(
+            translations,
+            "Movement direction",
+            _bearing_to_compass(translations, course),
+        ),
+    ])
 
 
 def _header_section(translations: dict[str, str], ship: dict) -> str:
