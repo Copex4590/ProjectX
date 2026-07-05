@@ -6,7 +6,31 @@ from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from database import registry
 from gui.widgets.camerapreviewpanel import CameraPreviewPanel
 from gui.widgets.mapwidget import MapWidget
+from vessels.flags.flag_manager import flag_manager
 from vessels.photo_manager import photo_manager
+
+
+def _serialize_flag(country_code: str | None) -> dict:
+
+    flag_value = str(country_code or "").strip()
+    flag_record = flag_manager.get_flag(flag_value)
+    flag_path = flag_manager.get_flag_file(flag_value)
+    default_path = flag_manager.get_flag_file("ZZ")
+
+    flag_url = None
+    flag_fallback_url = None
+
+    if flag_path is not None:
+        flag_url = QUrl.fromLocalFile(str(flag_path.resolve())).toString()
+
+    if default_path is not None:
+        flag_fallback_url = QUrl.fromLocalFile(str(default_path.resolve())).toString()
+
+    return {
+        "flag_code": flag_record.normalized_country_code(),
+        "flag_url": flag_url,
+        "flag_fallback_url": flag_fallback_url,
+    }
 
 
 def _serialize_photo(mmsi: int) -> dict:
@@ -58,6 +82,7 @@ def _serialize_ship(ship):
         if hasattr(ship, field_name):
             payload[field_name] = getattr(ship, field_name)
 
+    payload.update(_serialize_flag(payload.get("flag", "")))
     payload.update(_serialize_photo(ship.mmsi))
 
     return payload

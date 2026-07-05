@@ -141,14 +141,37 @@
             display: flex;
         }
 
+        .vessel-card__title-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 7px;
+        }
+
+        .vessel-card__flag {
+            width: 30px;
+            height: 21px;
+            object-fit: contain;
+            flex-shrink: 0;
+            border-radius: 3px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .vessel-card__flag--hidden {
+            display: none !important;
+        }
+
         .vessel-card__name {
-            margin: 0 0 7px;
+            margin: 0;
             font-size: 1.15rem;
             font-weight: 700;
             letter-spacing: -0.025em;
             line-height: 1.15;
             word-break: break-word;
             color: #f8fafc;
+            flex: 1;
+            min-width: 0;
         }
 
         .vessel-card__badges {
@@ -542,6 +565,30 @@ function buildPhotoSection(ship)
     `;
 }
 
+function buildFlagMarkup(ship)
+{
+    if (!ship.flag_url)
+    {
+        return "";
+    }
+
+    const altText = ship.flag_code
+        ? `${esc(ship.flag_code)} flag`
+        : "Default flag";
+    const fallback = ship.flag_fallback_url
+        ? ` data-fallback="${esc(ship.flag_fallback_url)}"`
+        : "";
+
+    return `
+        <img
+            class="vessel-card__flag"
+            src="${esc(ship.flag_url)}"
+            alt="${altText}"${fallback}
+            onerror="if (this.dataset.fallback && this.src !== this.dataset.fallback) { this.src = this.dataset.fallback; delete this.dataset.fallback; } else { this.classList.add('vessel-card__flag--hidden'); }"
+        >
+    `;
+}
+
 function buildVesselCard(ship)
 {
     const name = isEmpty(ship.name) ? "Unknown Vessel" : esc(ship.name);
@@ -561,7 +608,10 @@ function buildVesselCard(ship)
     return `
         <div class="vessel-card">
             <header class="vessel-card__header">
-                <h2 class="vessel-card__name">${name}</h2>
+                <div class="vessel-card__title-row">
+                    ${buildFlagMarkup(ship)}
+                    <h2 class="vessel-card__name">${name}</h2>
+                </div>
                 <div class="vessel-card__badges">
                     ${isEmpty(ship.ship_type) ? "" : `<span class="vessel-card__badge vessel-card__badge--type"><span class="vessel-card__badge-dot"></span>${typeLabel}</span>`}
                     ${source.label === "—" ? "" : `<span class="vessel-card__badge vessel-card__badge--source ${source.className}"><span class="vessel-card__badge-dot"></span>${source.label}</span>`}
