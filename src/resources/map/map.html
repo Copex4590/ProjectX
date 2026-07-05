@@ -155,6 +155,21 @@
             font-weight: 600;
         }
 
+        .vessel-card--detailed .vessel-card__body {
+            max-height: min(60vh, 480px);
+            overflow-y: auto;
+        }
+
+        .vessel-card--compact {
+            max-height: min(42vh, 320px);
+            overflow: hidden;
+        }
+
+        .vessel-card--media .vessel-card__photo-image {
+            object-fit: cover;
+            max-height: min(32vh, 280px);
+        }
+
         .vessel-card__header {
             padding: 13px 15px 10px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -463,398 +478,13 @@ L.tileLayer(
 
 const ships = {};
 const trails = {};
-const shipData = {};
 
-let vesselCardLayout = "standard";
-let translations = {};
-
-function tr(key)
+function popupContent(ship)
 {
-    if (translations && translations[key])
-        return translations[key];
+    if (ship.popup_html)
+        return ship.popup_html;
 
-    return key;
-}
-
-function setVesselCardLayout(layout)
-{
-    vesselCardLayout = layout || "standard";
-    refreshAllPopups();
-}
-
-function setTranslations(dict)
-{
-    translations = dict || {};
-    refreshAllPopups();
-}
-
-function refreshAllPopups()
-{
-    for (const mmsi in shipData)
-    {
-        if (!ships[mmsi])
-            continue;
-
-        ships[mmsi].setPopupContent(buildVesselCard(shipData[mmsi]));
-    }
-}
-
-function esc(value)
-{
-    if (value === null || value === undefined)
-        return "";
-
-    return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-}
-
-function isEmpty(value)
-{
-    return (
-        value === null
-        || value === undefined
-        || value === ""
-        || value === "None"
-        || value === "null"
-    );
-}
-
-function dash(value)
-{
-    if (isEmpty(value))
-        return "—";
-
-    return value;
-}
-
-function formatCoord(value)
-{
-    if (isEmpty(value) || Number.isNaN(Number(value)))
-        return "—";
-
-    return Number(value).toFixed(5) + "°";
-}
-
-function formatNumber(value, digits)
-{
-    if (isEmpty(value) || Number.isNaN(Number(value)))
-        return "—";
-
-    return Number(value).toFixed(digits);
-}
-
-function formatAngle(value)
-{
-    if (isEmpty(value) || Number.isNaN(Number(value)))
-        return "—";
-
-    return Number(value).toFixed(1) + "°";
-}
-
-function formatSpeed(value)
-{
-    if (isEmpty(value) || Number.isNaN(Number(value)))
-        return "—";
-
-    return Number(value).toFixed(1) + " kn";
-}
-
-function formatDistance(value)
-{
-    if (isEmpty(value) || Number.isNaN(Number(value)))
-        return "—";
-
-    return Number(value).toFixed(2) + " km";
-}
-
-function formatBool(value)
-{
-    if (value === true)
-        return { text: tr("Yes"), className: "vessel-card__value--on" };
-
-    if (value === false)
-        return { text: tr("No"), className: "vessel-card__value--off" };
-
-    return { text: "—", className: "vessel-card__value--empty" };
-}
-
-function formatLastSeen(value)
-{
-    if (isEmpty(value))
-        return "—";
-
-    const parsed = new Date(value);
-
-    if (Number.isNaN(parsed.getTime()))
-        return esc(dash(value));
-
-    return esc(parsed.toLocaleString());
-}
-
-function normalizeSource(source)
-{
-    const text = dash(source);
-
-    if (text === "—")
-        return { label: "—", className: "vessel-card__badge--unknown" };
-
-    const upper = String(source).trim().toUpperCase();
-
-    if (upper.includes("HYBRID"))
-        return { label: "Hybrid", className: "vessel-card__badge--hybrid" };
-
-    if (upper === "RTL" || upper.includes("RTL"))
-        return { label: "RTL", className: "vessel-card__badge--rtl" };
-
-    if (upper === "AIS" || upper.includes("AIS"))
-        return { label: "AIS", className: "vessel-card__badge--ais" };
-
-    return { label: esc(text), className: "vessel-card__badge--unknown" };
-}
-
-function fieldItem(label, value, options = {})
-{
-    const empty = isEmpty(value) || value === "—";
-    const classes = [
-        "vessel-card__value",
-        options.mono ? "vessel-card__value--mono" : "",
-        options.stateClass || "",
-        empty ? "vessel-card__value--empty" : "",
-    ].filter(Boolean).join(" ");
-
-    const itemClass = options.full ? "vessel-card__item vessel-card__item--full" : "vessel-card__item";
-
-    return `
-        <div class="${itemClass}">
-            <span class="vessel-card__label">${esc(label)}</span>
-            <span class="${classes}">${value}</span>
-        </div>
-    `;
-}
-
-function buildPhotoPlaceholder()
-{
-    return `
-        <div class="vessel-card__photo-placeholder" aria-hidden="true">
-            <svg class="vessel-card__photo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 18h16"></path>
-                <path d="M6 18l2-8h8l2 8"></path>
-                <path d="M8 10V6h8v4"></path>
-                <path d="M12 6V4"></path>
-            </svg>
-            <span>${tr("No photo available")}</span>
-        </div>
-    `;
-}
-
-function buildPhotoSection(ship)
-{
-    if (ship.has_photo && ship.photo_url)
-    {
-        const altText = isEmpty(ship.name) ? tr("Vessel photo") : esc(ship.name);
-
-        return `
-            <div class="vessel-card__photo">
-                <img
-                    class="vessel-card__photo-image"
-                    src="${esc(ship.photo_url)}"
-                    alt="${altText}"
-                    onerror="this.classList.add('vessel-card__photo-image--hidden'); this.parentElement.classList.add('vessel-card__photo--fallback');"
-                >
-                ${buildPhotoPlaceholder()}
-            </div>
-        `;
-    }
-
-    return `
-        <div class="vessel-card__photo vessel-card__photo--placeholder">
-            ${buildPhotoPlaceholder()}
-        </div>
-    `;
-}
-
-function buildFlagMarkup(ship)
-{
-    if (!ship.flag_url)
-    {
-        return "";
-    }
-
-    const altText = ship.flag_code
-        ? `${esc(ship.flag_code)} flag`
-        : "Default flag";
-    const fallback = ship.flag_fallback_url
-        ? ` data-fallback="${esc(ship.flag_fallback_url)}"`
-        : "";
-
-    return `
-        <img
-            class="vessel-card__flag"
-            src="${esc(ship.flag_url)}"
-            alt="${altText}"${fallback}
-            onerror="if (this.dataset.fallback && this.src !== this.dataset.fallback) { this.src = this.dataset.fallback; delete this.dataset.fallback; } else { this.classList.add('vessel-card__flag--hidden'); }"
-        >
-    `;
-}
-
-function buildCompactCard(ship)
-{
-    const name = isEmpty(ship.name) ? tr("Unknown Vessel") : esc(ship.name);
-    const camera = formatBool(ship.camera_visible);
-
-    return `
-        <div class="vessel-card vessel-card--compact">
-            <header class="vessel-card__header">
-                <div class="vessel-card__title-row">
-                    ${buildFlagMarkup(ship)}
-                    <h2 class="vessel-card__name">${name}</h2>
-                </div>
-            </header>
-            ${buildPhotoSection(ship)}
-            <div class="vessel-card__body">
-                <div class="vessel-card__grid">
-                    ${fieldItem(tr("MMSI"), esc(dash(ship.mmsi)), { mono: true })}
-                    ${fieldItem(tr("Speed"), formatSpeed(ship.speed), { mono: true })}
-                    ${fieldItem(tr("Course"), formatAngle(ship.course), { mono: true })}
-                    ${fieldItem(tr("Camera Status"), esc(camera.text), { stateClass: camera.className })}
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function buildStandardCard(ship)
-{
-    return buildDetailedCard(ship, "vessel-card--standard");
-}
-
-function buildDetailedCard(ship, layoutClass)
-{
-    const name = isEmpty(ship.name) ? tr("Unknown Vessel") : esc(ship.name);
-    const typeLabel = isEmpty(ship.ship_type) ? "—" : esc(dash(ship.ship_type));
-    const source = normalizeSource(ship.source);
-
-    const ais = formatBool(ship.ais_visible);
-    const rtl = formatBool(ship.rtl_visible);
-    const camera = formatBool(ship.camera_visible);
-
-    const iconId = `<svg class="vessel-card__block-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h4"/><path d="M7 12h10"/><path d="M7 16h6"/></svg>`;
-    const iconPos = `<svg class="vessel-card__block-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`;
-    const iconNav = `<svg class="vessel-card__block-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/><path d="m14.5 9.5-5 2 2 5 5-2-2-5z"/></svg>`;
-    const iconVoy = `<svg class="vessel-card__block-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="M6 18l2-8h8l2 8"/><path d="M8 10V6h8v4"/><path d="M12 6V4"/></svg>`;
-    const iconVis = `<svg class="vessel-card__block-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>`;
-
-    const cardClass = layoutClass
-        ? `vessel-card ${layoutClass}`
-        : "vessel-card";
-
-    return `
-        <div class="${cardClass}">
-            <header class="vessel-card__header">
-                <div class="vessel-card__title-row">
-                    ${buildFlagMarkup(ship)}
-                    <h2 class="vessel-card__name">${name}</h2>
-                </div>
-                <div class="vessel-card__badges">
-                    ${isEmpty(ship.ship_type) ? "" : `<span class="vessel-card__badge vessel-card__badge--type"><span class="vessel-card__badge-dot"></span>${typeLabel}</span>`}
-                    ${source.label === "—" ? "" : `<span class="vessel-card__badge vessel-card__badge--source ${source.className}"><span class="vessel-card__badge-dot"></span>${source.label}</span>`}
-                </div>
-            </header>
-            ${buildPhotoSection(ship)}
-            <div class="vessel-card__body">
-                <section class="vessel-card__block">
-                    <h3 class="vessel-card__block-title">${iconId}${tr("Identification")}</h3>
-                    <div class="vessel-card__grid">
-                        ${fieldItem(tr("MMSI"), esc(dash(ship.mmsi)), { mono: true })}
-                        ${fieldItem(tr("Callsign"), esc(dash(ship.callsign)))}
-                    </div>
-                </section>
-                <section class="vessel-card__block">
-                    <h3 class="vessel-card__block-title">${iconPos}${tr("Position")}</h3>
-                    <div class="vessel-card__grid">
-                        ${fieldItem(tr("Latitude"), formatCoord(ship.lat), { mono: true })}
-                        ${fieldItem(tr("Longitude"), formatCoord(ship.lon), { mono: true })}
-                        ${fieldItem(tr("Distance"), formatDistance(ship.distance_km), { mono: true })}
-                        ${fieldItem(tr("Direction"), esc(dash(ship.direction)))}
-                    </div>
-                </section>
-                <section class="vessel-card__block">
-                    <h3 class="vessel-card__block-title">${iconNav}${tr("Navigation")}</h3>
-                    <div class="vessel-card__grid">
-                        ${fieldItem(tr("Speed"), formatSpeed(ship.speed), { mono: true })}
-                        ${fieldItem(tr("Course"), formatAngle(ship.course), { mono: true })}
-                        ${fieldItem(tr("Heading"), formatAngle(ship.heading), { mono: true })}
-                        ${fieldItem(tr("Text Heading"), esc(dash(ship.text_heading)))}
-                    </div>
-                </section>
-                <section class="vessel-card__block">
-                    <h3 class="vessel-card__block-title">${iconVoy}${tr("Voyage")}</h3>
-                    <div class="vessel-card__grid">
-                        ${fieldItem(tr("Destination"), esc(dash(ship.destination)), { full: true })}
-                        ${fieldItem(tr("ETA"), esc(dash(ship.eta)))}
-                        ${fieldItem(tr("Last Seen"), formatLastSeen(ship.last_seen))}
-                    </div>
-                </section>
-                <section class="vessel-card__block">
-                    <h3 class="vessel-card__block-title">${iconVis}${tr("Visibility")}</h3>
-                    <div class="vessel-card__grid">
-                        ${fieldItem(tr("AIS Visible"), esc(ais.text), { stateClass: ais.className })}
-                        ${fieldItem(tr("RTL Visible"), esc(rtl.text), { stateClass: rtl.className })}
-                        ${fieldItem(tr("Camera Visible"), esc(camera.text), { stateClass: camera.className })}
-                    </div>
-                </section>
-            </div>
-        </div>
-    `;
-}
-
-function buildMediaCard(ship)
-{
-    const name = isEmpty(ship.name) ? tr("Unknown Vessel") : esc(ship.name);
-    const camera = formatBool(ship.camera_visible);
-
-    return `
-        <div class="vessel-card vessel-card--media">
-            ${buildPhotoSection(ship)}
-            <header class="vessel-card__header">
-                <div class="vessel-card__title-row">
-                    ${buildFlagMarkup(ship)}
-                    <h2 class="vessel-card__name">${name}</h2>
-                </div>
-            </header>
-            <div class="vessel-card__camera-panel">
-                <div class="vessel-card__camera-title">${tr("Camera Status")}</div>
-                <div class="vessel-card__camera-value ${camera.className}">${esc(camera.text)}</div>
-            </div>
-            <div class="vessel-card__body">
-                <div class="vessel-card__grid">
-                    ${fieldItem(tr("MMSI"), esc(dash(ship.mmsi)), { mono: true })}
-                    ${fieldItem(tr("Speed"), formatSpeed(ship.speed), { mono: true })}
-                    ${fieldItem(tr("Course"), formatAngle(ship.course), { mono: true })}
-                    ${fieldItem(tr("Callsign"), esc(dash(ship.callsign)))}
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function buildVesselCard(ship)
-{
-    const layout = vesselCardLayout || "standard";
-
-    if (layout === "compact")
-        return buildCompactCard(ship);
-
-    if (layout === "media")
-        return buildMediaCard(ship);
-
-    if (layout === "detailed")
-        return buildDetailedCard(ship, "");
-
-    return buildStandardCard(ship);
+    return "";
 }
 
 function updateShips(list)
@@ -865,7 +495,6 @@ function updateShips(list)
     {
         const mmsi = ship.mmsi;
         active.add(mmsi);
-        shipData[mmsi] = ship;
 
         const pos = [ship.lat, ship.lon];
 
@@ -889,7 +518,7 @@ function updateShips(list)
             ships[mmsi].setLatLng(pos);
         }
 
-        ships[mmsi].setPopupContent(buildVesselCard(ship));
+        ships[mmsi].setPopupContent(popupContent(ship));
 
         if (!trails[mmsi])
         {
@@ -915,7 +544,6 @@ function updateShips(list)
         {
             map.removeLayer(ships[mmsi]);
             delete ships[mmsi];
-            delete shipData[mmsi];
 
             if (trails[mmsi])
             {

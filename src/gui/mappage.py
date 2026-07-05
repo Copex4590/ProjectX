@@ -1,12 +1,16 @@
 import json
+from collections import Counter
 
 from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 
 from database import registry
+from gui.vesselcard import vessel_card_layout_manager
 from gui.widgets.camerapreviewpanel import CameraPreviewPanel
 from gui.widgets.mapwidget import MapWidget
 from i18n import language_manager
+from statistics.statistics_manager import statistics_manager
+from timeline.timeline_manager import timeline_manager
 from vessels.flags.flag_manager import flag_manager
 from vessels.photo_manager import photo_manager
 
@@ -56,7 +60,51 @@ def _serialize_photo(mmsi: int) -> dict:
     }
 
 
-def _serialize_ship(ship):
+def _timeline_summary(mmsi: int) -> str:
+
+    records = timeline_manager.history(mmsi)
+
+    if not records:
+        return "—"
+
+    counts = Counter(record.event_type for record in records)
+    latest = max(records, key=lambda record: record.timestamp)
+    parts = [
+        f"{count} {event_type}"
+        for event_type, count in sorted(counts.items())
+    ]
+
+    return (
+        f"{len(records)} events ({', '.join(parts)}); "
+        f"latest {latest.event_type} "
+        f"{latest.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
+    )
+
+
+def _statistics_summary(mmsi: int) -> str:
+
+    stats = statistics_manager.vessel_statistics(mmsi)
+
+    if stats is None:
+        return "—"
+
+    parts = [
+        f"observations {stats.total_observations}",
+        f"arrivals {stats.total_arrivals}",
+        f"departures {stats.total_departures}",
+    ]
+
+    if stats.average_speed is not None:
+        parts.append(f"avg speed {stats.average_speed:.1f} kn")
+
+    if stats.maximum_speed is not None:
+        parts.append(f"max speed {stats.maximum_speed:.1f} kn")
+
+    return "; ".join(parts)
+
+
+def _serialize_ship(ship) -> dict:
+
     payload = {
         "mmsi": ship.mmsi,
         "name": ship.name,
@@ -85,6 +133,9 @@ def _serialize_ship(ship):
 
     payload.update(_serialize_flag(payload.get("flag", "")))
     payload.update(_serialize_photo(ship.mmsi))
+    payload["timeline_summary"] = _timeline_summary(ship.mmsi)
+    payload["statistics_summary"] = _statistics_summary(ship.mmsi)
+    payload["popup_html"] = vessel_card_layout_manager.render(payload)
 
     return payload
 
@@ -123,7 +174,6 @@ class MapPage(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_ships)
 
-        # 5 FPS frissítés – alap a smooth mozgáshoz
         self.timer.start(200)
 
     def apply_personalization(self, layout: str | None = None) -> None:
@@ -133,15 +183,14 @@ class MapPage(QWidget):
         preferences = preferences_manager.get()
         selected_layout = layout or preferences.vessel_card_layout
 
-        self.map.set_vessel_card_layout(selected_layout)
-        self.map.set_translations(language_manager.translations())
-
         if selected_layout == "media":
             self.camera_preview.setMinimumWidth(400)
             self.camera_preview.setMaximumWidth(480)
         else:
             self.camera_preview.setMinimumWidth(300)
             self.camera_preview.setMaximumWidth(360)
+
+        self.update_ships()
 
     def select_vessel(self, mmsi: int):
 

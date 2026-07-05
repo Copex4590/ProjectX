@@ -43,6 +43,15 @@
   "RTL Visible": "RTL Visible",
   "Camera Visible": "Camera Visible",
   "Camera Status": "Camera Status",
+  "Type": "Type",
+  "IMO": "IMO",
+  "Source": "Source",
+  "Dimensions": "Dimensions",
+  "Length": "Length",
+  "Width": "Width",
+  "Draft": "Draft",
+  "Timeline Summary": "Timeline Summary",
+  "Statistics Summary": "Statistics Summary",
   "Yes": "Yes",
   "No": "No"
 }

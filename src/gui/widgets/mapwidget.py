@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import json
-
 from PySide6.QtCore import QUrl
 from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -46,18 +44,4 @@ class MapWidget(QWebEngineView):
 
         self.page().runJavaScript(
             f"updateShips({payload});"
-        )
-
-    def set_vessel_card_layout(self, layout: str) -> None:
-
-        encoded = json.dumps(str(layout or "standard"))
-        self.page().runJavaScript(
-            f"setVesselCardLayout({encoded});"
-        )
-
-    def set_translations(self, translations: dict) -> None:
-
-        payload = json.dumps(translations or {})
-        self.page().runJavaScript(
-            f"setTranslations({payload});"
         )

@@ -43,6 +43,15 @@
   "RTL Visible": "RTL látható",
   "Camera Visible": "Kamera látható",
   "Camera Status": "Kamera állapot",
+  "Type": "Típus",
+  "IMO": "IMO",
+  "Source": "Forrás",
+  "Dimensions": "Méretek",
+  "Length": "Hossz",
+  "Width": "Szélesség",
+  "Draft": "Merülés",
+  "Timeline Summary": "Idővonal összegzés",
+  "Statistics Summary": "Statisztika összegzés",
   "Yes": "Igen",
   "No": "Nem"
 }
