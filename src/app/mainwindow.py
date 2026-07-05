@@ -19,6 +19,7 @@ from gui.vesseldatabasepage import VesselDatabasePage
 from gui.vesseltimelinepage import VesselTimelinePage
 from gui.statisticspage import StatisticsPage
 from gui.alertcenterpage import AlertCenterPage
+from gui.rulespage import RulesPage
 from gui.eventbridge import EventBridge
 
 from engines.ais.ais_catcher_launcher import ensure_ais_catcher_ready
@@ -91,6 +92,7 @@ class MainWindow(QMainWindow):
         self.vessel_timeline_page = VesselTimelinePage()
         self.statistics_page = StatisticsPage()
         self.alert_center_page = AlertCenterPage()
+        self.rules_page = RulesPage()
 
         self.pages.addWidget(self.dashboard_page)        # 0
         self.pages.addWidget(self.map_page)              # 1
@@ -100,6 +102,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self.vessel_timeline_page)  # 5
         self.pages.addWidget(self.statistics_page)       # 6
         self.pages.addWidget(self.alert_center_page)     # 7
+        self.pages.addWidget(self.rules_page)            # 8
 
         self.sidebar = Sidebar()
         self.sidebar.pageSelected.connect(self.pages.setCurrentIndex)
