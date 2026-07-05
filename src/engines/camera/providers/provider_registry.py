@@ -5,7 +5,7 @@
 
 from threading import Lock
 
-from engines.camera.providers.base_provider import CameraProvider
+from .base_provider import CameraProvider
 from models.camera import Camera
 
 
@@ -25,7 +25,7 @@ class ProviderRegistry:
 
         with self._lock:
 
-            self.unregister(provider)
+            self._remove_provider(provider)
 
             self._providers.append((priority, provider))
             self._providers.sort(
@@ -35,16 +35,19 @@ class ProviderRegistry:
     def unregister(self, provider: CameraProvider) -> bool:
 
         with self._lock:
+            return self._remove_provider(provider)
 
-            before = len(self._providers)
+    def _remove_provider(self, provider: CameraProvider) -> bool:
 
-            self._providers = [
-                entry
-                for entry in self._providers
-                if entry[1] is not provider
-            ]
+        before = len(self._providers)
 
-            return len(self._providers) != before
+        self._providers = [
+            entry
+            for entry in self._providers
+            if entry[1] is not provider
+        ]
+
+        return len(self._providers) != before
 
     def unregister_by_name(self, provider_name: str) -> bool:
 

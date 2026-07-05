@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from urllib.parse import urlparse
 
-from engines.camera.providers.base_provider import (
+from .base_provider import (
     CameraProvider,
     ProviderSession,
     ProviderState,

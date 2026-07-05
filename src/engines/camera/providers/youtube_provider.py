@@ -3,7 +3,7 @@
 # YouTube Provider (architecture stub)
 # ============================================================================
 
-from engines.camera.providers.base_provider import (
+from .base_provider import (
     CameraProvider,
     ProviderSession,
     ProviderState,

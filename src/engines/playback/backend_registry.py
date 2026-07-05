@@ -25,7 +25,7 @@ class BackendRegistry:
 
         with self._lock:
 
-            self.unregister(backend)
+            self._remove_backend(backend)
 
             self._backends.append((priority, backend))
             self._backends.sort(
@@ -35,16 +35,19 @@ class BackendRegistry:
     def unregister(self, backend: PlaybackBackend) -> bool:
 
         with self._lock:
+            return self._remove_backend(backend)
 
-            before = len(self._backends)
+    def _remove_backend(self, backend: PlaybackBackend) -> bool:
 
-            self._backends = [
-                entry
-                for entry in self._backends
-                if entry[1] is not backend
-            ]
+        before = len(self._backends)
 
-            return len(self._backends) != before
+        self._backends = [
+            entry
+            for entry in self._backends
+            if entry[1] is not backend
+        ]
+
+        return len(self._backends) != before
 
     def unregister_by_name(self, backend_name: str) -> bool:
 

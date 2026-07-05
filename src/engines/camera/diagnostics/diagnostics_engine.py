@@ -9,8 +9,6 @@ from engines.camera.diagnostics.diagnostics_result import (
     DiagnosticResult,
     DiagnosticSeverity,
 )
-from engines.camera.providers import provider_registry
-from engines.playback import backend_registry
 from models.camera import Camera
 
 _KNOWN_PROVIDER_TYPES = frozenset({
@@ -192,6 +190,9 @@ class CameraDiagnosticsEngine:
         return results
 
     def _check_playback(self, camera: Camera) -> list[DiagnosticResult]:
+
+        from engines.camera.providers import provider_registry
+        from engines.playback import backend_registry
 
         results = []
         camera_id = self._safe_text(camera.id) or "unknown"
