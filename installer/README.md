@@ -28,7 +28,9 @@ scripts/fetch_leaflet.sh
 
 | Script | Purpose |
 |--------|---------|
-| **`scripts/build_windows.bat`** | **Native Windows release build (primary — dual-boot workflow)** |
+| `scripts/build_windows.bat` | **Native Windows release build (primary — dual-boot workflow)** |
+| `scripts/build_installer.bat` | Compile `ProjectX-Setup.exe` after PyInstaller |
+| `scripts/verify_windows_installer.bat` | Silent install/uninstall verification (Windows) |
 | `scripts/build_windows.ps1` | PowerShell alternative to `build_windows.bat` |
 | `scripts/build_linux.sh` | PyInstaller one-dir bundle → `dist/projectx/` (Linux smoke-test) |
 | `scripts/build_windows.sh` | Linux asset/path checks; optional WSL alternative |
@@ -58,22 +60,32 @@ Uninstall:
 installer/linux/uninstall.sh
 ```
 
-## Windows installer
+## Windows installer (SAVE-076)
 
-1. Build the PyInstaller bundle on native Windows:
+1. Build the PyInstaller bundle and Inno Setup installer on native Windows:
 
 ```bat
 scripts\build_windows.bat
 ```
 
-2. Compile the Inno Setup script `installer/windows/projectx.iss` (offered automatically when Inno Setup is installed).
+2. Output: `website\downloads\windows\ProjectX-Setup.exe`
+
+3. Verify:
+
+```bat
+scripts\verify_windows_installer.bat
+```
+
+See **`docs/WINDOWS_INSTALLER.md`** for silent install, uninstall, and clean-VM checklist.
 
 The installer provides:
 
-- Desktop shortcut (optional task)
-- Start Menu shortcut
-- Launch after installation (optional task)
-- Official Project X icon
+- Install to **Program Files** (`{autopf}\Project X`)
+- **Start Menu** shortcut with official icon
+- **Desktop shortcut** (optional task)
+- **Launch after installation** (optional task)
+- **Clean uninstall** via Windows Settings → Apps
+- **Silent install:** `ProjectX-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART`
 
 ## macOS (future)
 

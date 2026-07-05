@@ -36,7 +36,9 @@ if errorlevel 1 goto :report_failure
 call :verify_output
 if errorlevel 1 goto :report_failure
 
-call :offer_inno_setup
+call :build_installer
+if errorlevel 1 goto :report_failure
+
 goto :report_success
 
 :find_python
@@ -133,52 +135,37 @@ if exist "%ROOT%\dist\projectx\projectx.exe" (
 echo [FAIL] Expected output not found: dist\projectx\projectx.exe
 exit /b 1
 
-:offer_inno_setup
-set "ISCC="
-if exist "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" (
-    set "ISCC=C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-)
-if not defined ISCC if exist "C:\Program Files\Inno Setup 6\ISCC.exe" (
-    set "ISCC=C:\Program Files\Inno Setup 6\ISCC.exe"
-)
-
-if not defined ISCC (
-    echo Inno Setup 6 was not detected.
-    echo Optional next step: install Inno Setup from https://jrsoftware.org/isinfo.php
-    echo Then compile: installer\windows\projectx.iss
+:build_installer
+if /I "%SKIP_INSTALLER%"=="1" (
+    echo [SKIP] Installer build skipped ^(SKIP_INSTALLER=1^).
     echo.
     exit /b 0
 )
 
-echo Inno Setup found: !ISCC!
-set "BUILD_INSTALLER="
-set /p BUILD_INSTALLER="Compile Windows installer now? [Y/N]: "
-if /I "!BUILD_INSTALLER!"=="Y" (
-    echo Compiling installer\windows\projectx.iss ...
-    "!ISCC!" "%ROOT%\installer\windows\projectx.iss"
-    if errorlevel 1 (
-        echo [WARN] Inno Setup compilation failed.
-    ) else (
-        echo [OK] Installer compiled. Check installer\windows\Output\
-    )
-) else (
-    echo Skipped installer compilation.
-    echo You can compile later with:
-    echo   "!ISCC!" "%ROOT%\installer\windows\projectx.iss"
-)
+call "%ROOT%\scripts\build_installer.bat"
+if errorlevel 1 exit /b 1
+
+echo [OK] Verified: website\downloads\windows\ProjectX-Setup.exe
 echo.
 exit /b 0
 
 :report_success
 call :banner "BUILD SUCCESSFUL"
-echo Output directory:
-echo   %ROOT%\dist\projectx\
-echo Executable:
+echo Application bundle:
 echo   %ROOT%\dist\projectx\projectx.exe
-echo.
-echo Next steps:
-echo   1. Run projectx.exe and smoke-test maps, language, first-run wizard
-echo   2. Optionally compile the Inno Setup installer
+if exist "%ROOT%\website\downloads\windows\ProjectX-Setup.exe" (
+    echo Windows installer:
+    echo   %ROOT%\website\downloads\windows\ProjectX-Setup.exe
+    echo.
+    echo Next steps:
+    echo   1. Run scripts\verify_windows_installer.bat
+    echo   2. On a clean VM: install, confirm First Run Wizard, smoke-test map
+) else (
+    echo.
+    echo Next steps:
+    echo   1. Install Inno Setup 6 and run scripts\build_installer.bat
+    echo   2. Run projectx.exe and smoke-test maps, language, first-run wizard
+)
 echo.
 endlocal
 exit /b 0

@@ -26,3 +26,6 @@ build/
 dist/
 *.spec.bak
 .install-test/
+
+# Windows release installer binary (build on Windows, upload for website publish)
+website/downloads/windows/*.exe

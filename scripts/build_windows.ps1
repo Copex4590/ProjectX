@@ -74,31 +74,20 @@ try {
     }
     Write-Host "[OK] Verified: dist\projectx\projectx.exe`n"
 
-    $isccCandidates = @(
-        "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
-        "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
-    )
-    $iscc = $isccCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-
-    if ($iscc) {
-        Write-Host "Inno Setup found: $iscc"
-        $answer = Read-Host "Compile Windows installer now? [Y/N]"
-        if ($answer -match '^[Yy]$') {
-            & $iscc (Join-Path $Root "installer\windows\projectx.iss")
-            Write-Host "[OK] Installer compiled. Check installer\windows\Output\"
-        } else {
-            Write-Host "Skipped installer compilation."
-        }
+    if ($env:SKIP_INSTALLER -eq "1") {
+        Write-Host "[SKIP] Installer build skipped (SKIP_INSTALLER=1).`n"
     } else {
-        Write-Host "Inno Setup 6 was not detected."
-        Write-Host "Optional next step: install Inno Setup from https://jrsoftware.org/isinfo.php"
-        Write-Host "Then compile: installer\windows\projectx.iss"
+        & (Join-Path $Root "scripts\build_installer.bat")
+        if ($LASTEXITCODE -ne 0) { throw "Installer build failed." }
     }
 
     Write-Host ""
     Write-Banner "BUILD SUCCESSFUL"
-    Write-Host "Output directory:`n  $(Join-Path $Root 'dist\projectx\')"
-    Write-Host "Executable:`n  $exePath`n"
+    Write-Host "Application bundle:`n  $exePath"
+    $installerPath = Join-Path $Root "website\downloads\windows\ProjectX-Setup.exe"
+    if (Test-Path $installerPath) {
+        Write-Host "Windows installer:`n  $installerPath`n"
+    }
     exit 0
 }
 catch {

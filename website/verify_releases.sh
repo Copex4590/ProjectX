@@ -99,7 +99,7 @@ import json
 from pathlib import Path
 
 config = json.loads(Path("releases.json").read_text(encoding="utf-8"))
-config["windows"]["file"] = "ProjectX-0.4-beta-Setup.exe"
+config["windows"]["file"] = "ProjectX-Setup-0.4-beta.exe"
 config["linux"]["file"] = "ProjectX-0.4-beta.AppImage"
 config["latest"] = "0.4-beta"
 Path("${TMP_CONFIG}").write_text(json.dumps(config), encoding="utf-8")
@@ -123,7 +123,7 @@ PY
 
 rm -f "$TMP_CONFIG"
 
-if [[ "$WIN_URL" != "downloads/windows/ProjectX-0.4-beta-Setup.exe" ]]; then
+if [[ "$WIN_URL" != "downloads/windows/ProjectX-Setup-0.4-beta.exe" ]]; then
     echo "[FAIL] Windows URL generation mismatch: ${WIN_URL}" >&2
     exit 1
 fi

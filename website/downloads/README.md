@@ -4,7 +4,7 @@ Installers are organized by platform:
 
 | Directory | Platform | Config key |
 |-----------|----------|------------|
-| `windows/` | Windows installer | `releases.json` → `windows.file` |
+| `windows/` | Windows installer | `releases.json` → `windows.file` (`ProjectX-Setup.exe`) |
 | `linux/` | Linux AppImage | `releases.json` → `linux.file` |
 
 ## Publish a new release

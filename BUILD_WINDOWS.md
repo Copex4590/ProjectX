@@ -80,23 +80,35 @@ Smoke-test after build:
 4. Switch language (translations load from the bundle)
 5. Confirm user config under `%APPDATA%\Project X\config\`
 
-### Installer (optional)
+### Installer (SAVE-076)
 
-If [Inno Setup 6](https://jrsoftware.org/isinfo.php) is installed, `build_windows.bat` offers to compile:
+`build_windows.bat` compiles the Inno Setup installer automatically when Inno Setup 6 is installed.
 
-```
-installer/windows/projectx.iss
-```
+Output: **`website\downloads\windows\ProjectX-Setup.exe`**
 
-Manual compile:
+Installer only (after PyInstaller):
 
 ```bat
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\windows\projectx.iss
+scripts\build_installer.bat
 ```
 
-Output: `installer/windows/Output/ProjectX-Setup.exe` (default Inno Setup output path).
+Verify silent install/uninstall:
 
-If Inno Setup is not installed, the build script prints a friendly message with the download link — the application bundle in `dist/projectx/` is still complete.
+```bat
+scripts\verify_windows_installer.bat
+```
+
+Full documentation: **`docs/WINDOWS_INSTALLER.md`**
+
+| Feature | Behavior |
+|---------|----------|
+| Install location | `{autopf}\Project X` (Program Files) |
+| Start Menu | Shortcut with application icon |
+| Desktop | Optional task during setup |
+| Silent install | `ProjectX-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART` |
+| Uninstall | Settings → Apps; removes Program Files install |
+
+If Inno Setup is not installed, set `SKIP_INSTALLER=1` to build the PyInstaller bundle only.
 
 ---
 

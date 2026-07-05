@@ -4,8 +4,8 @@
   "status": "Alpha",
   "github": "https://github.com/Copex4590/ProjectX",
   "windows": {
-    "version": "0.3-alpha",
-    "file": "ProjectX-0.3-alpha-Setup.exe",
+    "version": "0.3.0-alpha",
+    "file": "ProjectX-Setup.exe",
     "platform": "Windows 10+",
     "format": "Inno Setup installer",
     "architecture": "64-bit",
