@@ -1,14 +1,27 @@
 from pathlib import Path
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QObject, QUrl, Signal, Slot
+from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 
-class MapWidget(QWebEngineView):
+class _ObservationMapBridge(QObject):
 
-    def __init__(self):
-        super().__init__()
+    locationSelected = Signal(float, float)
+
+    @Slot(float, float)
+    def reportLocation(self, latitude: float, longitude: float):
+
+        self.locationSelected.emit(latitude, longitude)
+
+
+class ObservationMapWidget(QWebEngineView):
+
+    locationSelected = Signal(float, float)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
         settings = self.settings()
         settings.setAttribute(
@@ -24,12 +37,19 @@ class MapWidget(QWebEngineView):
             True,
         )
 
+        self._bridge = _ObservationMapBridge()
+        self._bridge.locationSelected.connect(self.locationSelected)
+
+        channel = QWebChannel(self.page())
+        channel.registerObject("bridge", self._bridge)
+        self.page().setWebChannel(channel)
+
         html = (
             Path(__file__).resolve().parents[3]
             / "src"
             / "resources"
             / "map"
-            / "map.html"
+            / "observation_map.html"
         )
 
         self.load(QUrl.fromLocalFile(str(html)))
@@ -37,6 +57,7 @@ class MapWidget(QWebEngineView):
 
         self._pending_lat: float | None = None
         self._pending_lon: float | None = None
+        self._pick_enabled = False
 
     def set_observation_point(self, latitude: float, longitude: float) -> None:
 
@@ -44,11 +65,19 @@ class MapWidget(QWebEngineView):
         self._pending_lon = longitude
         self._apply_observation_point()
 
+    def enable_pick_mode(self, enabled: bool) -> None:
+
+        self._pick_enabled = bool(enabled)
+        self.page().runJavaScript(
+            f"enablePickMode({'true' if self._pick_enabled else 'false'});"
+        )
+
     def _on_load_finished(self, ok: bool) -> None:
 
         if not ok:
             return
 
+        self.enable_pick_mode(self._pick_enabled)
         self._apply_observation_point()
 
     def _apply_observation_point(self) -> None:
@@ -60,16 +89,4 @@ class MapWidget(QWebEngineView):
         lon = self._pending_lon
         self.page().runJavaScript(
             f"setObservationPoint({lat}, {lon});"
-        )
-
-    def focus_ship(self, mmsi: int):
-
-        self.page().runJavaScript(
-            f"focusShip({int(mmsi)});"
-        )
-
-    def update_ships(self, payload: str):
-
-        self.page().runJavaScript(
-            f"updateShips({payload});"
         )

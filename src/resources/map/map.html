@@ -68,6 +68,15 @@
             box-shadow: none !important;
         }
 
+        .observation-marker {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #e53935;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 8px rgba(229, 57, 53, 0.75);
+        }
+
         .vessel-card {
             --vc-bg: rgba(18, 22, 30, 0.92);
             --vc-border: rgba(255, 255, 255, 0.08);
@@ -337,6 +346,28 @@ L.tileLayer(
 const ships = {};
 const trails = {};
 let openPopupMmsi = null;
+let observationMarker = null;
+
+function setObservationPoint(lat, lon)
+{
+    const position = [lat, lon];
+
+    if (!observationMarker)
+    {
+        const icon = L.divIcon({
+            className: "",
+            html: "<div class='observation-marker'></div>",
+            iconSize: [18, 18],
+            iconAnchor: [9, 9]
+        });
+
+        observationMarker = L.marker(position, { icon: icon }).addTo(map);
+    }
+    else
+    {
+        observationMarker.setLatLng(position);
+    }
+}
 
 map.on("popupopen", function(event)
 {

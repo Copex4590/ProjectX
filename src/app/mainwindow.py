@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
@@ -22,8 +22,10 @@ from gui.alertcenterpage import AlertCenterPage
 from gui.rulespage import RulesPage
 from gui.settingspage import SettingsPage
 from gui.eventbridge import EventBridge
+from gui.observationwizard import ObservationWizard
 
 from i18n import language_manager
+from observation import observation_manager
 from inspector.inspector import PROJECT_VERSION
 from engines.ais.ais_catcher_launcher import ensure_ais_catcher_ready
 from engines.rtl.hybrid_engine import HybridEngine
@@ -43,6 +45,7 @@ class MainWindow(QMainWindow):
 
         self.event_bridge = EventBridge()
         self._connect_event_bridge()
+        self._connect_observation()
 
         if ensure_ais_catcher_ready():
             print("🚢 Hybrid Engine indítása...")
@@ -73,6 +76,30 @@ class MainWindow(QMainWindow):
             self.connection_panel.on_rtl_status,
             connection,
         )
+
+    def _connect_observation(self) -> None:
+
+        connection = Qt.ConnectionType.QueuedConnection
+
+        observation_manager.changed.connect(
+            self.dashboard_page.refresh_observation,
+            connection,
+        )
+        observation_manager.changed.connect(
+            self.map_page.on_observation_changed,
+            connection,
+        )
+
+        if not observation_manager.all():
+            QTimer.singleShot(0, self._show_observation_wizard)
+
+    def _show_observation_wizard(self) -> None:
+
+        if observation_manager.all():
+            return
+
+        wizard = ObservationWizard(self)
+        wizard.exec()
 
     def build_ui(self):
 
