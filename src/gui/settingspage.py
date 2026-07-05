@@ -4,14 +4,19 @@
 # ============================================================================
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QShowEvent
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
+    QFrame,
     QLabel,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
+from gui.settings.cameradiagnosticspanel import CameraDiagnosticsPanel
+from gui.settings.playbacksettings import PlaybackSettingsPage
 from i18n import language_manager, tr
 from preferences import (
     SUPPORTED_LANGUAGES,
@@ -49,15 +54,49 @@ class SettingsPage(QWidget):
 
         self._sync_language_combo(preferences.language)
         self._sync_layout_combo(preferences.vessel_card_layout)
+        self.playback_settings.load_settings()
+        self.camera_diagnostics.refresh()
         self._refresh_labels()
+
+    def showEvent(self, event: QShowEvent) -> None:
+
+        super().showEvent(event)
+        self.camera_diagnostics.refresh()
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("""
-            QLabel[role="title"] {
-                color: white;
-                font-size: 26pt;
-                font-weight: bold;
+        self.setStyleSheet("background: #1d2127;")
+
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+        outer_layout.addWidget(scroll)
+
+        content = QWidget()
+        content.setStyleSheet("background: #1d2127;")
+        scroll.setWidget(content)
+
+        layout = QVBoxLayout(content)
+        layout.setContentsMargins(25, 25, 25, 25)
+        layout.setSpacing(20)
+
+        self.title_label = QLabel()
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_label.setStyleSheet(
+            "color: white; font-size: 26pt; font-weight: bold;"
+        )
+        layout.addWidget(self.title_label)
+
+        personalization = QFrame()
+        personalization.setStyleSheet("""
+            QFrame {
+                background: #252a31;
+                border: 1px solid #40444b;
+                border-radius: 10px;
             }
 
             QLabel[role="section"] {
@@ -73,26 +112,20 @@ class SettingsPage(QWidget):
             }
 
             QComboBox {
-                background: #252a31;
+                background: #1d2127;
                 color: white;
                 border: 1px solid #40444b;
                 border-radius: 6px;
                 padding: 6px 8px;
             }
         """)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(25, 25, 25, 25)
-        layout.setSpacing(16)
-
-        self.title_label = QLabel()
-        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title_label.setProperty("role", "title")
-        layout.addWidget(self.title_label)
+        personalization_layout = QVBoxLayout(personalization)
+        personalization_layout.setContentsMargins(16, 16, 16, 16)
+        personalization_layout.setSpacing(12)
 
         self.section_label = QLabel()
         self.section_label.setProperty("role", "section")
-        layout.addWidget(self.section_label)
+        personalization_layout.addWidget(self.section_label)
 
         form = QFormLayout()
         form.setSpacing(12)
@@ -117,7 +150,111 @@ class SettingsPage(QWidget):
             )
         form.addRow(self.layout_label, self.layout_combo)
 
-        layout.addLayout(form)
+        personalization_layout.addLayout(form)
+        layout.addWidget(personalization)
+
+        self.playback_settings = PlaybackSettingsPage()
+        self.playback_settings.setStyleSheet("""
+            QFrame {
+                background: #252a31;
+                border: 1px solid #40444b;
+                border-radius: 10px;
+                padding: 4px;
+            }
+
+            QLabel[role="section"] {
+                color: #d5dbe3;
+                font-size: 12pt;
+                font-weight: 600;
+            }
+
+            QLabel[role="field"] {
+                color: #9aa4af;
+                font-size: 10pt;
+                font-weight: 600;
+            }
+
+            QLabel[role="caption"] {
+                color: #7d8794;
+                font-size: 9pt;
+            }
+
+            QComboBox, QLineEdit {
+                background: #1d2127;
+                color: white;
+                border: 1px solid #40444b;
+                border-radius: 6px;
+                padding: 6px 8px;
+            }
+
+            QPushButton {
+                background: #1976d2;
+                color: white;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 6px;
+            }
+        """)
+        layout.addWidget(self.playback_settings)
+
+        self.camera_diagnostics = CameraDiagnosticsPanel()
+        self.camera_diagnostics.setMinimumHeight(320)
+        self.camera_diagnostics.setStyleSheet("""
+            QFrame {
+                background: #252a31;
+                border: 1px solid #40444b;
+                border-radius: 10px;
+                padding: 4px;
+            }
+
+            QLabel[role="section"] {
+                color: #d5dbe3;
+                font-size: 12pt;
+                font-weight: 600;
+            }
+
+            QLabel[role="summary-title"] {
+                color: #9aa4af;
+                font-size: 9pt;
+                font-weight: 600;
+            }
+
+            QLabel[role="summary-value"] {
+                color: white;
+                font-size: 16pt;
+                font-weight: bold;
+            }
+
+            QComboBox, QPushButton {
+                background: #1d2127;
+                color: white;
+                border: 1px solid #40444b;
+                border-radius: 6px;
+                padding: 6px 8px;
+            }
+
+            QPushButton {
+                background: #1976d2;
+                border: none;
+                padding: 8px 12px;
+            }
+
+            QTableWidget {
+                background: #1d2127;
+                color: white;
+                border: 1px solid #40444b;
+                gridline-color: #40444b;
+            }
+
+            QHeaderView::section {
+                background: #2f353d;
+                color: #d5dbe3;
+                border: 1px solid #40444b;
+                padding: 6px;
+            }
+        """)
+        layout.addWidget(self.camera_diagnostics)
+
         layout.addStretch()
 
     def _connect_signals(self) -> None:
