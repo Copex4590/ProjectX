@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" role="img" aria-label="Project X Alert Center preview">
+  <rect width="960" height="600" fill="#1d2127"/>
+  <rect x="0" y="0" width="180" height="600" fill="#252a31"/>
+  <rect x="16" y="292" width="148" height="34" rx="8" fill="#1976d2"/>
+  <rect x="200" y="24" width="740" height="72" rx="12" fill="#2b2f36" stroke="#40444b"/>
+  <text x="224" y="68" fill="#d5dbe3" font-family="Segoe UI, sans-serif" font-size="28" font-weight="700">Alert Center</text>
+  <rect x="200" y="116" width="220" height="460" rx="12" fill="#353b44" stroke="#40444b"/>
+  <text x="224" y="148" fill="#9aa4af" font-family="Segoe UI, sans-serif" font-size="13">Active rules</text>
+  <rect x="220" y="164" width="180" height="36" rx="8" fill="#2b2f36"/>
+  <rect x="220" y="212" width="180" height="36" rx="8" fill="#1976d2"/>
+  <rect x="220" y="260" width="180" height="36" rx="8" fill="#2b2f36"/>
+  <rect x="440" y="116" width="500" height="460" rx="12" fill="#353b44" stroke="#40444b"/>
+  <rect x="464" y="140" width="452" height="56" rx="8" fill="#2b2f36" stroke="#ef5350" stroke-width="1"/>
+  <text x="480" y="174" fill="#d5dbe3" font-family="Segoe UI, sans-serif" font-size="14" font-weight="600">Speed threshold exceeded · MV RIVER CARGO</text>
+  <rect x="464" y="210" width="452" height="56" rx="8" fill="#2b2f36" stroke="#40444b"/>
+  <text x="480" y="244" fill="#d5dbe3" font-family="Segoe UI, sans-serif" font-size="14">Zone entry · MMSI 238123456</text>
+  <rect x="464" y="280" width="452" height="56" rx="8" fill="#2b2f36" stroke="#40444b"/>
+  <text x="480" y="314" fill="#d5dbe3" font-family="Segoe UI, sans-serif" font-size="14">AIS signal restored · MV DANUBE STAR</text>
+</svg>

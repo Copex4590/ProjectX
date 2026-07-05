@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Project X documentation — installation, requirements, and getting started.">
+    <title>Documentation — Project X</title>
+    <link rel="icon" href="images/projectx-logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="css/site.css">
+</head>
+<body data-page="documentation">
+    <header class="site-header">
+        <div class="container nav-inner">
+            <a class="brand" href="index.html">
+                <img src="images/projectx-logo.svg" alt="Project X logo">
+                <span>Project X</span>
+            </a>
+            <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+            <nav class="site-nav" id="site-nav" aria-label="Main">
+                <ul>
+                    <li><a href="index.html" data-page="home">Home</a></li>
+                    <li><a href="download.html" data-page="download">Download</a></li>
+                    <li><a href="documentation.html" data-page="documentation">Documentation</a></li>
+                    <li><a href="screenshots.html" data-page="screenshots">Screenshots</a></li>
+                    <li><a href="https://github.com/Copex4590/ProjectX" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container page-header">
+            <h1>Documentation</h1>
+            <p>Basic guides for installing, running, and understanding Project X.</p>
+        </div>
+
+        <section>
+            <div class="container doc-layout">
+                <aside class="panel doc-nav">
+                    <ul>
+                        <li><a href="#getting-started">Getting started</a></li>
+                        <li><a href="#requirements">System requirements</a></li>
+                        <li><a href="#windows">Windows installation</a></li>
+                        <li><a href="#linux">Linux installation</a></li>
+                        <li><a href="#source">Build from source</a></li>
+                        <li><a href="#release-notes">Release notes</a></li>
+                        <li><a href="#github">GitHub repository</a></li>
+                    </ul>
+                </aside>
+
+                <article class="panel doc-content">
+                    <h2 id="getting-started">Getting started</h2>
+                    <p>
+                        Project X is a desktop application for monitoring Danube vessel traffic.
+                        After installation, the first-run wizard guides you through language selection,
+                        observation point setup, AIS configuration, and optional camera setup.
+                    </p>
+                    <ol>
+                        <li>Download the installer for your platform from the <a href="download.html">Download page</a>.</li>
+                        <li>Launch Project X and complete the first-run wizard.</li>
+                        <li>Open the Dashboard to verify AIS connection and live ship counts.</li>
+                        <li>Open the Live Map to view vessels on the interactive Leaflet map.</li>
+                        <li>Explore Timeline, Statistics, Alerts, and Camera features from the sidebar.</li>
+                    </ol>
+
+                    <h2 id="requirements">System requirements</h2>
+                    <p>Project X requires a modern desktop system with Qt WebEngine support for maps.</p>
+                    <ul>
+                        <li><strong>Windows:</strong> Windows 10 or later, 64-bit, 4 GB RAM minimum</li>
+                        <li><strong>Linux:</strong> Linux Mint or compatible distro with X11 or Wayland</li>
+                        <li><strong>Display:</strong> 1280×720 minimum resolution recommended</li>
+                        <li><strong>Network:</strong> Internet connection for AIS data and map tiles</li>
+                    </ul>
+                    <p>Optional: <code>mpv</code> or <code>vlc</code> on PATH for external camera playback backends.</p>
+
+                    <h2 id="windows">Windows installation</h2>
+                    <p>Run the Windows installer and follow the setup wizard. User configuration is stored under:</p>
+                    <pre><code>%APPDATA%\Project X\config\
+%APPDATA%\Project X\data\</code></pre>
+                    <p>For development builds, use <code>scripts\build_windows.bat</code> on a native Windows system.</p>
+
+                    <h2 id="linux">Linux installation</h2>
+                    <p>Run the Linux installer script or install from source. The desktop installer places files under:</p>
+                    <pre><code>~/.local/share/projectx</code></pre>
+                    <p>A launcher and applications menu entry are created automatically.</p>
+
+                    <h2 id="source">Build from source</h2>
+                    <p>Clone the repository and install Python dependencies:</p>
+                    <pre><code>git clone https://github.com/Copex4590/ProjectX.git
+cd ProjectX
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cd src
+python3 main.py</code></pre>
+                    <p>See <code>BUILD_WINDOWS.md</code> and <code>installer/README.md</code> in the repository for packaging instructions.</p>
+
+                    <h2 id="release-notes">Release notes</h2>
+                    <p><strong>Version 0.3.0-alpha</strong> (2026-07-05) — Alpha release milestone SAVE-050.</p>
+                    <ul>
+                        <li>Vessel database with search, filters, and registry sync</li>
+                        <li>Timeline with arrival/departure detection</li>
+                        <li>Statistics dashboard and alert management</li>
+                        <li>Camera packs, playback backends, and diagnostics</li>
+                        <li>UI polish, system health center, and release packaging</li>
+                    </ul>
+                    <p>Detailed notes: <code>docs/RELEASE_NOTES_0.3_ALPHA.md</code> in the GitHub repository.</p>
+
+                    <h2 id="github">GitHub repository</h2>
+                    <p>
+                        Source code, issue tracking, and development history are available on GitHub.
+                        Contributions and bug reports are welcome.
+                    </p>
+                    <a class="btn btn-secondary" href="https://github.com/Copex4590/ProjectX" target="_blank" rel="noopener noreferrer">github.com/Copex4590/ProjectX</a>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-grid">
+            <p>© 2026 Project X · Danube vessel monitoring platform</p>
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="download.html">Download</a>
+                <a href="screenshots.html">Screenshots</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/site.js"></script>
+</body>
+</html>

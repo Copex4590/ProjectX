@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Project X">
+  <defs>
+    <linearGradient id="hull-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4FC3F7"/>
+      <stop offset="100%" stop-color="#29B6F6"/>
+    </linearGradient>
+    <linearGradient id="hull-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1976D2"/>
+      <stop offset="100%" stop-color="#1565C0"/>
+    </linearGradient>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1D2127"/>
+      <stop offset="100%" stop-color="#252A31"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- Left bow: upper-left to lower-right -->
+  <g transform="translate(256 256) rotate(-45) translate(-256 -256)">
+    <path fill="url(#hull-light)" d="M 118 88 C 150 88 198 118 236 168 L 248 256 L 236 344 C 198 394 150 424 118 424 C 104 424 92 410 92 392 L 92 120 C 92 102 104 88 118 88 Z"/>
+    <path fill="url(#hull-dark)" d="M 118 108 C 142 108 178 132 206 168 L 214 256 L 206 344 C 178 380 142 404 118 404 C 112 404 108 398 108 392 L 108 120 C 108 114 112 108 118 108 Z"/>
+    <ellipse cx="118" cy="256" rx="18" ry="34" fill="#0D47A1" opacity="0.35"/>
+  </g>
+
+  <!-- Right bow: upper-right to lower-left -->
+  <g transform="translate(256 256) rotate(45) translate(-256 -256)">
+    <path fill="url(#hull-light)" d="M 394 88 C 362 88 314 118 276 168 L 264 256 L 276 344 C 314 394 362 424 394 424 C 408 424 420 410 420 392 L 420 120 C 420 102 408 88 394 88 Z"/>
+    <path fill="url(#hull-dark)" d="M 394 108 C 370 108 334 132 306 168 L 298 256 L 306 344 C 334 380 370 404 394 404 C 400 404 404 398 404 392 L 404 120 C 404 114 400 108 394 108 Z"/>
+    <ellipse cx="394" cy="256" rx="18" ry="34" fill="#0D47A1" opacity="0.35"/>
+  </g>
+
+  <!-- Center crossing highlight -->
+  <circle cx="256" cy="256" r="22" fill="#4FC3F7" opacity="0.9"/>
+  <circle cx="256" cy="256" r="10" fill="#E3F2FD"/>
+</svg>

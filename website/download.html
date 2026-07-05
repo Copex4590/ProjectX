@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Download Project X for Windows or Linux. Official installers and release information.">
+    <title>Download — Project X</title>
+    <link rel="icon" href="images/projectx-logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="css/site.css">
+</head>
+<body data-page="download">
+    <header class="site-header">
+        <div class="container nav-inner">
+            <a class="brand" href="index.html">
+                <img src="images/projectx-logo.svg" alt="Project X logo">
+                <span>Project X</span>
+            </a>
+            <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+            <nav class="site-nav" id="site-nav" aria-label="Main">
+                <ul>
+                    <li><a href="index.html" data-page="home">Home</a></li>
+                    <li><a href="download.html" data-page="download">Download</a></li>
+                    <li><a href="documentation.html" data-page="documentation">Documentation</a></li>
+                    <li><a href="screenshots.html" data-page="screenshots">Screenshots</a></li>
+                    <li><a href="https://github.com/Copex4590/ProjectX" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container page-header">
+            <h1>Download Project X</h1>
+            <p>Select your operating system. Version <strong>0.3.0-alpha</strong> — alpha release for early adopters.</p>
+        </div>
+
+        <section>
+            <div class="container">
+                <div class="grid-2">
+                    <article class="panel download-card">
+                        <h3>Windows</h3>
+                        <p>
+                            Recommended for dual-boot release builds. Requires Windows 10 or later.
+                            The installer bundles PySide6, Qt WebEngine, offline Leaflet maps, and translations.
+                        </p>
+                        <ul class="meta-list">
+                            <li><span>File</span><strong>ProjectX-Setup-0.3.0-alpha.exe</strong></li>
+                            <li><span>Format</span><strong>Inno Setup installer</strong></li>
+                            <li><span>Architecture</span><strong>64-bit</strong></li>
+                        </ul>
+                        <a class="btn btn-primary btn-large" href="downloads/ProjectX-Setup-0.3.0-alpha.exe">
+                            <span class="btn-icon" aria-hidden="true">🪟</span>
+                            Download for Windows
+                        </a>
+                        <p class="note">Placeholder installer link. Upload the compiled setup executable to <code>website/downloads/</code> before publishing.</p>
+                    </article>
+
+                    <article class="panel download-card">
+                        <h3>Linux</h3>
+                        <p>
+                            Desktop installer for Linux Mint and compatible distributions.
+                            Installs to <code>~/.local/share/projectx</code> with menu and desktop shortcuts.
+                        </p>
+                        <ul class="meta-list">
+                            <li><span>File</span><strong>projectx-0.3.0-alpha-linux-installer.sh</strong></li>
+                            <li><span>Format</span><strong>Shell installer</strong></li>
+                            <li><span>Architecture</span><strong>x86_64</strong></li>
+                        </ul>
+                        <a class="btn btn-primary btn-large" href="downloads/projectx-0.3.0-alpha-linux-installer.sh">
+                            <span class="btn-icon" aria-hidden="true">🐧</span>
+                            Download for Linux
+                        </a>
+                        <p class="note">Placeholder installer link. Upload the Linux installer script to <code>website/downloads/</code> before publishing.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="container">
+                <h2 class="section-title">Version information</h2>
+                <article class="panel">
+                    <ul class="meta-list">
+                        <li><span>Version</span><strong>0.3.0-alpha</strong></li>
+                        <li><span>Release date</span><strong>2026-07-05</strong></li>
+                        <li><span>Status</span><strong>Alpha</strong></li>
+                        <li><span>Source code</span><strong><a href="https://github.com/Copex4590/ProjectX" target="_blank" rel="noopener noreferrer">github.com/Copex4590/ProjectX</a></strong></li>
+                    </ul>
+                </article>
+            </div>
+        </section>
+
+        <section>
+            <div class="container">
+                <h2 class="section-title">Release notes</h2>
+                <article class="panel release-notes">
+                    <p><strong>0.3.0-alpha</strong> focuses on stabilization, documentation, and packaging readiness.</p>
+                    <ul>
+                        <li>Vessel database, timeline, statistics, and alerts subsystems</li>
+                        <li>Camera packs, playback framework, and diagnostics</li>
+                        <li>System Health center and RTL-SDR setup assistant</li>
+                        <li>Native Windows build pipeline with dual-boot workflow</li>
+                    </ul>
+                    <a href="documentation.html#release-notes">Read full documentation →</a>
+                </article>
+            </div>
+        </section>
+
+        <section>
+            <div class="container">
+                <article class="panel github-banner">
+                    <div>
+                        <h2 class="section-title">Prefer to build from source?</h2>
+                        <p>Clone the repository and follow the platform instructions in the documentation.</p>
+                    </div>
+                    <a class="btn btn-secondary" href="https://github.com/Copex4590/ProjectX" target="_blank" rel="noopener noreferrer">Open GitHub</a>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-grid">
+            <p>© 2026 Project X · Danube vessel monitoring platform</p>
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="documentation.html">Documentation</a>
+                <a href="screenshots.html">Screenshots</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/site.js"></script>
+</body>
+</html>

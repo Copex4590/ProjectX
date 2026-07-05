@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" role="img" aria-label="Project X live map preview">
+  <rect width="960" height="600" fill="#1d2127"/>
+  <rect x="0" y="0" width="180" height="600" fill="#252a31"/>
+  <rect x="16" y="116" width="148" height="34" rx="8" fill="#353b44"/>
+  <rect x="16" y="160" width="148" height="34" rx="8" fill="#1976d2"/>
+  <rect x="200" y="24" width="740" height="552" rx="12" fill="#2d4a22" stroke="#40444b"/>
+  <path d="M220 120 C 320 80, 420 140, 520 100 S 760 180, 900 120 L 900 520 C 760 480, 620 540, 520 500 S 320 520, 220 480 Z" fill="#3a5f2e" opacity="0.85"/>
+  <path d="M260 180 C 360 160, 460 220, 560 190 S 780 240, 860 210" fill="none" stroke="#5d8a48" stroke-width="8" opacity="0.7"/>
+  <circle cx="420" cy="260" r="14" fill="#1976d2" stroke="#4fc3f7" stroke-width="3"/>
+  <circle cx="560" cy="220" r="14" fill="#1976d2" stroke="#4fc3f7" stroke-width="3"/>
+  <circle cx="700" cy="310" r="14" fill="#1976d2" stroke="#4fc3f7" stroke-width="3"/>
+  <circle cx="480" cy="380" r="14" fill="#1976d2" stroke="#4fc3f7" stroke-width="3"/>
+  <rect x="620" y="420" width="280" height="120" rx="10" fill="#252a31" stroke="#40444b"/>
+  <text x="640" y="452" fill="#d5dbe3" font-family="Segoe UI, sans-serif" font-size="16" font-weight="700">MV DANUBE STAR</text>
+  <text x="640" y="478" fill="#9aa4af" font-family="Segoe UI, sans-serif" font-size="13">MMSI 123456789 · 12.4 kn</text>
+  <text x="640" y="504" fill="#9aa4af" font-family="Segoe UI, sans-serif" font-size="13">Course 214° · Cargo</text>
+  <text x="224" y="68" fill="#d5dbe3" font-family="Segoe UI, sans-serif" font-size="28" font-weight="700">Live Map</text>
+</svg>

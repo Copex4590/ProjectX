@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" role="img" aria-label="Project X dashboard preview">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1d2127"/>
+      <stop offset="100%" stop-color="#171a1f"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="600" fill="url(#bg)"/>
+  <rect x="0" y="0" width="180" height="600" fill="#252a31"/>
+  <rect x="0" y="0" width="180" height="56" fill="#2b2f36"/>
+  <text x="24" y="36" fill="#d5dbe3" font-family="Segoe UI, sans-serif" font-size="18" font-weight="700">Project X</text>
+  <rect x="16" y="72" width="148" height="34" rx="8" fill="#353b44"/>
+  <rect x="16" y="116" width="148" height="34" rx="8" fill="#1976d2"/>
+  <rect x="16" y="160" width="148" height="34" rx="8" fill="#353b44"/>
+  <rect x="16" y="204" width="148" height="34" rx="8" fill="#353b44"/>
+  <rect x="200" y="24" width="740" height="72" rx="12" fill="#2b2f36" stroke="#40444b"/>
+  <text x="224" y="68" fill="#d5dbe3" font-family="Segoe UI, sans-serif" font-size="28" font-weight="700">Dashboard</text>
+  <rect x="200" y="116" width="230" height="120" rx="12" fill="#353b44" stroke="#40444b"/>
+  <rect x="450" y="116" width="230" height="120" rx="12" fill="#353b44" stroke="#40444b"/>
+  <rect x="700" y="116" width="240" height="120" rx="12" fill="#353b44" stroke="#40444b"/>
+  <text x="224" y="152" fill="#9aa4af" font-family="Segoe UI, sans-serif" font-size="14">Ships in range</text>
+  <text x="224" y="200" fill="#4fc3f7" font-family="Segoe UI, sans-serif" font-size="36" font-weight="700">128</text>
+  <text x="474" y="152" fill="#9aa4af" font-family="Segoe UI, sans-serif" font-size="14">AIS status</text>
+  <text x="474" y="200" fill="#43a047" font-family="Segoe UI, sans-serif" font-size="28" font-weight="700">Connected</text>
+  <text x="724" y="152" fill="#9aa4af" font-family="Segoe UI, sans-serif" font-size="14">Observation point</text>
+  <text x="724" y="200" fill="#d5dbe3" font-family="Segoe UI, sans-serif" font-size="22" font-weight="600">Budapest</text>
+  <rect x="200" y="260" width="740" height="300" rx="12" fill="#353b44" stroke="#40444b"/>
+  <text x="224" y="292" fill="#9aa4af" font-family="Segoe UI, sans-serif" font-size="14">Recent activity</text>
+  <line x1="224" y1="320" x2="900" y2="320" stroke="#40444b"/>
+  <line x1="224" y1="360" x2="860" y2="360" stroke="#40444b"/>
+  <line x1="224" y1="400" x2="880" y2="400" stroke="#40444b"/>
+  <line x1="224" y1="440" x2="820" y2="440" stroke="#40444b"/>
+</svg>

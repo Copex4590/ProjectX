@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" role="img" aria-label="Project X vessel timeline preview">
+  <rect width="960" height="600" fill="#1d2127"/>
+  <rect x="0" y="0" width="180" height="600" fill="#252a31"/>
+  <rect x="16" y="248" width="148" height="34" rx="8" fill="#1976d2"/>
+  <rect x="200" y="24" width="740" height="72" rx="12" fill="#2b2f36" stroke="#40444b"/>
+  <text x="224" y="68" fill="#d5dbe3" font-family="Segoe UI, sans-serif" font-size="28" font-weight="700">Vessel Timeline</text>
+  <rect x="200" y="116" width="740" height="460" rx="12" fill="#353b44" stroke="#40444b"/>
+  <line x1="280" y1="160" x2="280" y2="540" stroke="#40444b" stroke-width="2"/>
+  <circle cx="280" cy="210" r="10" fill="#43a047"/>
+  <rect x="310" y="194" width="520" height="32" rx="8" fill="#2b2f36"/>
+  <text x="326" y="216" fill="#d5dbe3" font-family="Segoe UI, sans-serif" font-size="14">Arrival at Budapest observation zone</text>
+  <circle cx="280" cy="290" r="10" fill="#29b6f6"/>
+  <rect x="310" y="274" width="480" height="32" rx="8" fill="#2b2f36"/>
+  <text x="326" y="296" fill="#d5dbe3" font-family="Segoe UI, sans-serif" font-size="14">Position update · 47.5123°N, 19.0456°E</text>
+  <circle cx="280" cy="370" r="10" fill="#29b6f6"/>
+  <rect x="310" y="354" width="440" height="32" rx="8" fill="#2b2f36"/>
+  <text x="326" y="376" fill="#d5dbe3" font-family="Segoe UI, sans-serif" font-size="14">Position update · 47.4988°N, 19.0612°E</text>
+  <circle cx="280" cy="450" r="10" fill="#ef5350"/>
+  <rect x="310" y="434" width="500" height="32" rx="8" fill="#2b2f36"/>
+  <text x="326" y="456" fill="#d5dbe3" font-family="Segoe UI, sans-serif" font-size="14">Departure from observation zone</text>
+</svg>

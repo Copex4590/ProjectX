@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Project X screenshots — dashboard, live map, timeline, alerts, and more.">
+    <title>Screenshots — Project X</title>
+    <link rel="icon" href="images/projectx-logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="css/site.css">
+</head>
+<body data-page="screenshots">
+    <header class="site-header">
+        <div class="container nav-inner">
+            <a class="brand" href="index.html">
+                <img src="images/projectx-logo.svg" alt="Project X logo">
+                <span>Project X</span>
+            </a>
+            <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+            <nav class="site-nav" id="site-nav" aria-label="Main">
+                <ul>
+                    <li><a href="index.html" data-page="home">Home</a></li>
+                    <li><a href="download.html" data-page="download">Download</a></li>
+                    <li><a href="documentation.html" data-page="documentation">Documentation</a></li>
+                    <li><a href="screenshots.html" data-page="screenshots">Screenshots</a></li>
+                    <li><a href="https://github.com/Copex4590/ProjectX" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container page-header">
+            <h1>Screenshots</h1>
+            <p>Preview pages from the Project X desktop application. Replace these placeholders with real captures before public launch.</p>
+        </div>
+
+        <section>
+            <div class="container screenshot-grid">
+                <figure class="screenshot-card">
+                    <img src="images/screenshots/dashboard.svg" alt="Dashboard with ship counts and connection status">
+                    <figcaption>Dashboard — live status, ship counts, and subsystem overview</figcaption>
+                </figure>
+                <figure class="screenshot-card">
+                    <img src="images/screenshots/map.svg" alt="Live map with AIS vessel markers">
+                    <figcaption>Live map — Leaflet map with AIS vessel markers</figcaption>
+                </figure>
+                <figure class="screenshot-card">
+                    <img src="images/screenshots/timeline.svg" alt="Vessel timeline viewer">
+                    <figcaption>Vessel timeline — arrival, departure, and position history</figcaption>
+                </figure>
+                <figure class="screenshot-card">
+                    <img src="images/screenshots/alerts.svg" alt="Alert Center interface">
+                    <figcaption>Alert Center — rule-based notifications and event history</figcaption>
+                </figure>
+            </div>
+        </section>
+
+        <section>
+            <div class="container">
+                <article class="panel">
+                    <h2 class="section-title">Updating screenshots</h2>
+                    <p class="section-lead" style="margin-bottom: 0;">
+                        Export PNG or WebP captures from the running application and place them in
+                        <code>website/images/screenshots/</code>. Update the <code>img</code> tags in this page
+                        and on the home page before publishing the website.
+                    </p>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-grid">
+            <p>© 2026 Project X · Danube vessel monitoring platform</p>
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="download.html">Download</a>
+                <a href="documentation.html">Documentation</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/site.js"></script>
+</body>
+</html>
