@@ -1,5 +1,12 @@
 from .camera_match import CameraMatch, build_camera_match
 from .camera_selection_engine import CameraSelectionEngine, camera_selection_engine
+from .diagnostics import (
+    CameraDiagnosticsEngine,
+    CameraDiagnosticsReport,
+    DiagnosticResult,
+    DiagnosticSeverity,
+    camera_diagnostics_engine,
+)
 from .providers import (
     CameraProvider,
     ProviderRegistry,
@@ -15,6 +22,11 @@ __all__ = [
     "build_camera_match",
     "CameraSelectionEngine",
     "camera_selection_engine",
+    "CameraDiagnosticsEngine",
+    "CameraDiagnosticsReport",
+    "DiagnosticResult",
+    "DiagnosticSeverity",
+    "camera_diagnostics_engine",
     "CameraProvider",
     "ProviderRegistry",
     "ProviderSession",
