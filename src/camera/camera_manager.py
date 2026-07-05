@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
 
+from PySide6.QtCore import QObject, Signal
+
 from camera.camera import Camera, _normalize_camera_type
 from camera.camera_registry import CameraRegistry
 
@@ -32,13 +34,17 @@ def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-class CameraManager:
+class CameraManager(QObject):
+
+    changed = Signal()
 
     def __init__(
         self,
         path: Path | None = None,
         registry: CameraRegistry | None = None,
     ):
+
+        super().__init__()
 
         self._path = path or CAMERAS_FILE
         self._registry = registry or CameraRegistry()
@@ -115,6 +121,7 @@ class CameraManager:
             result = self._registry.add(camera)
             self._write_unlocked()
 
+        self.changed.emit()
         return result
 
     def update(
@@ -183,6 +190,7 @@ class CameraManager:
             result = self._registry.add(camera)
             self._write_unlocked()
 
+        self.changed.emit()
         return result
 
     def remove(self, camera_id: str) -> None:
@@ -190,6 +198,8 @@ class CameraManager:
         with self._lock:
             self._registry.remove(camera_id)
             self._write_unlocked()
+
+        self.changed.emit()
 
     def _require_camera(self, camera_id: str) -> Camera:
 

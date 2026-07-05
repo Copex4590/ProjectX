@@ -14,6 +14,7 @@ from camera.camera_manager import (
     camera_manager,
 )
 from camera.camera_registry import CameraRegistry
+from camera.stream_test import StreamTestResult, test_stream, validate_stream_url
 
 __all__ = [
     "CAMERAS_FILE",
@@ -22,5 +23,8 @@ __all__ = [
     "CameraManager",
     "CameraRegistry",
     "SUPPORTED_CAMERA_TYPES",
+    "StreamTestResult",
     "camera_manager",
+    "test_stream",
+    "validate_stream_url",
 ]

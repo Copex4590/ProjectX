@@ -22,6 +22,7 @@ from gui.alertcenterpage import AlertCenterPage
 from gui.rulespage import RulesPage
 from gui.settingspage import SettingsPage
 from gui.eventbridge import EventBridge
+from camera import camera_manager
 from gui.firstrunwizard import FirstRunWizard
 
 from i18n import language_manager
@@ -47,6 +48,7 @@ class MainWindow(QMainWindow):
         self.event_bridge = EventBridge()
         self._connect_event_bridge()
         self._connect_observation()
+        self._connect_cameras()
 
         if ensure_ais_catcher_ready():
             print("🚢 Hybrid Engine indítása...")
@@ -87,12 +89,25 @@ class MainWindow(QMainWindow):
             connection,
         )
         observation_manager.changed.connect(
+            self.dashboard_page.refresh_cameras,
+            connection,
+        )
+        observation_manager.changed.connect(
             self.map_page.on_observation_changed,
             connection,
         )
 
         if self._should_show_first_run_wizard():
             QTimer.singleShot(0, self._show_first_run_wizard)
+
+    def _connect_cameras(self) -> None:
+
+        connection = Qt.ConnectionType.QueuedConnection
+
+        camera_manager.changed.connect(
+            self.dashboard_page.refresh_cameras,
+            connection,
+        )
 
     def _should_show_first_run_wizard(self) -> bool:
 

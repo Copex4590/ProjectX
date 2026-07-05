@@ -16,6 +16,8 @@ from PySide6.QtWidgets import (
 
 from database import registry
 from engines.rtl.hybrid_engine import CAMERA_LAT, CAMERA_LON
+from camera import camera_manager
+from gui.camerawizard import CameraWizard
 from gui.i18n_support import bind_language_refresh
 from gui.observationwizard import ObservationWizard
 from gui.widgets.observationmapwidget import ObservationMapWidget
@@ -250,6 +252,52 @@ class DashboardPage(QWidget):
 
         layout.addWidget(self._observation_card)
 
+        self._cameras_card = QFrame()
+        self._cameras_card.setStyleSheet("""
+            QFrame {
+                background: #252a31;
+                border: 1px solid #40444b;
+                border-radius: 10px;
+            }
+        """)
+        cameras_layout = QVBoxLayout(self._cameras_card)
+        cameras_layout.setContentsMargins(16, 16, 16, 16)
+        cameras_layout.setSpacing(10)
+
+        self._cameras_title = QLabel()
+        self._cameras_title.setStyleSheet(
+            "font-size: 16pt; font-weight: bold; color: white;"
+        )
+        cameras_layout.addWidget(self._cameras_title)
+
+        self._cameras_list = QVBoxLayout()
+        self._cameras_list.setSpacing(6)
+        cameras_layout.addLayout(self._cameras_list)
+
+        self._no_cameras_label = QLabel()
+        self._no_cameras_label.setStyleSheet("color: #9aa4af;")
+        self._no_cameras_label.setVisible(False)
+        cameras_layout.addWidget(self._no_cameras_label)
+
+        self._add_camera_button = QPushButton()
+        self._add_camera_button.setStyleSheet("""
+            QPushButton {
+                background: #343a42;
+                color: white;
+                border: 1px solid #4a5159;
+                border-radius: 6px;
+                padding: 6px 12px;
+            }
+            QPushButton:hover {
+                background: #3f464f;
+            }
+            QPushButton:disabled {
+                color: #7a8494;
+            }
+        """)
+        cameras_layout.addWidget(self._add_camera_button)
+        layout.addWidget(self._cameras_card)
+
         grid = QGridLayout()
 
         self.ships = InfoCard("Ships")
@@ -276,12 +324,14 @@ class DashboardPage(QWidget):
             self._on_selector_changed
         )
         self._map_widget.locationSelected.connect(self._on_map_location)
+        self._add_camera_button.clicked.connect(self._add_camera)
 
         bind_language_refresh(self.refresh_translations)
 
         self.refresh_translations()
         self.update_dashboard()
         self.refresh_observation()
+        self.refresh_cameras()
 
     def refresh_translations(self) -> None:
 
@@ -307,8 +357,12 @@ class DashboardPage(QWidget):
         self._set_active_button.setText(tr("Set active"))
         self._save_move_button.setText(tr("Confirm"))
         self._cancel_move_button.setText(tr("Cancel"))
+        self._cameras_title.setText(tr("Attached Cameras"))
+        self._no_cameras_label.setText(tr("No cameras attached."))
+        self._add_camera_button.setText(tr("Add Camera"))
 
         self.refresh_observation()
+        self.refresh_cameras()
 
     def refresh_observation(self) -> None:
 
@@ -351,6 +405,110 @@ class DashboardPage(QWidget):
             has_point and len(points) > 1
         )
         self._selector_panel.setVisible(len(points) > 1)
+        self.refresh_cameras()
+
+    def refresh_cameras(self) -> None:
+
+        while self._cameras_list.count():
+            item = self._cameras_list.takeAt(0)
+
+            if item.widget():
+                item.widget().deleteLater()
+
+        active = observation_manager.active()
+        has_point = active is not None
+        self._add_camera_button.setEnabled(has_point)
+
+        if not has_point:
+            self._no_cameras_label.setVisible(True)
+            return
+
+        cameras = camera_manager.by_observation(active.id)
+        self._no_cameras_label.setVisible(not cameras)
+
+        for camera in cameras:
+            row = QHBoxLayout()
+            row_widget = QWidget()
+            row_widget.setLayout(row)
+
+            name_label = QLabel(camera.name)
+            name_label.setStyleSheet("color: white; font-weight: 600;")
+            row.addWidget(name_label, 1)
+
+            status_text = tr("Enabled") if camera.enabled else tr("Disabled")
+            status_label = QLabel(status_text)
+            status_label.setStyleSheet(
+                "color: #66bb6a;" if camera.enabled else "color: #9aa4af;"
+            )
+            row.addWidget(status_label)
+
+            edit_button = QPushButton(tr("Edit"))
+            delete_button = QPushButton(tr("Delete"))
+
+            for button in (edit_button, delete_button):
+                button.setStyleSheet("""
+                    QPushButton {
+                        background: #343a42;
+                        color: white;
+                        border: 1px solid #4a5159;
+                        border-radius: 6px;
+                        padding: 4px 10px;
+                    }
+                    QPushButton:hover {
+                        background: #3f464f;
+                    }
+                """)
+
+            edit_button.clicked.connect(
+                lambda _checked=False, item=camera: self._edit_camera(item)
+            )
+            delete_button.clicked.connect(
+                lambda _checked=False, item=camera: self._delete_camera(item)
+            )
+
+            row.addWidget(edit_button)
+            row.addWidget(delete_button)
+            self._cameras_list.addWidget(row_widget)
+
+    def _add_camera(self) -> None:
+
+        point_id = self._active_point_id()
+
+        if point_id is None:
+            return
+
+        wizard = CameraWizard(point_id, self)
+
+        if wizard.exec() == QDialog.DialogCode.Accepted:
+            self.refresh_cameras()
+
+    def _edit_camera(self, camera) -> None:
+
+        point_id = self._active_point_id()
+
+        if point_id is None:
+            return
+
+        wizard = CameraWizard(point_id, self, camera=camera)
+
+        if wizard.exec() == QDialog.DialogCode.Accepted:
+            self.refresh_cameras()
+
+    def _delete_camera(self, camera) -> None:
+
+        answer = QMessageBox.question(
+            self,
+            tr("Delete"),
+            tr("Delete camera '{name}'?").format(name=camera.name),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        camera_manager.remove(camera.id)
+        self.refresh_cameras()
 
     def _populate_selector(self, points, active) -> None:
 
