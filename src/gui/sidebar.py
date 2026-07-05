@@ -1,7 +1,9 @@
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QPushButton, QFrame, QVBoxLayout
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QLabel, QPushButton, QFrame, QVBoxLayout
 
+from branding.assets import logo_pixmap
 from i18n import language_manager, tr
+from version import PROJECT_NAME
 
 
 class Sidebar(QFrame):
@@ -63,6 +65,17 @@ class Sidebar(QFrame):
         self._layout.setContentsMargins(20, 20, 20, 20)
         self._layout.setSpacing(8)
 
+        self._logo_label = QLabel()
+        self._logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._layout.addWidget(self._logo_label)
+
+        self._title_label = QLabel(PROJECT_NAME)
+        self._title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._title_label.setStyleSheet(
+            "color: white; font-size: 14pt; font-weight: bold; padding-bottom: 8px;"
+        )
+        self._layout.addWidget(self._title_label)
+
         self._buttons: list[QPushButton] = []
 
         for index, (label_key, page_index) in enumerate(self._PAGE_KEYS):
@@ -82,6 +95,15 @@ class Sidebar(QFrame):
         self.refresh_translations()
 
     def refresh_translations(self) -> None:
+
+        pixmap = logo_pixmap(48)
+
+        if pixmap.isNull():
+            self._logo_label.clear()
+        else:
+            self._logo_label.setPixmap(pixmap)
+
+        self._title_label.setText(PROJECT_NAME)
 
         for index, (label_key, _page_index) in enumerate(self._PAGE_KEYS):
             icon = self._PAGE_ICONS[index]

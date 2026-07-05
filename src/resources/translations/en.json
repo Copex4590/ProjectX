@@ -348,5 +348,9 @@
   "Vessel Logbook": "Vessel Logbook",
   "Import Legacy Logbook": "Import Legacy Logbook",
   "Legacy logbook import complete. Imported: {imported}, skipped: {skipped}.": "Legacy logbook import complete. Imported: {imported}, skipped: {skipped}.",
-  "Vessel logbook": "Vessel Logbook"
+  "Vessel logbook": "Vessel Logbook",
+  "Version": "Version",
+  "Build": "Build",
+  "Loading": "Loading",
+  "License": "License"
 }

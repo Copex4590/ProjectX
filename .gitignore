@@ -8,3 +8,14 @@ __pycache__/
 *.db
 .idea/
 .vscode/
+
+# Runtime-generated user configuration
+src/config/cameras.json
+src/config/observation_points.json
+src/config/preferences.json
+
+# Build artifacts
+build/
+dist/
+*.spec.bak
+.install-test/

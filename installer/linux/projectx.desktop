@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Project X
+Comment=Danube vessel monitoring platform
+Exec=@INSTALL_DIR@/bin/projectx
+Icon=projectx
+Terminal=false
+Categories=Utility;Science;Education;
+StartupWMClass=ProjectX
+Keywords=vessel;AIS;monitoring;Danube;

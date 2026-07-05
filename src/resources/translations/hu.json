@@ -348,5 +348,9 @@
   "Vessel Logbook": "Hajónapló",
   "Import Legacy Logbook": "Régi hajónapló importálása",
   "Legacy logbook import complete. Imported: {imported}, skipped: {skipped}.": "A régi hajónapló importálása kész. Importálva: {imported}, kihagyva: {skipped}.",
-  "Vessel logbook": "Hajónapló"
+  "Vessel logbook": "Hajónapló",
+  "Version": "Verzió",
+  "Build": "Build",
+  "Loading": "Betöltés",
+  "License": "Licenc"
 }

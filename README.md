@@ -1,5 +1,7 @@
 # Project X
 
+![Project X](src/resources/branding/projectx-logo.svg)
+
 Danube vessel monitoring platform with live AIS map, camera selection, playback, vessel database, timeline, statistics, and alert management.
 
 **Version:** 0.3.0-alpha  
@@ -100,6 +102,17 @@ python main.py
 
 Requires Qt WebEngine (included with PySide6). For external playback, install `mpv` or `vlc` and ensure they are on PATH.
 
+### Desktop installer (Linux)
+
+```bash
+chmod +x installer/linux/install.sh
+installer/linux/install.sh --launch
+```
+
+Installs Project X to `~/.local/share/projectx`, creates a desktop shortcut, and adds an applications menu entry with the official icon.
+
+See [installer/README.md](installer/README.md) for Windows packaging and build metadata.
+
 ### macOS
 
 ```bash
@@ -159,6 +172,7 @@ rtl-hajomonitor/
     │   ├── camera_packs/       # Pack manifests
     │   └── playback.json       # Playback preferences
     └── resources/
+        ├── branding/           # Official Project X logo (SVG, PNG, ICO)
         ├── map/                # Leaflet map HTML
         ├── icons/              # Ship SVG marker
         └── flags/              # Vessel flag SVGs (250 countries)
@@ -172,6 +186,7 @@ rtl-hajomonitor/
 | `src/config/camera_packs/` | Installed camera packs |
 | `src/config/camera_packs/state.json` | Enabled/disabled pack state |
 | `src/config/playback.json` | Playback mode and backend preferences |
+| `src/config/*.json.example` | Runtime config templates (copied on first run) |
 | `src/database/vessels.db` | Vessel database (auto-created) |
 | `src/timeline/timeline.db` | Vessel timeline events (auto-created) |
 | `src/alerts/alerts.db` | Alert rules and events (auto-created) |
@@ -252,7 +267,22 @@ The **Hungary** pack (`hungary/`) ships with placeholder stream URLs. The Pack M
 6. Inspector GUI / CLI tool
 7. Production playback backends (VLC, Qt, Browser)
 8. Configurable deployment paths and automated test suite
-9. Cross-platform packaging (AppImage, installer)
+9. Cross-platform packaging (AppImage, installer) — **Linux installer available** (`installer/linux/`)
+
+## Branding
+
+Official Project X artwork lives in `src/resources/branding/`:
+
+- `projectx-logo.svg` — master vector logo (two ship bows forming an X)
+- `projectx-logo.png` — application, splash, and About dialog
+- `projectx.ico` — Windows / installer icon
+- `projectx.icns` — macOS bundle icon (future)
+
+Regenerate raster assets:
+
+```bash
+python3 scripts/generate_branding_assets.py
+```
 
 ## Documentation
 
@@ -263,4 +293,4 @@ The **Hungary** pack (`hungary/`) ships with placeholder stream URLs. The Pack M
 
 ## License
 
-See repository for license information.
+MIT License — see [LICENSE](LICENSE).

@@ -10,8 +10,7 @@ from engines.camera.providers import provider_registry
 from engines.playback import backend_registry
 from inspector.component_status import ComponentHealth, ComponentStatus
 from inspector.health_report import HealthReport
-
-PROJECT_VERSION = "0.3.0-alpha"
+from version import PROJECT_VERSION
 
 
 class Inspector:

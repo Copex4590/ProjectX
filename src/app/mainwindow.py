@@ -6,6 +6,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from branding.assets import app_icon
+from gui.aboutdialog import AboutDialog
 from gui.sidebar import Sidebar
 from gui.connectionpanel import ConnectionPanel
 from gui.statuspanel import StatusPanel
@@ -29,6 +31,7 @@ from i18n import language_manager
 from observation import observation_manager
 from preferences import preferences_manager
 from inspector.inspector import PROJECT_VERSION
+from version import PROJECT_NAME
 from engines.ais.ais_catcher_launcher import ensure_ais_catcher_ready
 from engines.rtl.hybrid_engine import HybridEngine
 from logbook import logbook_recorder
@@ -39,7 +42,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle(f"Project X {PROJECT_VERSION}")
+        self.setWindowTitle(f"{PROJECT_NAME} {PROJECT_VERSION}")
+        self.setWindowIcon(app_icon())
         self.resize(1600, 900)
 
         self.hybrid_engine = HybridEngine()
@@ -141,7 +145,9 @@ class MainWindow(QMainWindow):
 
     def build_ui(self):
 
-        self.setMenuBar(MenuBar())
+        self.menu_bar = MenuBar()
+        self.setMenuBar(self.menu_bar)
+        self.menu_bar.about_requested.connect(self._show_about)
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -255,6 +261,11 @@ class MainWindow(QMainWindow):
 
         self.map_page.select_vessel(mmsi)
         self.map_page.map.focus_ship(mmsi)
+
+    def _show_about(self) -> None:
+
+        dialog = AboutDialog(self)
+        dialog.exec()
 
     def closeEvent(self, event):
 

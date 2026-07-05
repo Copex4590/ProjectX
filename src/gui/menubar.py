@@ -1,3 +1,4 @@
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QMenuBar,
     QMenu,
@@ -8,6 +9,8 @@ from i18n import tr
 
 
 class MenuBar(QMenuBar):
+
+    about_requested = Signal()
 
     def __init__(self):
         super().__init__()
@@ -26,6 +29,8 @@ class MenuBar(QMenuBar):
 
         self._help_menu = QMenu(self)
         self._about_action = self._help_menu.addAction("")
+
+        self._about_action.triggered.connect(self.about_requested.emit)
 
         self.addMenu(self._file_menu)
         self.addMenu(self._view_menu)
