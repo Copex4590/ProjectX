@@ -1,0 +1,26 @@
+{
+  "id": "hungary-official",
+  "name": "Hungary Official Camera Pack",
+  "version": "1.0.0",
+  "author": "Project X",
+  "description": "Official placeholder camera pack for Hungarian Danube monitoring regions.",
+  "country": "HU",
+  "camera_count": 9,
+  "regions": [
+    {
+      "id": "budapest",
+      "name": "Budapest",
+      "file": "budapest.json"
+    },
+    {
+      "id": "north",
+      "name": "North Danube",
+      "file": "north.json"
+    },
+    {
+      "id": "south",
+      "name": "South Danube",
+      "file": "south.json"
+    }
+  ]
+}

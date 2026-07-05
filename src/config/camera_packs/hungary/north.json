@@ -1,0 +1,49 @@
+{
+  "country": "HU",
+  "region": "North Danube",
+  "name": "North Danube",
+  "cameras": [
+    {
+      "id": "hu-north-esztergom",
+      "name": "Esztergom Danube View",
+      "lat": 47.792804,
+      "lon": 18.737934,
+      "direction_deg": 160.0,
+      "fov_deg": 80.0,
+      "visibility_radius_km": 6.0,
+      "provider_type": "hls",
+      "stream_url": "https://placeholder.projectx.local/hungary/north/hu-north-esztergom/stream.m3u8",
+      "snapshot_url": "https://placeholder.projectx.local/hungary/north/hu-north-esztergom/snapshot.jpg",
+      "web_url": "https://placeholder.projectx.local/hungary/north/hu-north-esztergom",
+      "provider_name": "Project X Placeholder",
+      "city": "Esztergom",
+      "river": "Danube",
+      "timezone": "Europe/Budapest",
+      "tags": ["north-danube", "danube", "esztergom"],
+      "enabled": true,
+      "priority": 70,
+      "description": "Placeholder stream for the northern Danube approach near Esztergom."
+    },
+    {
+      "id": "hu-north-visegrad",
+      "name": "Visegrad Bend",
+      "lat": 47.785221,
+      "lon": 18.969512,
+      "direction_deg": 140.0,
+      "fov_deg": 85.0,
+      "visibility_radius_km": 5.5,
+      "provider_type": "hls",
+      "stream_url": "https://placeholder.projectx.local/hungary/north/hu-north-visegrad/stream.m3u8",
+      "snapshot_url": "https://placeholder.projectx.local/hungary/north/hu-north-visegrad/snapshot.jpg",
+      "web_url": "https://placeholder.projectx.local/hungary/north/hu-north-visegrad",
+      "provider_name": "Project X Placeholder",
+      "city": "Visegrad",
+      "river": "Danube",
+      "timezone": "Europe/Budapest",
+      "tags": ["north-danube", "danube", "visegrad"],
+      "enabled": true,
+      "priority": 65,
+      "description": "Placeholder stream for the Visegrad Danube bend."
+    }
+  ]
+}
