@@ -1,3 +1,4 @@
+from .cameradiagnosticspanel import CameraDiagnosticsPanel
 from .playbacksettings import (
     PlaybackSettingsPage,
     load_settings,
@@ -6,6 +7,7 @@ from .playbacksettings import (
 )
 
 __all__ = [
+    "CameraDiagnosticsPanel",
     "PlaybackSettingsPage",
     "load_settings",
     "save_settings",

@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from gui.settings.cameradiagnosticspanel import CameraDiagnosticsPanel
 from gui.settings.playbacksettings import PlaybackSettingsPage
 
 
@@ -67,5 +68,7 @@ class SettingsPanel(QFrame):
         layout.addWidget(QPushButton("Save"))
 
         layout.addWidget(PlaybackSettingsPage())
+
+        layout.addWidget(CameraDiagnosticsPanel())
 
         layout.addStretch()
