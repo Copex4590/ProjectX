@@ -12,12 +12,12 @@ from threading import Lock
 from alerts.alert_event import AlertEvent
 from alerts.alert_rule import AlertRule
 
-_ALERTS_DIR = Path(__file__).resolve().parent
+from app.paths import runtime_data_path
 
 ALERT_DATABASE_FILE = Path(
     os.environ.get(
         "PROJECTX_ALERT_DATABASE_FILE",
-        str(_ALERTS_DIR / "alerts.db"),
+        str(runtime_data_path("alerts.db")),
     )
 )
 

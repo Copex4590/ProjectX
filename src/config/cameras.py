@@ -6,12 +6,12 @@
 import os
 from pathlib import Path
 
-_CONFIG_DIR = Path(__file__).resolve().parent / "cameras"
+from app.paths import bundled_config_dir
 
 CAMERAS_CONFIG_DIR = Path(
     os.environ.get(
         "PROJECTX_CAMERAS_CONFIG_DIR",
-        str(_CONFIG_DIR),
+        str(bundled_config_dir() / "cameras"),
     )
 )
 

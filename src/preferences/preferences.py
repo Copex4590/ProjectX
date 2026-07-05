@@ -7,12 +7,12 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-_CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
+from app.paths import runtime_config_path
 
 PREFERENCES_FILE = Path(
     os.environ.get(
         "PROJECTX_PREFERENCES_FILE",
-        str(_CONFIG_DIR / "preferences.json"),
+        str(runtime_config_path("preferences.json")),
     )
 )
 

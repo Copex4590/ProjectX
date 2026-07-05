@@ -9,13 +9,14 @@ from threading import Lock
 
 from vessels.flags.flag_record import FlagRecord
 
+from app.paths import resource_path
+
 _FLAGS_PACKAGE_DIR = Path(__file__).resolve().parent
-_SRC_DIR = _FLAGS_PACKAGE_DIR.parent.parent
 
 FLAGS_DIR = Path(
     os.environ.get(
         "PROJECTX_FLAGS_DIR",
-        str(_SRC_DIR / "resources" / "flags"),
+        str(resource_path("flags")),
     )
 )
 

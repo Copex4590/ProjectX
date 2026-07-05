@@ -1,4 +1,4 @@
-from pathlib import Path
+from app.paths import resource_path
 
 from PySide6.QtCore import QObject, QUrl, Signal, Slot
 from PySide6.QtWebChannel import QWebChannel
@@ -44,13 +44,7 @@ class MapWidget(QWebEngineView):
         channel.registerObject("bridge", self._bridge)
         self.page().setWebChannel(channel)
 
-        html = (
-            Path(__file__).resolve().parents[3]
-            / "src"
-            / "resources"
-            / "map"
-            / "map.html"
-        )
+        html = resource_path("map", "map.html")
 
         self.load(QUrl.fromLocalFile(str(html)))
         self.loadFinished.connect(self._on_load_finished)

@@ -19,12 +19,12 @@ from camera.camera_registry import CameraRegistry
 
 SCHEMA_VERSION = 1
 
-_CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
+from app.paths import runtime_config_path
 
 CAMERAS_FILE = Path(
     os.environ.get(
         "PROJECTX_CAMERAS_FILE",
-        str(_CONFIG_DIR / "cameras.json"),
+        str(runtime_config_path("cameras.json")),
     )
 )
 

@@ -1,3 +1,5 @@
+import logging
+
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -43,6 +45,8 @@ from gui.aiswizard import AISWizard
 from gui.rtlsdrdiagnosticsdialog import RTLSdrDiagnosticsDialog
 from gui.rtlsdrwizard import RTLSdrWizard
 
+logger = logging.getLogger(__name__)
+
 
 class MainWindow(QMainWindow):
 
@@ -66,12 +70,11 @@ class MainWindow(QMainWindow):
         self._connect_cameras()
 
         if ensure_ais_catcher_ready():
-            print("🚢 Hybrid Engine indítása...")
+            logger.info("Starting Hybrid Engine")
             self.hybrid_engine.start()
         else:
-            print(
-                "⚠️ AIS-catcher nem elérhető – "
-                "Hybrid Engine nem indul."
+            logger.warning(
+                "AIS-Catcher unavailable — Hybrid Engine not started"
             )
 
     def _connect_event_bridge(self):
@@ -363,8 +366,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
 
-        print("🛑 Hybrid Engine leállítása...")
-
+        logger.info("Stopping Hybrid Engine")
         self.hybrid_engine.stop()
 
         super().closeEvent(event)

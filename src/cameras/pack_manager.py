@@ -10,19 +10,25 @@ from pathlib import Path
 
 from database.camera_registry import CameraRegistry, camera_registry
 
-_CONFIG_DIR = Path(__file__).resolve().parent.parent / "config" / "camera_packs"
+from app.paths import bundled_config_dir, is_frozen, runtime_config_path
 
 CAMERA_PACKS_DIR = Path(
     os.environ.get(
         "PROJECTX_CAMERA_PACKS_DIR",
-        str(_CONFIG_DIR),
+        str(bundled_config_dir() / "camera_packs"),
     )
+)
+
+_default_state = (
+    runtime_config_path("camera_packs_state.json")
+    if is_frozen()
+    else bundled_config_dir() / "camera_packs" / "state.json"
 )
 
 CAMERA_PACKS_STATE_FILE = Path(
     os.environ.get(
         "PROJECTX_CAMERA_PACKS_STATE_FILE",
-        str(_CONFIG_DIR / "state.json"),
+        str(_default_state),
     )
 )
 

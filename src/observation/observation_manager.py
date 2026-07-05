@@ -18,12 +18,12 @@ from observation.observation_point import ObservationPoint
 
 SCHEMA_VERSION = 1
 
-_CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
+from app.paths import runtime_config_path
 
 OBSERVATION_POINTS_FILE = Path(
     os.environ.get(
         "PROJECTX_OBSERVATION_POINTS_FILE",
-        str(_CONFIG_DIR / "observation_points.json"),
+        str(runtime_config_path("observation_points.json")),
     )
 )
 

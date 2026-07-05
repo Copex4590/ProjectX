@@ -17,6 +17,13 @@ Regenerate PNG and ICO from the master artwork:
 python3 scripts/generate_branding_assets.py
 ```
 
+Fetch bundled Leaflet map assets (offline map support):
+
+```bash
+chmod +x scripts/fetch_leaflet.sh
+scripts/fetch_leaflet.sh
+```
+
 ## Linux installer
 
 Installs Project X to `~/.local/share/projectx`, creates a launcher, desktop shortcut, and applications menu entry.

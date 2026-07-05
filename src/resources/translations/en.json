@@ -546,5 +546,7 @@
   "Map Engine": "Map Engine",
   "Translations": "Translations",
   "Logbook": "Logbook",
-  "Configuration": "Configuration"
+  "Configuration": "Configuration",
+  "Project X could not start because an unexpected error occurred.": "Project X could not start because an unexpected error occurred.",
+  "Project X could not start because the main window failed to initialize.": "Project X could not start because the main window failed to initialize."
 }

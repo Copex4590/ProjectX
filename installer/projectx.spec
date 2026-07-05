@@ -8,6 +8,17 @@ from pathlib import Path
 ROOT = Path(SPECPATH).resolve().parent.parent
 SRC = ROOT / "src"
 BRANDING = SRC / "resources" / "branding"
+CONFIG = SRC / "config"
+
+# Read-only bundled configuration (exclude user runtime JSON files).
+_config_datas = [
+    (str(CONFIG / "cameras"), "config/cameras"),
+    (str(CONFIG / "camera_packs"), "config/camera_packs"),
+    (str(CONFIG / "playback.json"), "config"),
+    (str(CONFIG / "preferences.json.example"), "config"),
+    (str(CONFIG / "cameras.json.example"), "config"),
+    (str(CONFIG / "observation_points.json.example"), "config"),
+]
 
 block_cipher = None
 
@@ -17,12 +28,22 @@ a = Analysis(
     binaries=[],
     datas=[
         (str(SRC / "resources"), "resources"),
-        (str(SRC / "config"), "config"),
+        *_config_datas,
         (str(ROOT / "data"), "data"),
         (str(BRANDING / "projectx.ico"), "."),
         (str(BRANDING / "projectx-logo.png"), "."),
     ],
-    hiddenimports=[],
+    hiddenimports=[
+        "PySide6.QtWebEngineWidgets",
+        "PySide6.QtWebEngineCore",
+        "PySide6.QtWebChannel",
+        "openpyxl",
+        "openpyxl.cell",
+        "openpyxl.workbook",
+        "websocket",
+        "websocket._abnf",
+        "websocket._core",
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -46,7 +67,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
-    disable_windowed_traceback=False,
+    disable_windowed_traceback=True,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,

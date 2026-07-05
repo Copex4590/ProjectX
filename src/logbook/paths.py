@@ -8,9 +8,9 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+from app.paths import runtime_data_dir
 
-DEFAULT_HAJOK_DIR = _PROJECT_ROOT / "data" / "Hajók"
+DEFAULT_HAJOK_DIR = runtime_data_dir() / "Hajók"
 
 HAJOK_DIR = Path(
     os.environ.get(

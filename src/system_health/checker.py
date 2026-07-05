@@ -5,10 +5,9 @@
 
 from __future__ import annotations
 
-import platform
 import socket
-from pathlib import Path
 
+from app.paths import resource_path
 from ais import ais_manager
 from ais.providers import normalize_provider_type
 from ais.providers.provider import AISProviderType
@@ -30,9 +29,7 @@ from system_health.subsystem_status import (
 )
 from version import PROJECT_VERSION
 
-_MAP_HTML = (
-    Path(__file__).resolve().parents[1] / "resources" / "map" / "map.html"
-)
+_MAP_HTML = resource_path("map", "map.html")
 
 
 class SystemHealthChecker:

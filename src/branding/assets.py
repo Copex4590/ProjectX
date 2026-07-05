@@ -11,7 +11,10 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPixmap
 
-_BRANDING_DIR = Path(__file__).resolve().parent.parent / "resources" / "branding"
+from app.paths import resource_path
+
+
+_BRANDING_DIR = resource_path("branding")
 
 
 def branding_dir() -> Path:

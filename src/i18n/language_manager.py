@@ -11,7 +11,9 @@ from PySide6.QtCore import QObject, Signal
 from preferences.preferences import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
 from preferences.preferences_manager import preferences_manager
 
-_TRANSLATIONS_DIR = Path(__file__).resolve().parents[1] / "resources" / "translations"
+from app.paths import resource_path
+
+_TRANSLATIONS_DIR = resource_path("translations")
 
 
 class LanguageManager(QObject):

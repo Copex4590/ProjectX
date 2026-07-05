@@ -14,6 +14,12 @@ src/config/cameras.json
 src/config/observation_points.json
 src/config/preferences.json
 src/config/ais_api_key.txt
+src/config/camera_packs/state.json
+
+# Runtime databases (development)
+src/alerts/alerts.db
+src/timeline/timeline.db
+src/database/vessels.db
 
 # Build artifacts
 build/

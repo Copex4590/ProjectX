@@ -5,16 +5,50 @@
 # Version : 0.3.0-alpha
 # ============================================================================
 
+import logging
 import sys
 import time
 
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
+from app.logging_config import configure_logging
 from app.mainwindow import MainWindow
 from branding.assets import app_icon
 from gui.splashscreen import create_splash_screen
+from i18n import tr
 from version import PROJECT_NAME, PROJECT_VERSION
+
+logger = logging.getLogger(__name__)
+
+
+def _install_exception_hook() -> None:
+
+    def handle_exception(exc_type, exc_value, exc_traceback) -> None:
+
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+
+        logger.error(
+            "Unhandled exception",
+            exc_info=(exc_type, exc_value, exc_traceback),
+        )
+
+        message = tr(
+            "Project X could not start because an unexpected error occurred."
+        )
+
+        detail = str(exc_value).strip() or exc_type.__name__
+        if detail and detail != exc_type.__name__:
+            message = f"{message}\n\n{detail}"
+
+        app = QApplication.instance()
+
+        if app is not None:
+            QMessageBox.critical(None, PROJECT_NAME, message)
+
+    sys.excepthook = handle_exception
 
 
 class Application:
@@ -28,6 +62,9 @@ class Application:
 
     def __init__(self):
 
+        configure_logging()
+        _install_exception_hook()
+
         self.qt = QApplication(sys.argv)
         self.qt.setApplicationName(PROJECT_NAME)
         self.qt.setApplicationVersion(PROJECT_VERSION)
@@ -39,7 +76,20 @@ class Application:
         self.qt.processEvents()
 
         self._startup_started = time.monotonic()
-        self.window = MainWindow()
+
+        try:
+            self.window = MainWindow()
+        except Exception:
+            logger.exception("Failed to create main window")
+            QMessageBox.critical(
+                None,
+                PROJECT_NAME,
+                tr(
+                    "Project X could not start because the main window "
+                    "failed to initialize."
+                ),
+            )
+            raise
 
     def run(self):
 

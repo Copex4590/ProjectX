@@ -546,5 +546,7 @@
   "Map Engine": "Térkép motor",
   "Translations": "Fordítások",
   "Logbook": "Hajónapló",
-  "Configuration": "Konfiguráció"
+  "Configuration": "Konfiguráció",
+  "Project X could not start because an unexpected error occurred.": "A Project X nem indítható el váratlan hiba miatt.",
+  "Project X could not start because the main window failed to initialize.": "A Project X nem indítható el, mert a főablak inicializálása sikertelen."
 }

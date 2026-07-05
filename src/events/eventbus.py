@@ -3,9 +3,12 @@
 # Event Bus
 # ============================================================================
 
+import logging
 from collections import defaultdict
 from threading import Lock
 from typing import Callable
+
+logger = logging.getLogger(__name__)
 
 
 class EventBus:
@@ -37,10 +40,11 @@ class EventBus:
         for callback in listeners:
             try:
                 callback(*args, **kwargs)
-            except Exception as e:
-                print(
-                    f"[EventBus] '{event_name}' -> "
-                    f"{callback.__qualname__}: {e}"
+            except Exception:
+                logger.exception(
+                    "EventBus handler failed for '%s' -> %s",
+                    event_name,
+                    callback.__qualname__,
                 )
 
     def listener_count(self, event_name: str):

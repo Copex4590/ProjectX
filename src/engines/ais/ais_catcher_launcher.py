@@ -3,6 +3,7 @@
 # AIS-catcher launcher (RTL subsystem)
 # ============================================================================
 
+import logging
 import socket
 import subprocess
 import time
@@ -15,6 +16,8 @@ from config.aiscatcher import (
     AIS_CATCHER_PORT,
     AIS_CATCHER_STARTUP_TIMEOUT,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _process_gui_events():
@@ -64,13 +67,13 @@ def ensure_ais_catcher_ready():
     port = AIS_CATCHER_PORT
 
     if is_port_open(host, port):
-        print(f"✅ AIS-catcher már fut ({host}:{port})")
+        logger.debug("AIS-Catcher already running on %s:%s", host, port)
         return True
 
     executable = AIS_CATCHER_EXECUTABLE
 
     if not executable.is_file():
-        print(f"❌ AIS-catcher nem található: {executable}")
+        logger.warning("AIS-Catcher executable not found: %s", executable)
         return False
 
     command = [str(executable), *AIS_CATCHER_ARGS]
@@ -83,17 +86,19 @@ def ensure_ais_catcher_ready():
             start_new_session=True,
         )
     except OSError as error:
-        print(f"❌ AIS-catcher indítás sikertelen: {error}")
+        logger.warning("AIS-Catcher failed to start: %s", error)
         return False
 
-    print(f"📡 AIS-catcher indítása: {' '.join(command)}")
+    logger.info("Starting AIS-Catcher: %s", " ".join(command))
 
     if wait_for_port(host, port):
-        print(f"✅ AIS-catcher kész ({host}:{port})")
+        logger.info("AIS-Catcher ready on %s:%s", host, port)
         return True
 
-    print(
-        f"❌ AIS-catcher nem válaszol "
-        f"{AIS_CATCHER_STARTUP_TIMEOUT:g}s alatt ({host}:{port})"
+    logger.warning(
+        "AIS-Catcher did not respond within %ss on %s:%s",
+        AIS_CATCHER_STARTUP_TIMEOUT,
+        host,
+        port,
     )
     return False
