@@ -5,7 +5,6 @@
 
 from timeline.timeline_record import TimelineRecord
 from timeline.timeline_registry import (
-    TIMELINE_DATABASE_FILE,
     TimelineRegistry,
     timeline_registry,
 )

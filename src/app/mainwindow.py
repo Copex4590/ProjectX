@@ -22,6 +22,7 @@ from gui.alertcenterpage import AlertCenterPage
 from gui.rulespage import RulesPage
 from gui.eventbridge import EventBridge
 
+from inspector.inspector import PROJECT_VERSION
 from engines.ais.ais_catcher_launcher import ensure_ais_catcher_ready
 from engines.rtl.hybrid_engine import HybridEngine
 
@@ -31,7 +32,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Project X")
+        self.setWindowTitle(f"Project X {PROJECT_VERSION}")
         self.resize(1600, 900)
 
         self.hybrid_engine = HybridEngine()

@@ -7,7 +7,6 @@ from pathlib import Path
 
 from vessels.flags.flag_record import FlagRecord
 from vessels.flags.flag_registry import (
-    FLAGS_DIR,
     FlagRegistry,
     flag_registry,
     normalize_country_code,
