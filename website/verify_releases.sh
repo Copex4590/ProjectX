@@ -100,7 +100,7 @@ from pathlib import Path
 
 config = json.loads(Path("releases.json").read_text(encoding="utf-8"))
 config["windows"]["file"] = "ProjectX-Setup-0.4-beta.exe"
-config["linux"]["file"] = "ProjectX-0.4-beta.AppImage"
+config["linux"]["file"] = "ProjectX-0.4-beta-x86_64.AppImage"
 config["latest"] = "0.4-beta"
 Path("${TMP_CONFIG}").write_text(json.dumps(config), encoding="utf-8")
 PY
@@ -128,7 +128,7 @@ if [[ "$WIN_URL" != "downloads/windows/ProjectX-Setup-0.4-beta.exe" ]]; then
     exit 1
 fi
 
-if [[ "$LIN_URL" != "downloads/linux/ProjectX-0.4-beta.AppImage" ]]; then
+if [[ "$LIN_URL" != "downloads/linux/ProjectX-0.4-beta-x86_64.AppImage" ]]; then
     echo "[FAIL] Linux URL generation mismatch: ${LIN_URL}" >&2
     exit 1
 fi

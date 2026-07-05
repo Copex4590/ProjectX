@@ -29,3 +29,10 @@ dist/
 
 # Windows release installer binary (build on Windows, upload for website publish)
 website/downloads/windows/*.exe
+
+# Linux release packages (build on Linux, upload for website publish)
+release/linux/*.AppImage
+release/linux/*.deb
+website/downloads/linux/*.AppImage
+website/downloads/linux/*.deb
+.cache/

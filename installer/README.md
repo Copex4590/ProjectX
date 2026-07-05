@@ -32,13 +32,29 @@ scripts/fetch_leaflet.sh
 | `scripts/build_installer.bat` | Compile `ProjectX-Setup.exe` after PyInstaller |
 | `scripts/verify_windows_installer.bat` | Silent install/uninstall verification (Windows) |
 | `scripts/build_windows.ps1` | PowerShell alternative to `build_windows.bat` |
+| `scripts/build_linux_release.sh` | **Official Linux release packages → `release/linux/`** |
+| `scripts/verify_linux_release.sh` | Verify AppImage / .deb contents |
 | `scripts/build_linux.sh` | PyInstaller one-dir bundle → `dist/projectx/` (Linux smoke-test) |
 | `scripts/build_windows.sh` | Linux asset/path checks; optional WSL alternative |
 | `scripts/clean_build.sh` | Remove `build/` and `dist/` |
 
-Full Windows workflow: **`BUILD_WINDOWS.md`**
+Full Windows workflow: **`BUILD_WINDOWS.md`**  
+Full Linux release workflow: **`docs/LINUX_INSTALLER.md`**
 
-## Linux installer
+## Linux release packages (SAVE-077)
+
+Build official AppImage and `.deb` packages:
+
+```bash
+chmod +x scripts/build_linux_release.sh scripts/verify_linux_release.sh
+./scripts/build_linux_release.sh
+```
+
+Output: `release/linux/` and copies under `website/downloads/linux/`
+
+See **`docs/LINUX_INSTALLER.md`** for installation and verification.
+
+## Linux installer (development / source tree)
 
 Installs Project X to `~/.local/share/projectx`, creates a launcher, desktop shortcut, and applications menu entry.
 
