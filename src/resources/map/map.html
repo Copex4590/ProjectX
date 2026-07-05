@@ -16,21 +16,33 @@
         }
 
         .ship-icon {
-            font-size: 22px;
-            text-align: center;
-            line-height: 24px;
-            transform-origin: center center;
+            background: transparent !important;
+            border: none !important;
         }
 
         .ship-body {
             color: #1976d2;
-            font-size: 20px;
-            font-weight: bold;
             width: 24px;
             height: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
+            transform-origin: center center;
+        }
+
+        .ship-body--moving {
+            font-size: 20px;
+            font-weight: bold;
+            line-height: 1;
+            transition: transform 0.25s ease-out;
+        }
+
+        .ship-body--stationary {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: currentColor;
+            flex-shrink: 0;
         }
 
         .leaflet-popup-content-wrapper {
@@ -372,6 +384,71 @@ function popupContent(ship)
     return "";
 }
 
+const MOVING_THRESHOLD_KN = 0.5;
+
+function shipSpeedKn(ship)
+{
+    const speed = Number(ship.speed);
+    return Number.isFinite(speed) ? speed : 0;
+}
+
+function shipCourseDeg(ship)
+{
+    const course = Number(ship.course);
+
+    if (Number.isFinite(course))
+        return ((course % 360) + 360) % 360;
+
+    const heading = Number(ship.heading);
+
+    if (Number.isFinite(heading))
+        return ((heading % 360) + 360) % 360;
+
+    return 0;
+}
+
+function isShipMoving(ship)
+{
+    return shipSpeedKn(ship) >= MOVING_THRESHOLD_KN;
+}
+
+function updateMarkerAppearance(marker, ship)
+{
+    const element = marker.getElement();
+
+    if (!element)
+    {
+        requestAnimationFrame(function()
+        {
+            updateMarkerAppearance(marker, ship);
+        });
+        return;
+    }
+
+    let body = element.querySelector(".ship-body");
+
+    if (!body)
+    {
+        body = document.createElement("div");
+        body.className = "ship-body";
+        element.appendChild(body);
+    }
+
+    if (isShipMoving(ship))
+    {
+        body.classList.add("ship-body--moving");
+        body.classList.remove("ship-body--stationary");
+        body.textContent = "▲";
+        body.style.transform = "rotate(" + shipCourseDeg(ship) + "deg)";
+        return;
+    }
+
+    body.classList.remove("ship-body--moving");
+    body.classList.add("ship-body--stationary");
+    body.textContent = "";
+    body.style.transform = "";
+}
+
 function updateShips(list)
 {
     const active = new Set();
@@ -387,7 +464,7 @@ function updateShips(list)
         {
             const icon = L.divIcon({
                 className: "ship-icon",
-                html: "<div class='ship-body'>▲</div>",
+                html: "<div class='ship-body'></div>",
                 iconSize: [24, 24],
                 iconAnchor: [12, 12]
             });
@@ -402,6 +479,8 @@ function updateShips(list)
         {
             ships[mmsi].setLatLng(pos);
         }
+
+        updateMarkerAppearance(ships[mmsi], ship);
 
         const marker = ships[mmsi];
         const popupOpen = openPopupMmsi === mmsi && marker.isPopupOpen();
