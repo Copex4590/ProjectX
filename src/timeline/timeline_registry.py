@@ -197,6 +197,19 @@ class TimelineRegistry:
 
         return int(row["total"])
 
+    def all(self) -> list[TimelineRecord]:
+
+        with self._lock:
+            with self._connect() as connection:
+                rows = connection.execute(
+                    """
+                    SELECT * FROM vessel_timeline
+                    ORDER BY timestamp DESC, id DESC
+                    """
+                ).fetchall()
+
+        return [TimelineRecord.from_row(row) for row in rows]
+
     def _ensure_schema(self) -> None:
 
         self._db_path.parent.mkdir(parents=True, exist_ok=True)

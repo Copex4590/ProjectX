@@ -33,5 +33,9 @@ class TimelineManager:
 
         return self._registry.count()
 
+    def all(self) -> list[TimelineRecord]:
+
+        return self._registry.all()
+
 
 timeline_manager = TimelineManager()
