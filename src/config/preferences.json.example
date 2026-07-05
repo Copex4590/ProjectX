@@ -2,5 +2,10 @@
   "version": 1,
   "language": "en",
   "vessel_card_layout": "standard",
-  "first_run_completed": false
+  "first_run_completed": false,
+  "ais_provider": "later",
+  "aisstream_api_key": "",
+  "ais_local_host": "localhost",
+  "ais_local_port": 10110,
+  "ais_configured": false
 }

@@ -17,7 +17,9 @@ from PySide6.QtWidgets import (
 
 from database import registry
 from engines.rtl.hybrid_engine import CAMERA_LAT, CAMERA_LON
+from ais import ais_manager
 from camera import camera_manager
+from gui.aiswizard import AISWizard
 from gui.camerawizard import CameraWizard
 from gui.i18n_support import bind_language_refresh
 from gui.observationwizard import ObservationWizard
@@ -334,13 +336,94 @@ class DashboardPage(QWidget):
         logbook_layout.addWidget(self._import_logbook_button)
         layout.addWidget(self._logbook_card)
 
+        self._ais_card = QFrame()
+        self._ais_card.setStyleSheet("""
+            QFrame {
+                background: #252a31;
+                border: 1px solid #40444b;
+                border-radius: 10px;
+            }
+        """)
+        ais_layout = QVBoxLayout(self._ais_card)
+        ais_layout.setContentsMargins(16, 16, 16, 16)
+        ais_layout.setSpacing(10)
+
+        self._ais_title = QLabel()
+        self._ais_title.setStyleSheet(
+            "font-size: 16pt; font-weight: bold; color: white;"
+        )
+        ais_layout.addWidget(self._ais_title)
+
+        ais_grid = QGridLayout()
+        self._ais_provider_caption = QLabel()
+        self._ais_provider_value = QLabel()
+        self._ais_config_caption = QLabel()
+        self._ais_config_value = QLabel()
+        self._ais_connection_caption = QLabel()
+        self._ais_connection_value = QLabel()
+
+        for caption in (
+            self._ais_provider_caption,
+            self._ais_config_caption,
+            self._ais_connection_caption,
+        ):
+            caption.setStyleSheet("color: #9aa4af;")
+
+        for value in (
+            self._ais_provider_value,
+            self._ais_config_value,
+            self._ais_connection_value,
+        ):
+            value.setStyleSheet("color: white; font-weight: 600;")
+            value.setWordWrap(True)
+
+        ais_grid.addWidget(self._ais_provider_caption, 0, 0)
+        ais_grid.addWidget(self._ais_provider_value, 0, 1)
+        ais_grid.addWidget(self._ais_config_caption, 1, 0)
+        ais_grid.addWidget(self._ais_config_value, 1, 1)
+        ais_grid.addWidget(self._ais_connection_caption, 2, 0)
+        ais_grid.addWidget(self._ais_connection_value, 2, 1)
+        ais_layout.addLayout(ais_grid)
+
+        ais_button_row = QHBoxLayout()
+        ais_button_row.setSpacing(8)
+
+        self._ais_configure_button = QPushButton()
+        self._ais_test_button = QPushButton()
+        self._ais_change_button = QPushButton()
+
+        for button in (
+            self._ais_configure_button,
+            self._ais_test_button,
+            self._ais_change_button,
+        ):
+            button.setStyleSheet("""
+                QPushButton {
+                    background: #343a42;
+                    color: white;
+                    border: 1px solid #4a5159;
+                    border-radius: 6px;
+                    padding: 6px 12px;
+                }
+                QPushButton:hover {
+                    background: #3f464f;
+                }
+            """)
+
+        ais_button_row.addWidget(self._ais_configure_button)
+        ais_button_row.addWidget(self._ais_test_button)
+        ais_button_row.addWidget(self._ais_change_button)
+        ais_button_row.addStretch()
+        ais_layout.addLayout(ais_button_row)
+        layout.addWidget(self._ais_card)
+
         grid = QGridLayout()
 
         self.ships = InfoCard("Ships")
         self.ais = InfoCard("AIS")
         self.last = InfoCard("Last Ship")
 
-        self.ais.value.setText(tr("CONNECTED"))
+        self.ais.value.setText(tr("Disconnected"))
 
         grid.addWidget(self.ships, 0, 0)
         grid.addWidget(self.ais, 0, 1)
@@ -362,6 +445,9 @@ class DashboardPage(QWidget):
         self._map_widget.locationSelected.connect(self._on_map_location)
         self._add_camera_button.clicked.connect(self._add_camera)
         self._import_logbook_button.clicked.connect(self._import_legacy_logbook)
+        self._ais_configure_button.clicked.connect(self._configure_ais)
+        self._ais_test_button.clicked.connect(self._test_ais)
+        self._ais_change_button.clicked.connect(self._change_ais)
 
         bind_language_refresh(self.refresh_translations)
 
@@ -376,7 +462,7 @@ class DashboardPage(QWidget):
         self.ships.title.setText(tr("Ships"))
         self.ais.title.setText(tr("AIS"))
         self.last.title.setText(tr("Last Ship"))
-        self.ais.value.setText(tr("CONNECTED"))
+        self.ais.value.setText(tr("Disconnected"))
 
         self._observation_title.setText(tr("Observation Point"))
         self._name_caption.setText(tr("Name"))
@@ -399,9 +485,17 @@ class DashboardPage(QWidget):
         self._add_camera_button.setText(tr("Add Camera"))
         self._logbook_title.setText(tr("Vessel Logbook"))
         self._import_logbook_button.setText(tr("Import Legacy Logbook"))
+        self._ais_title.setText(tr("AIS Source"))
+        self._ais_provider_caption.setText(tr("Provider"))
+        self._ais_config_caption.setText(tr("Status"))
+        self._ais_connection_caption.setText(tr("Connection"))
+        self._ais_configure_button.setText(tr("Configure"))
+        self._ais_test_button.setText(tr("Test"))
+        self._ais_change_button.setText(tr("Change"))
 
         self.refresh_observation()
         self.refresh_cameras()
+        self.refresh_ais()
 
     def refresh_observation(self) -> None:
 
@@ -508,6 +602,63 @@ class DashboardPage(QWidget):
             row.addWidget(edit_button)
             row.addWidget(delete_button)
             self._cameras_list.addWidget(row_widget)
+
+    def refresh_ais(self) -> None:
+
+        self._ais_provider_value.setText(ais_manager.provider_name())
+
+        if ais_manager.is_configured():
+            self._ais_config_value.setText(tr("Configured"))
+            self._ais_config_value.setStyleSheet("color: #66bb6a; font-weight: 600;")
+        else:
+            self._ais_config_value.setText(tr("Not configured"))
+            self._ais_config_value.setStyleSheet("color: #9aa4af; font-weight: 600;")
+
+        if ais_manager.is_connected():
+            self._ais_connection_value.setText(tr("Connected"))
+            self._ais_connection_value.setStyleSheet("color: #66bb6a; font-weight: 600;")
+            self.ais.value.setText(tr("Connected"))
+        else:
+            self._ais_connection_value.setText(tr("Disconnected"))
+            self._ais_connection_value.setStyleSheet("color: #9aa4af; font-weight: 600;")
+            self.ais.value.setText(tr("Disconnected"))
+
+    def _configure_ais(self) -> None:
+
+        wizard = AISWizard(self)
+
+        if wizard.exec() == QDialog.DialogCode.Accepted:
+            self.refresh_ais()
+
+    def _change_ais(self) -> None:
+
+        self._configure_ais()
+
+    def _test_ais(self) -> None:
+
+        if not ais_manager.is_configured():
+            QMessageBox.information(
+                self,
+                tr("AIS Source"),
+                tr("AIS source is not configured yet."),
+            )
+            return
+
+        result = ais_manager.test_current()
+
+        if result.success:
+            QMessageBox.information(
+                self,
+                tr("AIS Source"),
+                f"✓ {tr(result.message)}",
+            )
+            return
+
+        QMessageBox.warning(
+            self,
+            tr("AIS Source"),
+            tr(result.message),
+        )
 
     def _import_legacy_logbook(self) -> None:
 
@@ -773,3 +924,5 @@ class DashboardPage(QWidget):
             self.last.value.setText(ships[-1].name)
         else:
             self.last.value.setText("--")
+
+        self.refresh_ais()

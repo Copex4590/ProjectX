@@ -60,6 +60,24 @@ class PreferencesManager:
         current.first_run_completed = bool(completed)
         return self.save(Preferences.from_dict(current.to_dict()))
 
+    def set_ais_configuration(
+        self,
+        *,
+        provider_type: str,
+        api_key: str = "",
+        host: str = "",
+        port: int = 0,
+        configured: bool = True,
+    ) -> Preferences:
+
+        current = self.get()
+        current.ais_provider = str(provider_type).strip().lower()
+        current.aisstream_api_key = str(api_key).strip()
+        current.ais_local_host = str(host).strip() or current.ais_local_host
+        current.ais_local_port = int(port or current.ais_local_port)
+        current.ais_configured = bool(configured)
+        return self.save(Preferences.from_dict(current.to_dict()))
+
     def _load(self) -> Preferences:
 
         if not self._path.exists():

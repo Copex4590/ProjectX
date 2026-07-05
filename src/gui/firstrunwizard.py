@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from gui.aiswizard import AISSetupWidget
 from gui.i18n_support import bind_language_refresh
 from gui.observationwizard import ObservationSetupWidget
 from i18n import language_manager, tr
@@ -30,8 +31,9 @@ _LANGUAGE_LABELS = {
 _STEP_WELCOME = 0
 _STEP_LANGUAGE = 1
 _STEP_OBSERVATION = 2
-_STEP_CAMERA = 3
-_STEP_FINISH = 4
+_STEP_AIS = 3
+_STEP_CAMERA = 4
+_STEP_FINISH = 5
 
 
 class FirstRunWizard(QDialog):
@@ -71,6 +73,7 @@ class FirstRunWizard(QDialog):
         self._english_option.setText(tr("English"))
         self._hungarian_option.setText(tr("Magyar"))
         self._observation_setup.refresh_translations()
+        self._ais_setup.refresh_translations()
         self._camera_title.setText(
             tr("Would you like to add your first camera now?")
         )
@@ -189,6 +192,9 @@ class FirstRunWizard(QDialog):
         self._observation_setup = ObservationSetupWidget()
         self._stack.addWidget(self._observation_setup)
 
+        self._ais_setup = AISSetupWidget()
+        self._stack.addWidget(self._ais_setup)
+
         camera = QWidget()
         camera_layout = QVBoxLayout(camera)
         self._camera_title = QLabel()
@@ -251,7 +257,7 @@ class FirstRunWizard(QDialog):
         self._button_box.button(QDialogButtonBox.StandardButton.Back).clicked.connect(
             self._on_back
         )
-        self._button_box.accepted.connect(self._on_confirm)
+        self._button_box.accepted.connect(self._on_confirm_or_ais)
         self._language_group.idClicked.connect(self._on_language_selected)
         self._camera_group.idClicked.connect(self._on_camera_selected)
 
@@ -296,6 +302,12 @@ class FirstRunWizard(QDialog):
                 next_button,
                 confirm_button,
             )
+        elif step == _STEP_AIS:
+            self._ais_setup.update_outer_buttons(
+                back_button,
+                next_button,
+                confirm_button,
+            )
         else:
             confirm_button.setVisible(False)
             next_button.setVisible(step in (_STEP_LANGUAGE, _STEP_CAMERA))
@@ -332,6 +344,10 @@ class FirstRunWizard(QDialog):
             self._observation_setup.on_enter()
         elif step == _STEP_OBSERVATION:
             self._observation_setup.handle_next()
+        elif step == _STEP_AIS:
+            if self._ais_setup.handle_next():
+                self._ais_setup.on_leave()
+                self._stack.setCurrentIndex(_STEP_CAMERA)
         elif step == _STEP_CAMERA:
             self._stack.setCurrentIndex(_STEP_FINISH)
 
@@ -347,11 +363,24 @@ class FirstRunWizard(QDialog):
             if self._observation_setup.handle_back():
                 self._observation_setup.on_leave()
                 self._stack.setCurrentIndex(_STEP_LANGUAGE)
+        elif step == _STEP_AIS:
+            if self._ais_setup.handle_back():
+                self._ais_setup.on_leave()
+                self._stack.setCurrentIndex(_STEP_OBSERVATION)
+                self._observation_setup.on_enter()
         elif step == _STEP_CAMERA:
-            self._stack.setCurrentIndex(_STEP_OBSERVATION)
-            self._observation_setup.on_enter()
+            self._stack.setCurrentIndex(_STEP_AIS)
+            self._ais_setup.on_enter()
 
         self._sync_buttons()
+
+    def _on_confirm_or_ais(self) -> None:
+
+        if self._stack.currentIndex() == _STEP_AIS:
+            self._on_ais_confirm()
+            return
+
+        self._on_confirm()
 
     def _on_confirm(self) -> None:
 
@@ -362,6 +391,19 @@ class FirstRunWizard(QDialog):
             return
 
         self._observation_setup.on_leave()
+        self._stack.setCurrentIndex(_STEP_AIS)
+        self._ais_setup.on_enter()
+        self._sync_buttons()
+
+    def _on_ais_confirm(self) -> None:
+
+        if self._stack.currentIndex() != _STEP_AIS:
+            return
+
+        if not self._ais_setup.handle_confirm():
+            return
+
+        self._ais_setup.on_leave()
         self._stack.setCurrentIndex(_STEP_CAMERA)
         self._sync_buttons()
 
