@@ -34,3 +34,23 @@ class VesselStatistics:
     average_speed: float | None = None
     maximum_speed: float | None = None
     computed_at: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
+class ActiveVesselEntry:
+
+    mmsi: int
+    name: str
+    activity_count: int
+
+
+@dataclass
+class DashboardStatistics:
+
+    global_stats: GlobalStatistics = field(default_factory=GlobalStatistics)
+    top_ship_types: list[tuple[str, int]] = field(default_factory=list)
+    top_flags: list[tuple[str, int]] = field(default_factory=list)
+    top_active_vessels: list[ActiveVesselEntry] = field(default_factory=list)
+    arrivals_by_hour: list[int] = field(default_factory=lambda: [0] * 24)
+    departures_by_hour: list[int] = field(default_factory=lambda: [0] * 24)
+    activity_last_24_hours: list[int] = field(default_factory=lambda: [0] * 24)

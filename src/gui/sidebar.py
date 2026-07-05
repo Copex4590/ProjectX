@@ -42,6 +42,7 @@ class Sidebar(QFrame):
             ("📷 Cameras",3),
             ("🗄 Vessel Database",4),
             ("🕓 Vessel Timeline",5),
+            ("📊 Statistics",6),
         ]
 
         for text,index in buttons:

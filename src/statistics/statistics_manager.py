@@ -14,7 +14,12 @@ from engines.timeline.arrival_departure_engine import (
     EVENT_DEPARTURE,
 )
 from models.vessel_record import VesselRecord
-from statistics.statistics_record import GlobalStatistics, VesselStatistics
+from statistics.statistics_record import (
+    ActiveVesselEntry,
+    DashboardStatistics,
+    GlobalStatistics,
+    VesselStatistics,
+)
 from timeline.timeline_manager import TimelineManager, timeline_manager
 from timeline.timeline_recorder import EVENT_POSITION_UPDATE
 from timeline.timeline_record import TimelineRecord
@@ -100,6 +105,7 @@ class StatisticsManager:
         )
         self._lock = Lock()
         self._global_cache: GlobalStatistics | None = None
+        self._dashboard_cache: DashboardStatistics | None = None
         self._vessel_cache: dict[int, VesselStatistics] = {}
         self._timeline_by_mmsi: dict[int, list[TimelineRecord]] = {}
         self._vessels_by_mmsi: dict[int, VesselRecord] = {}
@@ -152,6 +158,17 @@ class StatisticsManager:
                 return GlobalStatistics()
 
             return self._global_cache
+
+    def dashboard_statistics(self) -> DashboardStatistics:
+
+        with self._lock:
+            if not self._cache_is_fresh():
+                self._rebuild_cache_locked()
+
+            if self._dashboard_cache is None:
+                return DashboardStatistics()
+
+            return self._dashboard_cache
 
     def _cache_is_fresh(self) -> bool:
 
@@ -240,6 +257,91 @@ class StatisticsManager:
             )
 
         self._cache_timestamp = now
+        self._dashboard_cache = self._build_dashboard_statistics_locked(
+            vessels,
+            timeline_records,
+            now,
+            today,
+        )
+
+    def _build_dashboard_statistics_locked(
+        self,
+        vessels: list[VesselRecord],
+        timeline_records: list[TimelineRecord],
+        now: datetime,
+        today,
+    ) -> DashboardStatistics:
+
+        ship_type_counter = Counter(
+            vessel.ship_type.strip()
+            for vessel in vessels
+            if vessel.ship_type.strip()
+        )
+        flag_counter = Counter(
+            vessel.flag.strip()
+            for vessel in vessels
+            if vessel.flag.strip()
+        )
+
+        top_active = sorted(
+            (
+                ActiveVesselEntry(
+                    mmsi=mmsi,
+                    name=self._vessel_label(mmsi),
+                    activity_count=stats.total_observations,
+                )
+                for mmsi, stats in self._vessel_cache.items()
+            ),
+            key=lambda entry: (-entry.activity_count, entry.mmsi),
+        )[:10]
+
+        arrivals_by_hour = [0] * 24
+        departures_by_hour = [0] * 24
+
+        for record in timeline_records:
+            if record.timestamp.date() != today:
+                continue
+
+            hour = record.timestamp.hour
+
+            if record.event_type == EVENT_ARRIVAL:
+                arrivals_by_hour[hour] += 1
+            elif record.event_type == EVENT_DEPARTURE:
+                departures_by_hour[hour] += 1
+
+        activity_last_24_hours = [0] * 24
+        window_start = now - timedelta(hours=23)
+
+        for record in timeline_records:
+            if record.event_type != EVENT_POSITION_UPDATE:
+                continue
+
+            if record.timestamp < window_start:
+                continue
+
+            hours_ago = int((now - record.timestamp).total_seconds() // 3600)
+
+            if 0 <= hours_ago < 24:
+                activity_last_24_hours[23 - hours_ago] += 1
+
+        return DashboardStatistics(
+            global_stats=self._global_cache or GlobalStatistics(),
+            top_ship_types=ship_type_counter.most_common(10),
+            top_flags=flag_counter.most_common(10),
+            top_active_vessels=top_active,
+            arrivals_by_hour=arrivals_by_hour,
+            departures_by_hour=departures_by_hour,
+            activity_last_24_hours=activity_last_24_hours,
+        )
+
+    def _vessel_label(self, mmsi: int) -> str:
+
+        vessel = self._vessels_by_mmsi.get(mmsi)
+
+        if vessel is not None and vessel.name.strip():
+            return vessel.name.strip()
+
+        return str(mmsi)
 
     def _compute_vessel_statistics_locked(
         self,
