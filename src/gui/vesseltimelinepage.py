@@ -26,6 +26,7 @@ from engines.timeline.arrival_departure_engine import (
     EVENT_DEPARTURE,
 )
 from gui.i18n_support import bind_language_refresh
+from gui.tableutils import show_empty_table_message
 from i18n import tr
 from timeline.timeline_manager import TimelineManager, timeline_manager
 from timeline.timeline_recorder import EVENT_POSITION_UPDATE
@@ -67,6 +68,16 @@ def _display_text(value: str | None) -> str:
         return text
 
     return "—"
+
+
+def _tr_event_type(value: str | None) -> str:
+
+    text = str(value or "").strip()
+
+    if not text:
+        return "—"
+
+    return tr(text)
 
 
 def _format_timestamp(value: datetime | None) -> str:
@@ -494,12 +505,20 @@ class VesselTimelinePage(QWidget):
     def _populate_table(self) -> None:
 
         rows = self._filtered_records()
+
+        if not rows:
+            show_empty_table_message(
+                self.table,
+                "No events found",
+            )
+            return
+
         self.table.setRowCount(len(rows))
 
         for row_index, record in enumerate(rows):
             values = [
                 _format_timestamp(record.timestamp),
-                _display_text(record.event_type),
+                _tr_event_type(record.event_type),
                 str(record.mmsi),
                 self._vessel_name(record.mmsi),
                 _format_coordinate(record.latitude),

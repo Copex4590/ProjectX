@@ -155,7 +155,7 @@ class CameraWizard(QDialog):
 
         self._step_title_labels[_STEP_URL].setText(tr("Step 3 — Stream URL"))
         self._url_label.setText(tr("Stream URL"))
-        self._url_input.setPlaceholderText("https://...")
+        self._url_input.setPlaceholderText(tr("https://..."))
         self._url_hint.setText(tr("Enter a valid stream URL."))
 
         self._step_title_labels[_STEP_POSITION].setText(

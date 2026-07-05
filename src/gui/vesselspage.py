@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
     QLabel,
@@ -9,6 +10,7 @@ from PySide6.QtCore import Qt, Signal
 
 from database import registry
 from gui.i18n_support import bind_language_refresh
+from gui.widgets.emptystate import EmptyStateWidget
 from i18n import tr
 
 
@@ -31,8 +33,9 @@ class VesselsPage(QWidget):
 
         layout.addWidget(self._title_label)
 
-        self.list = QListWidget()
+        self._stack = QStackedWidget()
 
+        self.list = QListWidget()
         self.list.setStyleSheet("""
             QListWidget{
                 background:#252a31;
@@ -41,8 +44,16 @@ class VesselsPage(QWidget):
                 font-size:12pt;
             }
         """)
+        self._stack.addWidget(self.list)
 
-        layout.addWidget(self.list)
+        self._empty_state = EmptyStateWidget(
+            "No vessels",
+            help_title_key="Vessels help — title",
+            help_body_key="Vessels help — body",
+        )
+        self._stack.addWidget(self._empty_state)
+
+        layout.addWidget(self._stack)
 
         self.list.itemClicked.connect(self.item_clicked)
 
@@ -65,8 +76,13 @@ class VesselsPage(QWidget):
         )
 
         self._last_count = len(ships)
-
         self.list.clear()
+
+        if not ships:
+            self._stack.setCurrentWidget(self._empty_state)
+            return
+
+        self._stack.setCurrentWidget(self.list)
 
         for ship in ships:
 

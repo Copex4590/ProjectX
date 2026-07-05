@@ -226,6 +226,7 @@ class StatisticsPage(QWidget):
         self.title_label.setText(tr("Statistics Dashboard"))
         self.refresh_button.setText(tr("Refresh"))
         self.auto_refresh_checkbox.setText(tr("Auto Refresh"))
+        self.refresh_button.setToolTip(tr("Refresh statistics now"))
 
         for card in (
             self.total_vessels_card,
@@ -305,7 +306,29 @@ class StatisticsPage(QWidget):
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("background: #1d2127;")
+        self.setStyleSheet("""
+            QWidget {
+                background: #1d2127;
+            }
+
+            QLabel[role="title"] {
+                color: white;
+                font-size: 26pt;
+                font-weight: bold;
+            }
+
+            QPushButton {
+                background: #1976d2;
+                color: white;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 6px;
+            }
+
+            QCheckBox {
+                color: #d5dbe3;
+            }
+        """)
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -324,24 +347,13 @@ class StatisticsPage(QWidget):
 
         self.title_label = QLabel(tr("Statistics Dashboard"))
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title_label.setStyleSheet(
-            "color: white; font-size: 26pt; font-weight: bold;"
-        )
+        self.title_label.setProperty("role", "title")
         layout.addWidget(self.title_label)
 
         controls = QHBoxLayout()
         controls.setSpacing(8)
 
         self.refresh_button = QPushButton(tr("Refresh"))
-        self.refresh_button.setStyleSheet("""
-            QPushButton {
-                background: #1976d2;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 6px;
-            }
-        """)
         controls.addWidget(self.refresh_button)
 
         self.auto_refresh_checkbox = QCheckBox(tr("Auto Refresh"))

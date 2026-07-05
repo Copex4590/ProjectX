@@ -22,6 +22,7 @@ from camera import camera_manager
 from gui.aiswizard import AISWizard
 from gui.rtlsdrdiagnosticsdialog import RTLSdrDiagnosticsDialog
 from gui.rtlsdrwizard import RTLSdrWizard
+from gui.wizardhelp import show_wizard_help
 from gui.camerawizard import CameraWizard
 from gui.i18n_support import bind_language_refresh
 from gui.observationwizard import ObservationWizard
@@ -58,7 +59,7 @@ class InfoCard(QFrame):
             font-size:12pt;
         """)
 
-        self.value = QLabel("--")
+        self.value = QLabel(tr("Not available"))
         self.value.setAlignment(Qt.AlignCenter)
 
         self.value.setStyleSheet("""
@@ -285,6 +286,20 @@ class DashboardPage(QWidget):
         self._no_cameras_label.setStyleSheet("color: #9aa4af;")
         self._no_cameras_label.setVisible(False)
         cameras_layout.addWidget(self._no_cameras_label)
+
+        self._cameras_help_button = QPushButton()
+        self._cameras_help_button.setStyleSheet("""
+            QPushButton {
+                background: #343a42;
+                color: white;
+                border: 1px solid #4a5159;
+                border-radius: 6px;
+                padding: 6px 12px;
+            }
+            QPushButton:hover { background: #3f464f; }
+        """)
+        self._cameras_help_button.setVisible(False)
+        cameras_layout.addWidget(self._cameras_help_button)
 
         self._add_camera_button = QPushButton()
         self._add_camera_button.setStyleSheet("""
@@ -527,6 +542,13 @@ class DashboardPage(QWidget):
         self._map_widget.locationSelected.connect(self._on_map_location)
         self._add_camera_button.clicked.connect(self._add_camera)
         self._import_logbook_button.clicked.connect(self._import_legacy_logbook)
+        self._cameras_help_button.clicked.connect(
+            lambda: show_wizard_help(
+                self,
+                "Cameras help — title",
+                "Cameras help — body",
+            )
+        )
         self._ais_configure_button.clicked.connect(self._configure_ais)
         self._ais_test_button.clicked.connect(self._test_ais)
         self._ais_change_button.clicked.connect(self._change_ais)
@@ -566,7 +588,8 @@ class DashboardPage(QWidget):
         self._save_move_button.setText(tr("Confirm"))
         self._cancel_move_button.setText(tr("Cancel"))
         self._cameras_title.setText(tr("Attached Cameras"))
-        self._no_cameras_label.setText(tr("No cameras attached."))
+        self._no_cameras_label.setText(tr("No cameras"))
+        self._cameras_help_button.setText(tr("Help"))
         self._add_camera_button.setText(tr("Add Camera"))
         self._logbook_title.setText(tr("Vessel Logbook"))
         self._import_logbook_button.setText(tr("Import Legacy Logbook"))
@@ -584,6 +607,14 @@ class DashboardPage(QWidget):
         self._rtl_setup_button.setText(tr("Setup"))
         self._rtl_test_button.setText(tr("Test"))
         self._rtl_diagnostics_button.setText(tr("Diagnostics"))
+
+        self._create_button.setToolTip(tr("Create a new observation point"))
+        self._add_camera_button.setToolTip(tr("Add a camera to the active observation point"))
+        self._ais_configure_button.setToolTip(tr("Configure AIS data source"))
+        self._ais_test_button.setToolTip(tr("Test AIS connection"))
+        self._rtl_setup_button.setToolTip(tr("Open RTL-SDR setup wizard"))
+        self._rtl_test_button.setToolTip(tr("Run a short RTL reception test"))
+        self._rtl_diagnostics_button.setToolTip(tr("View RTL-SDR diagnostics"))
 
         self.refresh_observation()
         self.refresh_cameras()
@@ -606,6 +637,7 @@ class DashboardPage(QWidget):
                 f"{active.latitude:.5f}, {active.longitude:.5f}"
             )
             self._status_value.setText(tr("Active"))
+            self._status_value.setStyleSheet("color: #66bb6a; font-weight: 600;")
             self._map_widget.set_observation_point(
                 active.latitude,
                 active.longitude,
@@ -613,12 +645,22 @@ class DashboardPage(QWidget):
             self._move_lat = active.latitude
             self._move_lon = active.longitude
             has_point = True
+        elif not points:
+            self._name_value.setText(tr("No observation point"))
+            self._coords_value.setText(tr("Not available"))
+            self._status_value.setText(tr("Not configured"))
+            self._status_value.setStyleSheet("color: #9aa4af; font-weight: 600;")
+            self._map_widget.set_observation_point(CAMERA_LAT, CAMERA_LON)
+            self._move_lat = CAMERA_LAT
+            self._move_lon = CAMERA_LON
+            has_point = False
         else:
             self._name_value.setText(tr("Camera fallback"))
             self._coords_value.setText(
                 f"{CAMERA_LAT:.5f}, {CAMERA_LON:.5f}"
             )
             self._status_value.setText(tr("Using CAMERA_LAT / CAMERA_LON"))
+            self._status_value.setStyleSheet("color: white; font-weight: 600;")
             self._map_widget.set_observation_point(CAMERA_LAT, CAMERA_LON)
             self._move_lat = CAMERA_LAT
             self._move_lon = CAMERA_LON
@@ -647,10 +689,12 @@ class DashboardPage(QWidget):
 
         if not has_point:
             self._no_cameras_label.setVisible(True)
+            self._cameras_help_button.setVisible(True)
             return
 
         cameras = camera_manager.by_observation(active.id)
         self._no_cameras_label.setVisible(not cameras)
+        self._cameras_help_button.setVisible(not cameras)
 
         for camera in cameras:
             row = QHBoxLayout()
@@ -825,11 +869,11 @@ class DashboardPage(QWidget):
 
         try:
             result = logbook_manager.import_legacy(source)
-        except FileNotFoundError as exc:
+        except FileNotFoundError:
             QMessageBox.warning(
                 self,
                 tr("Import Legacy Logbook"),
-                str(exc),
+                tr("The selected folder does not contain a legacy logbook."),
             )
             return
 
@@ -1063,7 +1107,7 @@ class DashboardPage(QWidget):
         if ships:
             self.last.value.setText(ships[-1].name)
         else:
-            self.last.value.setText("--")
+            self.last.value.setText(tr("Not available"))
 
     def on_ship_updated(self):
 
@@ -1074,7 +1118,7 @@ class DashboardPage(QWidget):
         if ships:
             self.last.value.setText(ships[-1].name)
         else:
-            self.last.value.setText("--")
+            self.last.value.setText(tr("Not available"))
 
         self.refresh_ais()
         self.refresh_rtl()

@@ -26,6 +26,7 @@ from alerts.alert_manager import AlertManager, alert_manager
 from alerts.alert_rule import SUPPORTED_RULE_TYPES
 from database import registry
 from gui.i18n_support import bind_language_refresh
+from gui.tableutils import show_empty_table_message
 from i18n import tr
 
 _ALL_FILTER = "All"
@@ -435,6 +436,8 @@ class AlertCenterPage(QWidget):
         self.refresh_button.setText(tr("Refresh"))
         self.clear_button.setText(tr("Clear Filters"))
         self.auto_refresh_checkbox.setText(tr("Auto Refresh"))
+        self.refresh_button.setToolTip(tr("Reload alerts from the database"))
+        self.clear_button.setToolTip(tr("Reset all alert filters"))
 
         self._populate_severity_filter()
         self._populate_event_filter()
@@ -647,6 +650,14 @@ class AlertCenterPage(QWidget):
     def _populate_table(self) -> None:
 
         rows = self._filtered_events()
+
+        if not rows:
+            show_empty_table_message(
+                self.table,
+                "No alerts found",
+            )
+            return
+
         sorting_enabled = self.table.isSortingEnabled()
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(rows))

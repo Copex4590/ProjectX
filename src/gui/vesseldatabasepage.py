@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 from database import registry
 from database.vessel_database import VesselDatabase, vessel_database
 from gui.i18n_support import bind_language_refresh
+from gui.tableutils import show_empty_table_message
 from i18n import tr
 from models.ship import Ship
 from models.vessel_record import VesselRecord
@@ -747,6 +748,14 @@ class VesselDatabasePage(QWidget):
     def _populate_table(self) -> None:
 
         rows = self._filtered_records()
+
+        if not rows:
+            show_empty_table_message(
+                self.table,
+                "No vessels found",
+            )
+            return
+
         self.table.setRowCount(len(rows))
 
         for row_index, record in enumerate(rows):

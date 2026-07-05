@@ -273,9 +273,9 @@ class CameraPreviewPanel(QFrame):
         self._playback_key = "Unavailable"
         self._playback_backend = None
         self._value_labels["playback"].setText(tr("Unavailable"))
-        self._error_message_key = None
-        self._error_message_raw = result.message
-        self.error_label.setText(result.message)
+        self._error_message_key = "Camera playback failed"
+        self._error_message_raw = None
+        self.error_label.setText(tr("Camera playback failed"))
         self.error_label.setVisible(True)
 
     def show_empty(self, message_key: str = "No camera available"):

@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 
 from database.camera_registry import CameraRegistry, camera_registry
 from gui.i18n_support import bind_language_refresh
+from gui.tableutils import show_empty_table_message
 from i18n import tr
 from engines.camera.diagnostics import (
     CameraDiagnosticsEngine,
@@ -318,6 +319,14 @@ class CameraDiagnosticsPanel(QFrame):
     def _populate_table(self) -> None:
 
         rows = self._filtered_rows()
+
+        if not rows:
+            show_empty_table_message(
+                self.table,
+                "No cameras",
+            )
+            return
+
         self.table.setRowCount(len(rows))
 
         for row_index, result in enumerate(rows):

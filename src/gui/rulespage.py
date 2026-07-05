@@ -40,6 +40,7 @@ from alerts.alert_rule import (
     AlertRule,
 )
 from gui.i18n_support import bind_language_refresh
+from gui.tableutils import show_empty_table_message
 from i18n import tr
 
 _SEVERITY_INFO = "info"
@@ -860,6 +861,11 @@ class RulesPage(QWidget):
         self.delete_button.setText(tr("Delete Rule"))
         self.test_button.setText(tr("Test Rule"))
         self.refresh_button.setText(tr("Refresh"))
+        self.new_button.setToolTip(tr("Create a new alert rule"))
+        self.edit_button.setToolTip(tr("Edit the selected rule"))
+        self.delete_button.setToolTip(tr("Delete the selected rule"))
+        self.test_button.setToolTip(tr("Test the selected rule against current data"))
+        self.refresh_button.setToolTip(tr("Reload rules and statistics"))
 
         self.table.setHorizontalHeaderLabels(self._table_header_labels())
         self._populate_table()
@@ -982,6 +988,13 @@ class RulesPage(QWidget):
         self.rule_types_value.setText(str(len(rule_types)))
 
     def _populate_table(self) -> None:
+
+        if not self._rules:
+            show_empty_table_message(
+                self.table,
+                "No rules found",
+            )
+            return
 
         self.table.setRowCount(len(self._rules))
 

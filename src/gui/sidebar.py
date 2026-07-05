@@ -33,7 +33,7 @@ class Sidebar(QFrame):
         "📊",
         "🔔",
         "⚙",
-        "⚙",
+        "🔧",
     )
 
     def __init__(self):

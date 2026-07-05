@@ -98,8 +98,8 @@ def _statistics_summary(mmsi: int) -> str:
 
     parts = [
         f"{tr('observations')} {stats.total_observations}",
-        f"{tr('arrivals')} {stats.total_arrivals}",
-        f"{tr('departures')} {stats.total_departures}",
+        f"{tr('Arrivals')} {stats.total_arrivals}",
+        f"{tr('Departures')} {stats.total_departures}",
     ]
 
     if stats.average_speed is not None:
