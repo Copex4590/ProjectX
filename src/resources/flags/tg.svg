@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480">
+  <rect width="640" height="480" fill="#4b5563"/>
+  <rect x="40" y="40" width="560" height="400" rx="8" fill="#6b7280"/>
+  <text x="320" y="270" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="96" font-weight="700" fill="#f9fafb">TG</text>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480">
+  <rect width="640" height="480" fill="#2f3540"/>
+  <rect x="40" y="120" width="560" height="240" rx="12" fill="#3d4654" stroke="#6b7688" stroke-width="4"/>
+  <path d="M320 170 L360 250 L280 250 Z" fill="#8b95a5"/>
+  <rect x="305" y="250" width="30" height="50" fill="#8b95a5"/>
+  <text x="320" y="360" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="36" fill="#9aa4af">?</text>
+</svg>
