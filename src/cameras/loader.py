@@ -5,6 +5,7 @@
 
 import json
 from pathlib import Path
+from urllib.parse import urlparse
 
 from config.cameras import CAMERAS_CONFIG_DIR, CAMERAS_INDEX_FILE
 from database.camera_registry import CameraRegistry
@@ -153,12 +154,35 @@ class CameraLoader:
         )
 
         enabled = bool(entry.get("enabled", True))
-        description = str(entry.get("description", "")).strip()
+        description = self._optional_string(entry, "description")
+
+        entry_country = self._optional_string(entry, "country")
+        resolved_country = entry_country.upper() if entry_country else country_code
+
+        provider_type = self._optional_provider_type(entry, "provider_type", source)
+        stream_url = self._optional_url(entry, "stream_url", source)
+        snapshot_url = self._optional_url(
+            entry,
+            "snapshot_url",
+            source,
+            required_scheme=False,
+        )
+        web_url = self._optional_url(
+            entry,
+            "web_url",
+            source,
+            required_scheme=False,
+        )
+        provider_name = self._optional_string(entry, "provider_name")
+        city = self._optional_string(entry, "city")
+        river = self._optional_string(entry, "river")
+        timezone = self._optional_string(entry, "timezone")
+        tags = self._optional_tags(entry, source)
 
         return Camera(
             id=camera_id,
             name=name,
-            country=country_code,
+            country=resolved_country,
             lat=lat,
             lon=lon,
             direction_deg=direction_deg,
@@ -166,6 +190,15 @@ class CameraLoader:
             fov_deg=fov_deg,
             enabled=enabled,
             description=description,
+            provider_type=provider_type,
+            stream_url=stream_url,
+            snapshot_url=snapshot_url,
+            web_url=web_url,
+            provider_name=provider_name,
+            city=city,
+            river=river,
+            timezone=timezone,
+            tags=tags,
         )
 
     def _require_float(
@@ -214,3 +247,89 @@ class CameraLoader:
             raise CameraLoadError(
                 f"Invalid numeric value for '{key}'"
             ) from error
+
+    def _optional_string(self, entry: dict, key: str, default: str = "") -> str:
+
+        if key not in entry or entry.get(key) is None:
+            return default
+
+        return str(entry.get(key)).strip()
+
+    def _optional_provider_type(
+        self,
+        entry: dict,
+        key: str,
+        source: str,
+    ) -> str:
+
+        value = self._optional_string(entry, key)
+
+        if not value:
+            return ""
+
+        normalized = value.lower().replace(" ", "_")
+
+        if not normalized.replace("_", "").isalnum():
+            raise CameraLoadError(
+                f"Invalid provider_type for camera entry ({source})"
+            )
+
+        return normalized
+
+    def _optional_url(
+        self,
+        entry: dict,
+        key: str,
+        source: str,
+        *,
+        required_scheme: bool = True,
+    ) -> str:
+
+        value = self._optional_string(entry, key)
+
+        if not value:
+            return ""
+
+        parsed = urlparse(value)
+
+        if required_scheme and not parsed.scheme:
+            raise CameraLoadError(
+                f"Camera entry has invalid '{key}' URL ({source})"
+            )
+
+        if parsed.scheme and not parsed.netloc and not parsed.path:
+            raise CameraLoadError(
+                f"Camera entry has invalid '{key}' URL ({source})"
+            )
+
+        return value
+
+    def _optional_tags(self, entry: dict, source: str) -> tuple[str, ...]:
+
+        if "tags" not in entry or entry.get("tags") is None:
+            return ()
+
+        value = entry.get("tags")
+
+        if not isinstance(value, list):
+            raise CameraLoadError(
+                f"Camera entry 'tags' must be a list ({source})"
+            )
+
+        tags = []
+
+        for index, item in enumerate(value, start=1):
+            if item is None:
+                continue
+
+            if not isinstance(item, (str, int, float)):
+                raise CameraLoadError(
+                    f"Camera entry tag #{index} must be a string ({source})"
+                )
+
+            text = str(item).strip()
+
+            if text:
+                tags.append(text)
+
+        return tuple(tags)

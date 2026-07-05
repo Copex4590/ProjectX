@@ -4,7 +4,7 @@
 # ============================================================================
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -23,6 +23,79 @@ class Camera:
 
     enabled: bool = True
     description: str = ""
+
+    provider_type: str = ""
+    stream_url: str = ""
+    snapshot_url: str = ""
+    web_url: str = ""
+    provider_name: str = ""
+    city: str = ""
+    river: str = ""
+    timezone: str = ""
+    tags: tuple[str, ...] = field(default_factory=tuple)
+
+    def safe_text(self, value: str) -> str:
+
+        if value is None:
+            return ""
+
+        return str(value).strip()
+
+    @property
+    def playback_provider_type(self) -> str:
+
+        return self.safe_text(self.provider_type)
+
+    @property
+    def playback_stream_url(self) -> str:
+
+        return self.safe_text(self.stream_url)
+
+    @property
+    def playback_snapshot_url(self) -> str:
+
+        return self.safe_text(self.snapshot_url)
+
+    @property
+    def playback_web_url(self) -> str:
+
+        return self.safe_text(self.web_url)
+
+    @property
+    def location_city(self) -> str:
+
+        return self.safe_text(self.city)
+
+    @property
+    def location_river(self) -> str:
+
+        return self.safe_text(self.river)
+
+    @property
+    def location_timezone(self) -> str:
+
+        return self.safe_text(self.timezone)
+
+    @property
+    def camera_tags(self) -> tuple[str, ...]:
+
+        if not self.tags:
+            return ()
+
+        return tuple(
+            tag
+            for tag in (self.safe_text(item) for item in self.tags)
+            if tag
+        )
+
+    def has_playback_metadata(self) -> bool:
+
+        return bool(
+            self.playback_provider_type
+            or self.playback_stream_url
+            or self.playback_snapshot_url
+            or self.playback_web_url
+        )
 
     def distance_km_to(self, lat: float, lon: float) -> float:
 
