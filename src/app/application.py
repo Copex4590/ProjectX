@@ -2,7 +2,7 @@
 # Project X
 # File    : application.py
 # Module  : Application
-# Version : 0.1.0-alpha
+# Version : 0.2.0-rc1
 # ============================================================================
 
 import sys

@@ -30,13 +30,6 @@ from engines.camera.diagnostics import (
 
 FilterStatus = Literal["all", "ok", "warning", "error"]
 
-_FILTER_LABELS = {
-    "all": "All",
-    "ok": "OK",
-    "warning": "Warning",
-    "error": "Error",
-}
-
 _SEVERITY_LABELS = {
     DiagnosticSeverity.OK: "OK",
     DiagnosticSeverity.WARNING: "Warning",

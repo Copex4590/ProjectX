@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from urllib.parse import urlparse
 
-from config.cameras import CAMERAS_CONFIG_DIR, CAMERAS_INDEX_FILE
+from config.cameras import CAMERAS_CONFIG_DIR
 from database.camera_registry import CameraRegistry
 from models.camera import Camera
 

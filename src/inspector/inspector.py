@@ -11,7 +11,7 @@ from engines.playback import backend_registry
 from inspector.component_status import ComponentHealth, ComponentStatus
 from inspector.health_report import HealthReport
 
-PROJECT_VERSION = "0.1.0-alpha"
+PROJECT_VERSION = "0.2.0-rc1"
 
 
 class Inspector:

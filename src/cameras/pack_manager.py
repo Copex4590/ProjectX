@@ -187,7 +187,7 @@ class CameraPackManager:
         if not all((name, version, author, description, country)):
             return None
 
-        camera_count = self._resolve_camera_count(data, pack_dir)
+        camera_count = self._resolve_camera_count(data)
 
         if camera_count is None:
             return None
@@ -213,11 +213,7 @@ class CameraPackManager:
 
         return True
 
-    def _resolve_camera_count(
-        self,
-        data: dict,
-        pack_dir: Path,
-    ) -> int | None:
+    def _resolve_camera_count(self, data: dict) -> int | None:
 
         try:
             declared_count = int(data.get("camera_count"))
@@ -227,54 +223,7 @@ class CameraPackManager:
         if declared_count < 0:
             return None
 
-        counted = self._count_region_cameras(data, pack_dir)
-
-        if counted is not None and counted != declared_count:
-            return declared_count
-
         return declared_count
-
-    def _count_region_cameras(self, data: dict, pack_dir: Path) -> int | None:
-
-        regions = data.get("regions")
-
-        if not isinstance(regions, list):
-            return None
-
-        total = 0
-
-        for region in regions:
-
-            if not isinstance(region, dict):
-                continue
-
-            filename = str(region.get("file", "")).strip()
-
-            if not filename:
-                continue
-
-            region_path = pack_dir / filename
-
-            if not region_path.is_file():
-                continue
-
-            try:
-                with region_path.open(encoding="utf-8") as handle:
-                    region_data = json.load(handle)
-            except (OSError, json.JSONDecodeError):
-                continue
-
-            if not isinstance(region_data, dict):
-                continue
-
-            cameras = region_data.get("cameras")
-
-            if not isinstance(cameras, list):
-                continue
-
-            total += len(cameras)
-
-        return total
 
     def _load_state(self) -> set[str]:
 

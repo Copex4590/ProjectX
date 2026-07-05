@@ -40,7 +40,7 @@ class LiveCameraWorkflow:
 
         try:
             return self._start_for_ship(ship)
-        except Exception as error:
+        except Exception:
             return LiveCameraResult(
                 success=False,
                 message="An unexpected camera error occurred. Please try again.",
