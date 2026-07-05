@@ -1,0 +1,23 @@
+{
+  "latest": "0.3-alpha",
+  "release_date": "2026-07-05",
+  "status": "Alpha",
+  "github": "https://github.com/Copex4590/ProjectX",
+  "windows": {
+    "version": "0.3.0-alpha",
+    "file": "ProjectX-Setup.exe",
+    "platform": "Windows 10+",
+    "format": "Inno Setup installer",
+    "architecture": "64-bit",
+    "size": "TBD"
+  },
+  "linux": {
+    "version": "0.3.0-alpha",
+    "file": "ProjectX-0.3.0-alpha-x86_64.AppImage",
+    "secondary_file": "projectx_0.3.0-alpha_amd64.deb",
+    "platform": "Linux x86_64",
+    "format": "AppImage",
+    "architecture": "x86_64",
+    "size": "TBD"
+  }
+}
