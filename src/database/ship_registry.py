@@ -7,6 +7,7 @@ from threading import Lock
 
 from database.vessel_sync import vessel_sync
 from models.ship import Ship
+from timeline.timeline_recorder import timeline_recorder
 
 
 class ShipRegistry:
@@ -59,6 +60,7 @@ class ShipRegistry:
             merged = self._ships.get(ship.mmsi)
 
         vessel_sync.enqueue(merged)
+        timeline_recorder.enqueue(merged)
 
     def get(self, mmsi: int):
 
