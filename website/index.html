@@ -41,10 +41,11 @@
                         picture of river traffic.
                     </p>
                     <div class="version-badge">
-                        <strong>Current version:</strong> 0.3.0-alpha
+                        <strong>Current version:</strong> <span data-release-version>Loading…</span>
                         <span aria-hidden="true">·</span>
-                        <span>Alpha release</span>
+                        <span data-release-status>Release</span>
                     </div>
+                    <p class="note" data-release-error hidden></p>
                     <div class="btn-row">
                         <a class="btn btn-primary btn-large" href="download.html">
                             <span class="btn-icon" aria-hidden="true">⬇</span>
@@ -60,25 +61,10 @@
         <section id="download">
             <div class="container">
                 <h2 class="section-title">Download</h2>
-                <p class="section-lead">Choose your platform. Installers are placeholders until the first public release is published.</p>
-                <div class="grid-2">
+                <p class="section-lead">Choose your platform. Release links are loaded from the official release configuration.</p>
+                <div class="grid-2" data-release-download-cards>
                     <article class="panel download-card">
-                        <h3>Windows</h3>
-                        <p>Native installer for Windows 10 and later. Includes Qt WebEngine for interactive maps.</p>
-                        <a class="btn btn-primary btn-large" href="downloads/ProjectX-Setup-0.3.0-alpha.exe">
-                            <span class="btn-icon" aria-hidden="true">🪟</span>
-                            Download for Windows
-                        </a>
-                        <p class="note">Placeholder link — upload the Inno Setup installer here when ready.</p>
-                    </article>
-                    <article class="panel download-card">
-                        <h3>Linux</h3>
-                        <p>Desktop installer script for Linux Mint and compatible distributions.</p>
-                        <a class="btn btn-primary btn-large" href="downloads/projectx-0.3.0-alpha-linux-installer.sh">
-                            <span class="btn-icon" aria-hidden="true">🐧</span>
-                            Download for Linux
-                        </a>
-                        <p class="note">Placeholder link — upload the Linux installer script here when ready.</p>
+                        <h3>Loading releases…</h3>
                     </article>
                 </div>
             </div>
@@ -87,18 +73,9 @@
         <section id="release-notes">
             <div class="container">
                 <h2 class="section-title">Release notes</h2>
-                <p class="section-lead">Highlights from Project X 0.3.0-alpha.</p>
-                <article class="panel release-notes">
-                    <ul>
-                        <li>Vessel database with advanced search, filters, and ShipRegistry synchronization</li>
-                        <li>Timeline recording with arrival and departure detection</li>
-                        <li>Statistics dashboard with cached aggregates and charts</li>
-                        <li>Alert rules engine, Alert Center, and rules management UI</li>
-                        <li>250 SVG vessel flags and photo framework in the vessel card</li>
-                        <li>Camera packs, playback backends, and diagnostics tooling</li>
-                        <li>Release packaging readiness and native Windows build pipeline</li>
-                    </ul>
-                    <p class="note">Full release notes are included in the repository under <code>docs/RELEASE_NOTES_0.3_ALPHA.md</code>.</p>
+                <p class="section-lead" data-release-notes-lead>Loading release highlights…</p>
+                <article class="panel release-notes markdown-body" data-release-notes>
+                    <p>Loading release notes…</p>
                 </article>
             </div>
         </section>
@@ -177,6 +154,7 @@
         </div>
     </footer>
 
+    <script src="js/releases.js"></script>
     <script src="js/site.js"></script>
 </body>
 </html>

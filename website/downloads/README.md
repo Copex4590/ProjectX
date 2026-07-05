@@ -1,11 +1,17 @@
-# Project X — Download placeholders
+# Project X — Release downloads
 
-Upload compiled installers here before publishing the website:
+Installers are organized by platform:
 
-| File | Description |
-|------|-------------|
-| `ProjectX-Setup-0.3.0-alpha.exe` | Windows Inno Setup installer |
-| `projectx-0.3.0-alpha-linux-installer.sh` | Linux desktop installer script |
+| Directory | Platform | Config key |
+|-----------|----------|------------|
+| `windows/` | Windows installer | `releases.json` → `windows.file` |
+| `linux/` | Linux AppImage | `releases.json` → `linux.file` |
 
-These paths are referenced from `index.html` and `download.html`.
-Do not commit large binary installers until release day unless explicitly requested.
+## Publish a new release
+
+1. Copy installers into `windows/` and/or `linux/`.
+2. Update `website/releases.json` (`latest`, platform versions, filenames, sizes).
+3. Add `website/releases/<version>.md` release notes.
+4. Run `website/verify_releases.sh` locally.
+
+No HTML editing is required.

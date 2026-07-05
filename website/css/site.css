@@ -355,6 +355,30 @@ section {
     margin-top: 0.35rem;
 }
 
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+    margin: 1.25rem 0 0.65rem;
+    color: var(--text);
+}
+
+.markdown-body h2:first-child,
+.markdown-body h3:first-child,
+.markdown-body h4:first-child {
+    margin-top: 0;
+}
+
+.markdown-body p,
+.markdown-body li {
+    color: var(--text-muted);
+}
+
+.markdown-body hr {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 1.25rem 0;
+}
+
 .screenshot-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
