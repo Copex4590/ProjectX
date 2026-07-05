@@ -39,6 +39,9 @@ if errorlevel 1 goto :report_failure
 call :build_installer
 if errorlevel 1 goto :report_failure
 
+call :sync_website_installer
+if errorlevel 1 goto :report_failure
+
 goto :report_success
 
 :find_python
@@ -149,6 +152,29 @@ echo [OK] Verified: release\windows\ProjectX-Setup.exe
 echo.
 exit /b 0
 
+:sync_website_installer
+set "CANONICAL=%ROOT%\release\windows\ProjectX-Setup.exe"
+set "WEBSITE_COPY=%ROOT%\website\downloads\windows\ProjectX-Setup.exe"
+
+if not exist "%CANONICAL%" (
+    echo [FAIL] Canonical installer not found: %CANONICAL%
+    exit /b 1
+)
+
+if not exist "%ROOT%\website\downloads\windows" (
+    mkdir "%ROOT%\website\downloads\windows"
+)
+
+copy /Y "%CANONICAL%" "%WEBSITE_COPY%" >nul
+if errorlevel 1 (
+    echo [FAIL] Could not sync installer to website\downloads\windows\
+    exit /b 1
+)
+
+echo [OK] Synced website\downloads\windows\ProjectX-Setup.exe
+echo.
+exit /b 0
+
 :report_success
 call :banner "BUILD SUCCESSFUL"
 echo Application bundle:
@@ -159,8 +185,7 @@ if exist "%ROOT%\release\windows\ProjectX-Setup.exe" (
     echo.
     echo Next steps:
     echo   1. Run scripts\verify_windows_installer.bat
-    echo   2. Run scripts\prepare_release.sh on Linux or sync website copies manually
-    echo   2. On a clean VM: install, confirm First Run Wizard, smoke-test map
+    echo   2. Run scripts\prepare_release.sh to refresh checksums and manifest
 ) else (
     echo.
     echo Next steps:

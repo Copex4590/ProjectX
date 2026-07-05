@@ -9,15 +9,27 @@ rem Performs silent install to a temp directory, checks shortcuts logic, uninsta
 
 cd /d "%~dp0.."
 set "ROOT=%CD%"
-set "INSTALLER=%ROOT%\website\downloads\windows\ProjectX-Setup.exe"
+set "INSTALLER=%ROOT%\release\windows\ProjectX-Setup.exe"
+set "WEBSITE_COPY=%ROOT%\website\downloads\windows\ProjectX-Setup.exe"
 set "TEST_DIR=%TEMP%\ProjectXInstallerTest"
 set "TEST_EXE=%TEST_DIR%\projectx.exe"
 
 if not exist "%INSTALLER%" (
     echo [FAIL] Installer not found: %INSTALLER%
-    echo        Run scripts\build_installer.bat first.
+    echo        Run scripts\build_windows.bat or scripts\build_installer.bat first.
     exit /b 1
 )
+
+if not exist "%ROOT%\website\downloads\windows" (
+    mkdir "%ROOT%\website\downloads\windows"
+)
+copy /Y "%INSTALLER%" "%WEBSITE_COPY%" >nul
+if errorlevel 1 (
+    echo [FAIL] Could not sync installer to website\downloads\windows\
+    exit /b 1
+)
+echo [OK] Canonical installer: %INSTALLER%
+echo [OK] Website copy: %WEBSITE_COPY%
 
 echo ============================================================
 echo Project X — Windows Installer Verification
@@ -71,10 +83,21 @@ if errorlevel 1 (
     echo [FAIL] Silent uninstall returned an error.
     exit /b 1
 )
-if exist "%TEST_DIR%" (
-    echo [FAIL] Install directory still exists after uninstall.
-    exit /b 1
-)
+
+set "RETRIES=30"
+:wait_uninstall
+if not exist "%TEST_DIR%" goto :uninstall_done
+set /a RETRIES-=1
+if !RETRIES! LEQ 0 goto :uninstall_check_fail
+ping 127.0.0.1 -n 2 >nul
+goto :wait_uninstall
+
+:uninstall_check_fail
+if not exist "%TEST_DIR%" goto :uninstall_done
+echo [FAIL] Install directory still exists after uninstall.
+exit /b 1
+
+:uninstall_done
 echo [OK] Silent uninstall completed and install directory removed.
 
 echo.

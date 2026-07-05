@@ -21,6 +21,7 @@
 
 #define MyAppName "Project X"
 #define MyAppVersion "0.3.0-alpha"
+#define MyAppVersionNumeric "0.3.0.0"
 #define MyAppPublisher "Project X"
 #define MyAppExeName "projectx.exe"
 #define MyAppOutput "ProjectX-Setup"
@@ -49,11 +50,11 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 CloseApplications=force
 RestartIfNeededByRun=no
-VersionInfoVersion=0.3.0.0
+VersionInfoVersion={#MyAppVersionNumeric}
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} Setup
 VersionInfoProductName={#MyAppName}
-VersionInfoProductVersion={#MyAppVersion}
+VersionInfoProductVersion={#MyAppVersionNumeric}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

@@ -10,16 +10,22 @@ cd "$ROOT"
 
 PYTHON="${PROJECTX_PYTHON:-python3}"
 
+WINDOWS_RELEASE_DIR="$ROOT/release/windows"
+WINDOWS_WEBSITE_DIR="$ROOT/website/downloads/windows"
+WINDOWS_INSTALLER_NAME="ProjectX-Setup.exe"
+WINDOWS_INSTALLER_CANONICAL="$WINDOWS_RELEASE_DIR/$WINDOWS_INSTALLER_NAME"
+WINDOWS_INSTALLER_WEBSITE="$WINDOWS_WEBSITE_DIR/$WINDOWS_INSTALLER_NAME"
+
 echo "============================================================"
 echo "Project X — Prepare Public Release"
 echo "============================================================"
 
 mkdir -p \
-    "$ROOT/release/windows" \
+    "$WINDOWS_RELEASE_DIR" \
     "$ROOT/release/linux" \
     "$ROOT/release/checksums" \
     "$ROOT/release/notes" \
-    "$ROOT/website/downloads/windows" \
+    "$WINDOWS_WEBSITE_DIR" \
     "$ROOT/website/downloads/linux"
 
 echo "Syncing release notes..."
@@ -37,16 +43,22 @@ sync_artifact() {
 }
 
 echo "Syncing website download copies..."
-for file in "$ROOT/release/windows"/*; do
+for file in "$WINDOWS_RELEASE_DIR"/*; do
     [[ -f "$file" ]] || continue
     [[ "$(basename "$file")" == "README.md" ]] && continue
-    sync_artifact "$file" "$ROOT/website/downloads/windows/$(basename "$file")"
+    sync_artifact "$file" "$WINDOWS_WEBSITE_DIR/$(basename "$file")"
 done
 for file in "$ROOT/release/linux"/*; do
     [[ -f "$file" ]] || continue
     [[ "$(basename "$file")" == "README.md" ]] && continue
     sync_artifact "$file" "$ROOT/website/downloads/linux/$(basename "$file")"
 done
+
+if [[ -f "$WINDOWS_INSTALLER_CANONICAL" ]]; then
+    echo "[OK] Canonical Windows installer: $WINDOWS_INSTALLER_CANONICAL"
+else
+    echo "[WARN] Canonical Windows installer missing: $WINDOWS_INSTALLER_CANONICAL"
+fi
 
 echo "Generating checksums..."
 bash "$ROOT/scripts/generate_release_checksums.sh"
