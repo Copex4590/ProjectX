@@ -20,8 +20,10 @@ from gui.vesseltimelinepage import VesselTimelinePage
 from gui.statisticspage import StatisticsPage
 from gui.alertcenterpage import AlertCenterPage
 from gui.rulespage import RulesPage
+from gui.settingspage import SettingsPage
 from gui.eventbridge import EventBridge
 
+from i18n import language_manager
 from inspector.inspector import PROJECT_VERSION
 from engines.ais.ais_catcher_launcher import ensure_ais_catcher_ready
 from engines.rtl.hybrid_engine import HybridEngine
@@ -94,6 +96,7 @@ class MainWindow(QMainWindow):
         self.statistics_page = StatisticsPage()
         self.alert_center_page = AlertCenterPage()
         self.rules_page = RulesPage()
+        self.settings_page = SettingsPage()
 
         self.pages.addWidget(self.dashboard_page)        # 0
         self.pages.addWidget(self.map_page)              # 1
@@ -104,9 +107,18 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self.statistics_page)       # 6
         self.pages.addWidget(self.alert_center_page)     # 7
         self.pages.addWidget(self.rules_page)            # 8
+        self.pages.addWidget(self.settings_page)         # 9
 
         self.sidebar = Sidebar()
         self.sidebar.pageSelected.connect(self.pages.setCurrentIndex)
+
+        self.settings_page.personalization_changed.connect(
+            self._apply_personalization
+        )
+        language_manager.language_changed.connect(
+            self._apply_personalization
+        )
+        self._apply_personalization()
 
         self.vessels_page.shipSelected.connect(
             self.focus_ship
@@ -127,6 +139,10 @@ class MainWindow(QMainWindow):
         root.addWidget(self.connection_panel)
 
         self.setStatusBar(StatusPanel())
+
+    def _apply_personalization(self) -> None:
+
+        self.map_page.apply_personalization()
 
     def focus_ship(self, mmsi):
 

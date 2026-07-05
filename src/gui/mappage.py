@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from database import registry
 from gui.widgets.camerapreviewpanel import CameraPreviewPanel
 from gui.widgets.mapwidget import MapWidget
+from i18n import language_manager
 from vessels.flags.flag_manager import flag_manager
 from vessels.photo_manager import photo_manager
 
@@ -111,11 +112,36 @@ class MapPage(QWidget):
 
         self._selected_mmsi = None
 
+        language_manager.language_changed.connect(
+            lambda _code: self.apply_personalization()
+        )
+        self.map.loadFinished.connect(
+            lambda _ok: self.apply_personalization()
+        )
+        self.apply_personalization()
+
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_ships)
 
         # 5 FPS frissítés – alap a smooth mozgáshoz
         self.timer.start(200)
+
+    def apply_personalization(self, layout: str | None = None) -> None:
+
+        from preferences import preferences_manager
+
+        preferences = preferences_manager.get()
+        selected_layout = layout or preferences.vessel_card_layout
+
+        self.map.set_vessel_card_layout(selected_layout)
+        self.map.set_translations(language_manager.translations())
+
+        if selected_layout == "media":
+            self.camera_preview.setMinimumWidth(400)
+            self.camera_preview.setMaximumWidth(480)
+        else:
+            self.camera_preview.setMinimumWidth(300)
+            self.camera_preview.setMaximumWidth(360)
 
     def select_vessel(self, mmsi: int):
 
