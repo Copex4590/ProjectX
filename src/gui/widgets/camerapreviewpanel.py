@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
 from cameras import camera_manager
 from engines.camera import camera_selection_engine
 from models.ship import Ship
+from playback.live_camera_workflow import live_camera_workflow
 
 
 class CameraPreviewPanel(QFrame):
@@ -12,6 +13,9 @@ class CameraPreviewPanel(QFrame):
         super().__init__()
 
         camera_manager.load()
+
+        self._last_mmsi = None
+        self._workflow = live_camera_workflow
 
         self.setMinimumWidth(300)
         self.setMaximumWidth(360)
@@ -49,6 +53,12 @@ class CameraPreviewPanel(QFrame):
                 font-weight: 600;
             }
 
+            QLabel[role="error"] {
+                color: #f0a8a8;
+                font-size: 10pt;
+                font-weight: 500;
+            }
+
             QFrame#videoHost {
                 background: #252a31;
                 border: 1px solid #40444b;
@@ -84,9 +94,17 @@ class CameraPreviewPanel(QFrame):
             "direction": self._add_row(details_layout, "Viewing Direction"),
             "radius": self._add_row(details_layout, "Visibility Radius"),
             "status": self._add_row(details_layout, "Camera Status"),
+            "playback": self._add_row(details_layout, "Playback"),
         }
 
         layout.addWidget(self.details)
+
+        self.error_label = QLabel("")
+        self.error_label.setProperty("role", "error")
+        self.error_label.setAlignment(Qt.AlignCenter)
+        self.error_label.setWordWrap(True)
+        self.error_label.setVisible(False)
+        layout.addWidget(self.error_label)
 
         self.empty_label = QLabel("No camera available")
         self.empty_label.setProperty("role", "empty")
@@ -118,20 +136,47 @@ class CameraPreviewPanel(QFrame):
 
     def show_for_ship(self, ship: Ship | None):
 
+        try:
+            self._show_for_ship(ship)
+        except Exception:
+            self._workflow.stop()
+            self._last_mmsi = None
+            self.show_empty("An unexpected camera error occurred.")
+
+    def _show_for_ship(self, ship: Ship | None):
+
         if ship is None:
+            self._workflow.stop()
+            self._last_mmsi = None
             self.show_empty()
             return
 
         match = camera_selection_engine.get_best_camera(ship)
 
         if match is None:
+            self._workflow.stop()
+            self._last_mmsi = ship.mmsi
             self.show_empty()
             return
 
-        camera = match.camera
+        vessel_changed = self._last_mmsi != ship.mmsi
 
         self.details.setVisible(True)
         self.empty_label.setVisible(False)
+        self._update_camera_details(match)
+
+        if vessel_changed:
+            self._workflow.stop()
+            self._last_mmsi = ship.mmsi
+            result = self._workflow.start_for_ship(ship)
+            self._update_playback_state(result)
+            return
+
+        self._update_camera_details(match)
+
+    def _update_camera_details(self, match):
+
+        camera = match.camera
 
         self._value_labels["name"].setText(camera.name)
         self._value_labels["country"].setText(camera.country)
@@ -151,9 +196,26 @@ class CameraPreviewPanel(QFrame):
             "Enabled" if camera.enabled else "Disabled"
         )
 
-    def show_empty(self):
+    def _update_playback_state(self, result):
 
+        if result.success:
+            self.error_label.setVisible(False)
+            self._value_labels["playback"].setText(
+                result.backend_name or "Active"
+            )
+            return
+
+        self._value_labels["playback"].setText("Unavailable")
+        self.error_label.setText(result.message)
+        self.error_label.setVisible(True)
+
+    def show_empty(self, message: str = "No camera available"):
+
+        self._workflow.stop()
+        self._last_mmsi = None
         self.details.setVisible(False)
+        self.error_label.setVisible(False)
+        self.empty_label.setText(message)
         self.empty_label.setVisible(True)
 
     def video_container(self) -> QFrame:

@@ -7,6 +7,7 @@ from engines.playback.backends import (
     QtBackend,
     VLCBackend,
 )
+from engines.playback.mpv_launch import MPVLaunchConfiguration
 from engines.playback.session import PlaybackSession, PlaybackState
 
 
@@ -35,6 +36,7 @@ __all__ = [
     "BackendRegistry",
     "backend_registry",
     "MPVBackend",
+    "MPVLaunchConfiguration",
     "QtBackend",
     "VLCBackend",
     "BrowserBackend",
