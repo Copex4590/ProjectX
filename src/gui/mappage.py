@@ -1,11 +1,34 @@
 import json
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 
 from database import registry
 from gui.widgets.camerapreviewpanel import CameraPreviewPanel
 from gui.widgets.mapwidget import MapWidget
+from vessels.photo_manager import photo_manager
+
+
+def _serialize_photo(mmsi: int) -> dict:
+
+    if not photo_manager.has_photo(mmsi):
+        return {
+            "has_photo": False,
+            "photo_url": None,
+        }
+
+    photo_path = photo_manager.get_photo_file(mmsi)
+
+    if photo_path is None:
+        return {
+            "has_photo": True,
+            "photo_url": None,
+        }
+
+    return {
+        "has_photo": True,
+        "photo_url": QUrl.fromLocalFile(str(photo_path.resolve())).toString(),
+    }
 
 
 def _serialize_ship(ship):
@@ -34,6 +57,8 @@ def _serialize_ship(ship):
     for field_name in ("imo", "length", "width", "draft", "flag"):
         if hasattr(ship, field_name):
             payload[field_name] = getattr(ship, field_name)
+
+    payload.update(_serialize_photo(ship.mmsi))
 
     return payload
 

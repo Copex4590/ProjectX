@@ -44,6 +44,24 @@ class PhotoManager:
 
         return self._registry.has(mmsi)
 
+    def get_photo_file(self, mmsi: int | str) -> Path | None:
+
+        if not self.has_photo(mmsi):
+            return None
+
+        record = self.get_photo(mmsi)
+
+        if record is None:
+            return None
+
+        for field in (record.local_file, record.thumbnail):
+            path = self._resolve_storage_path(field)
+
+            if path is not None and path.exists() and path.is_file():
+                return path
+
+        return None
+
     def register_photo(self, record: PhotoRecord) -> PhotoRecord:
 
         self._ensure_storage_dirs()

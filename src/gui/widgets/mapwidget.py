@@ -16,6 +16,10 @@ class MapWidget(QWebEngineView):
             True,
         )
         settings.setAttribute(
+            QWebEngineSettings.LocalContentCanAccessFileUrls,
+            True,
+        )
+        settings.setAttribute(
             QWebEngineSettings.JavascriptEnabled,
             True,
         )
