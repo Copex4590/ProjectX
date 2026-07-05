@@ -1,6 +1,6 @@
 # ============================================================================
 # Project X
-# Monitoring Vessel Card Layout
+# Vessel Card 2.0 — Continuous Information Sheet
 # ============================================================================
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from gui.vesselcard.layouts.base import (
     escape_text,
     format_distance,
     format_last_seen,
+    format_number,
     is_empty,
     translate,
     vessel_name,
@@ -30,6 +31,40 @@ _COMPASS_KEYS = (
 
 _UNDERWAY_THRESHOLD_KN = 0.5
 _KN_TO_KMH = 1.852
+
+_LEVEL_SECTIONS = {
+    "compact": frozenset({"header", "status", "location"}),
+    "standard": frozenset({
+        "header",
+        "status",
+        "location",
+        "navigation",
+        "identification",
+        "camera",
+    }),
+    "detailed": frozenset({
+        "header",
+        "status",
+        "location",
+        "navigation",
+        "dimensions",
+        "identification",
+        "camera",
+        "timeline",
+        "statistics",
+    }),
+    "media": frozenset({
+        "header",
+        "status",
+        "location",
+        "navigation",
+        "dimensions",
+        "identification",
+        "camera",
+        "timeline",
+        "statistics",
+    }),
+}
 
 
 def _row(
@@ -90,7 +125,7 @@ def _speed_knots(speed) -> float:
         return 0.0
 
 
-def _status_row(translations: dict[str, str], ship: dict) -> str:
+def _status_rows(translations: dict[str, str], ship: dict) -> str:
 
     speed_kn = _speed_knots(ship.get("speed"))
 
@@ -113,11 +148,7 @@ def _header_section(translations: dict[str, str], ship: dict) -> str:
     type_row = ""
 
     if type_text != "—":
-        type_row = (
-            f'<div class="vessel-card__type">'
-            f'{type_text}'
-            f"</div>"
-        )
+        type_row = f'<div class="vessel-card__type">{type_text}</div>'
 
     return (
         f'<div class="vessel-card__hero">'
@@ -133,30 +164,27 @@ def _header_section(translations: dict[str, str], ship: dict) -> str:
     )
 
 
-def _location_section(translations: dict[str, str], ship: dict) -> str:
+def _location_rows(translations: dict[str, str], ship: dict) -> str:
 
     distance_value = ship.get("camera_distance_km")
     if is_empty(distance_value):
         distance_value = ship.get("distance_km")
 
-    direction = _bearing_to_compass(
-        translations,
-        ship.get("camera_bearing_deg"),
-    )
-
-    rows = [
-        _row(translations, "Direction", direction),
+    return "".join([
+        _row(
+            translations,
+            "Direction",
+            _bearing_to_compass(translations, ship.get("camera_bearing_deg")),
+        ),
         _row(
             translations,
             "Distance",
             format_distance(distance_value),
         ),
-    ]
-
-    return "".join(rows)
+    ])
 
 
-def _navigation_section(translations: dict[str, str], ship: dict) -> str:
+def _navigation_rows(translations: dict[str, str], ship: dict) -> str:
 
     return "".join([
         _row(
@@ -172,9 +200,49 @@ def _navigation_section(translations: dict[str, str], ship: dict) -> str:
     ])
 
 
-def _camera_section(translations: dict[str, str], ship: dict) -> str:
+def _dimensions_rows(translations: dict[str, str], ship: dict) -> str:
 
-    camera_name = display_value(ship.get("camera_name"))
+    return "".join([
+        _row(
+            translations,
+            "Length",
+            format_number(ship.get("length"), 1),
+        ),
+        _row(
+            translations,
+            "Width",
+            format_number(ship.get("width"), 1),
+        ),
+        _row(
+            translations,
+            "Draft",
+            format_number(ship.get("draft"), 1),
+        ),
+    ])
+
+
+def _identification_rows(translations: dict[str, str], ship: dict) -> str:
+
+    return "".join([
+        _row(
+            translations,
+            "MMSI",
+            display_value(ship.get("mmsi")),
+        ),
+        _row(
+            translations,
+            "IMO",
+            display_value(ship.get("imo")),
+        ),
+        _row(
+            translations,
+            "Callsign",
+            display_value(ship.get("callsign")),
+        ),
+    ])
+
+
+def _camera_rows(translations: dict[str, str], ship: dict) -> str:
 
     if ship.get("camera_visible") is True:
         visibility = translate(translations, "Visible")
@@ -187,26 +255,26 @@ def _camera_section(translations: dict[str, str], ship: dict) -> str:
         value_class = "vessel-card__value--empty"
 
     return "".join([
-        _row(translations, "Camera", camera_name),
         _row(
             translations,
-            "Camera Visible",
+            "Camera",
+            display_value(ship.get("camera_name")),
+        ),
+        _row(
+            translations,
+            "Visibility",
             visibility,
             value_class=value_class,
         ),
     ])
 
 
-def _timeline_section(translations: dict[str, str], ship: dict) -> str:
+def _timeline_rows(translations: dict[str, str], ship: dict) -> str:
 
     events = ship.get("timeline_events") or []
 
     if not events:
-        return _row(
-            translations,
-            "Latest events",
-            "—",
-        )
+        return _row(translations, "Latest events", "—")
 
     lines = []
 
@@ -216,16 +284,15 @@ def _timeline_section(translations: dict[str, str], ship: dict) -> str:
         label = translate(translations, event_type) if event_type else "—"
         lines.append(f"{escape_text(label)} · {escape_text(timestamp)}")
 
-    value = "<br>".join(lines)
     return _row(
         translations,
         "Latest events",
-        value,
+        "<br>".join(lines),
         allow_html=True,
     )
 
 
-def _statistics_section(translations: dict[str, str], ship: dict) -> str:
+def _statistics_rows(translations: dict[str, str], ship: dict) -> str:
 
     return "".join([
         _row(
@@ -246,13 +313,29 @@ def _statistics_section(translations: dict[str, str], ship: dict) -> str:
     ])
 
 
-def _compact_extras(translations: dict[str, str], ship: dict) -> str:
+_SECTION_BUILDERS = {
+    "header": lambda t, s: _header_section(t, s),
+    "status": lambda t, s: _status_rows(t, s),
+    "location": lambda t, s: _location_rows(t, s),
+    "navigation": lambda t, s: _navigation_rows(t, s),
+    "dimensions": lambda t, s: _dimensions_rows(t, s),
+    "identification": lambda t, s: _identification_rows(t, s),
+    "camera": lambda t, s: _camera_rows(t, s),
+    "timeline": lambda t, s: _timeline_rows(t, s),
+    "statistics": lambda t, s: _statistics_rows(t, s),
+}
 
-    return _row(
-        translations,
-        "MMSI",
-        display_value(ship.get("mmsi")),
-    )
+_SECTION_ORDER = (
+    "header",
+    "status",
+    "location",
+    "navigation",
+    "dimensions",
+    "identification",
+    "camera",
+    "timeline",
+    "statistics",
+)
 
 
 def render_monitoring_card(
@@ -262,41 +345,29 @@ def render_monitoring_card(
     level: str,
 ) -> str:
 
-    css_class = f"vessel-card--{level}"
-    scroll_class = "vessel-card__scroll"
+    active_sections = _LEVEL_SECTIONS.get(
+        level,
+        _LEVEL_SECTIONS["detailed"],
+    )
+    css_class = f"vessel-card vessel-card--{level} vessel-card--sheet"
 
-    if level == "detailed":
-        scroll_class += " vessel-card__scroll--scrollable"
+    parts: list[str] = []
 
-    sections: list[str] = [_header_section(translations, ship), _divider()]
-    sections.append(_status_row(translations, ship))
-    sections.append(_divider())
-    sections.append(_location_section(translations, ship))
+    for section_name in _SECTION_ORDER:
+        if section_name not in active_sections:
+            continue
 
-    if level == "compact":
-        sections.append(_divider())
-        sections.append(_compact_extras(translations, ship))
-    else:
-        sections.append(_divider())
-        sections.append(_navigation_section(translations, ship))
+        if parts:
+            parts.append(_divider())
 
-        if level == "media":
-            sections.append(_divider())
-            sections.append(_camera_section(translations, ship))
-        elif level in {"standard", "detailed"}:
-            sections.append(_divider())
-            sections.append(_camera_section(translations, ship))
+        parts.append(_SECTION_BUILDERS[section_name](translations, ship))
 
-        if level == "detailed":
-            sections.append(_divider())
-            sections.append(_timeline_section(translations, ship))
-            sections.append(_divider())
-            sections.append(_statistics_section(translations, ship))
-
-    body = "".join(sections)
+    body = "".join(parts)
 
     return (
-        f'<div class="vessel-card {css_class}">'
-        f'<div class="{scroll_class}">{body}</div>'
+        f'<div class="{css_class}">'
+        f'<div class="vessel-card__scroll vessel-card__scroll--scrollable">'
+        f"{body}"
+        f"</div>"
         f"</div>"
     )
