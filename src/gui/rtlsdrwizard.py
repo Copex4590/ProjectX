@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
 )
 
 from gui.i18n_support import bind_language_refresh
-from gui.wizardhelp import show_wizard_help
+from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button, show_wizard_help
 from i18n import tr
 from observation import observation_manager
 from preferences import preferences_manager
@@ -107,8 +107,8 @@ class RTLSdrWizard(QDialog):
         self._finish_title.setText(tr("RTL-SDR configured."))
         self._finish_body.setText(tr("Hybrid mode is now available."))
 
-        self._button_box.button(QDialogButtonBox.StandardButton.Back).setText(tr("Back"))
-        self._button_box.button(QDialogButtonBox.StandardButton.Next).setText(tr("Next"))
+        self._back_button.setText(tr("Back"))
+        self._next_button.setText(tr("Next"))
         self._button_box.button(QDialogButtonBox.StandardButton.Cancel).setText(tr("Cancel"))
         self._button_box.button(QDialogButtonBox.StandardButton.Ok).setText(tr("Finish"))
 
@@ -288,8 +288,8 @@ class RTLSdrWizard(QDialog):
 
         button_row = QHBoxLayout()
         self._button_box = QDialogButtonBox()
-        self._button_box.addButton(QDialogButtonBox.StandardButton.Back)
-        self._button_box.addButton(QDialogButtonBox.StandardButton.Next)
+        self._back_button = add_wizard_back_button(self._button_box)
+        self._next_button = add_wizard_next_button(self._button_box)
         self._button_box.addButton(QDialogButtonBox.StandardButton.Cancel)
         self._button_box.addButton(QDialogButtonBox.StandardButton.Ok)
         button_row.addWidget(self._button_box)
@@ -298,8 +298,8 @@ class RTLSdrWizard(QDialog):
     def _connect_signals(self) -> None:
 
         self._button_box.rejected.connect(self.reject)
-        self._button_box.button(QDialogButtonBox.StandardButton.Next).clicked.connect(self._on_next)
-        self._button_box.button(QDialogButtonBox.StandardButton.Back).clicked.connect(self._on_back)
+        self._next_button.clicked.connect(self._on_next)
+        self._back_button.clicked.connect(self._on_back)
         self._button_box.accepted.connect(self._on_finish)
         self._internet_only_button.clicked.connect(self._on_internet_only)
         self._detect_button.clicked.connect(self._on_detect_device)
@@ -353,8 +353,8 @@ class RTLSdrWizard(QDialog):
     def _sync_buttons(self) -> None:
 
         step = self._stack.currentIndex()
-        back_button = self._button_box.button(QDialogButtonBox.StandardButton.Back)
-        next_button = self._button_box.button(QDialogButtonBox.StandardButton.Next)
+        back_button = self._back_button
+        next_button = self._next_button
         finish_button = self._button_box.button(QDialogButtonBox.StandardButton.Ok)
 
         back_button.setVisible(step not in (_STEP_OWNERSHIP, _STEP_FINISH))

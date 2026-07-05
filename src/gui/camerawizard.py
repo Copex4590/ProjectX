@@ -34,7 +34,7 @@ from camera import (
 from camera.camera import FUTURE_CAMERA_TYPES
 from gui.i18n_support import bind_language_refresh
 from gui.widgets.cameramapwidget import CameraMapWidget
-from gui.wizardhelp import show_wizard_help
+from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button, show_wizard_help
 from i18n import tr
 from observation import observation_manager
 
@@ -206,10 +206,10 @@ class CameraWizard(QDialog):
         for step, button in self._help_buttons.items():
             button.setText(tr("? Help"))
 
-        self._button_box.button(QDialogButtonBox.StandardButton.Back).setText(
+        self._back_button.setText(
             tr("Back")
         )
-        self._button_box.button(QDialogButtonBox.StandardButton.Next).setText(
+        self._next_button.setText(
             tr("Next")
         )
         self._button_box.button(QDialogButtonBox.StandardButton.Cancel).setText(
@@ -284,8 +284,8 @@ class CameraWizard(QDialog):
         self._build_summary_step()
 
         self._button_box = QDialogButtonBox()
-        self._button_box.addButton(QDialogButtonBox.StandardButton.Back)
-        self._button_box.addButton(QDialogButtonBox.StandardButton.Next)
+        self._back_button = add_wizard_back_button(self._button_box)
+        self._next_button = add_wizard_next_button(self._button_box)
         self._button_box.addButton(QDialogButtonBox.StandardButton.Cancel)
         self._button_box.addButton(QDialogButtonBox.StandardButton.Save)
         self._button_box.button(QDialogButtonBox.StandardButton.Save).setVisible(
@@ -587,10 +587,10 @@ class CameraWizard(QDialog):
     def _connect_signals(self) -> None:
 
         self._button_box.rejected.connect(self.reject)
-        self._button_box.button(QDialogButtonBox.StandardButton.Next).clicked.connect(
+        self._next_button.clicked.connect(
             self._on_next
         )
-        self._button_box.button(QDialogButtonBox.StandardButton.Back).clicked.connect(
+        self._back_button.clicked.connect(
             self._on_back
         )
         self._button_box.accepted.connect(self._on_save)
@@ -800,12 +800,8 @@ class CameraWizard(QDialog):
     def _sync_buttons(self) -> None:
 
         step = self._stack.currentIndex()
-        back_button = self._button_box.button(
-            QDialogButtonBox.StandardButton.Back
-        )
-        next_button = self._button_box.button(
-            QDialogButtonBox.StandardButton.Next
-        )
+        back_button = self._back_button
+        next_button = self._next_button
         save_button = self._button_box.button(
             QDialogButtonBox.StandardButton.Save
         )

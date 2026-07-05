@@ -1,5 +1,5 @@
-from statistics.statistics_manager import StatisticsManager, statistics_manager
-from statistics.statistics_record import (
+from .statistics_manager import StatisticsManager, statistics_manager
+from .statistics_record import (
     ActiveVesselEntry,
     DashboardStatistics,
     GlobalStatistics,

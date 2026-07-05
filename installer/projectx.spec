@@ -18,7 +18,8 @@ from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_all
 
-ROOT = Path(SPECPATH).resolve().parent.parent
+# SPECPATH is the directory containing this spec (installer/); repo root is one level up.
+ROOT = Path(SPECPATH).resolve().parent
 SRC = ROOT / "src"
 BRANDING = SRC / "resources" / "branding"
 CONFIG = SRC / "config"

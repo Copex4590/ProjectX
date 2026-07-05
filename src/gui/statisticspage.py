@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 
 from gui.i18n_support import bind_language_refresh
 from i18n import tr
-from statistics.statistics_manager import StatisticsManager, statistics_manager
+from vessel_statistics.statistics_manager import StatisticsManager, statistics_manager
 
 _AUTO_REFRESH_MS = 30000
 

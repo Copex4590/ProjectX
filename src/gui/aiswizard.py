@@ -27,6 +27,7 @@ from ais import AISSTREAM_REGISTER_URL, ais_manager
 from ais.providers import AISProviderType, normalize_provider_type
 from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
 from gui.i18n_support import bind_language_refresh
+from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button
 from i18n import tr
 from preferences import preferences_manager
 
@@ -535,10 +536,10 @@ class AISWizard(QDialog):
 
         self.setWindowTitle(tr("AIS Source"))
         self._setup.refresh_translations()
-        self._button_box.button(QDialogButtonBox.StandardButton.Back).setText(
+        self._back_button.setText(
             tr("Back")
         )
-        self._button_box.button(QDialogButtonBox.StandardButton.Next).setText(
+        self._next_button.setText(
             tr("Next")
         )
         self._button_box.button(QDialogButtonBox.StandardButton.Cancel).setText(
@@ -593,8 +594,8 @@ class AISWizard(QDialog):
 
         button_row = QHBoxLayout()
         self._button_box = QDialogButtonBox()
-        self._button_box.addButton(QDialogButtonBox.StandardButton.Back)
-        self._button_box.addButton(QDialogButtonBox.StandardButton.Next)
+        self._back_button = add_wizard_back_button(self._button_box)
+        self._next_button = add_wizard_next_button(self._button_box)
         self._button_box.addButton(QDialogButtonBox.StandardButton.Cancel)
         self._button_box.addButton(QDialogButtonBox.StandardButton.Ok)
         button_row.addWidget(self._button_box)
@@ -603,22 +604,18 @@ class AISWizard(QDialog):
     def _connect_signals(self) -> None:
 
         self._button_box.rejected.connect(self.reject)
-        self._button_box.button(QDialogButtonBox.StandardButton.Next).clicked.connect(
+        self._next_button.clicked.connect(
             self._on_next
         )
-        self._button_box.button(QDialogButtonBox.StandardButton.Back).clicked.connect(
+        self._back_button.clicked.connect(
             self._on_back
         )
         self._button_box.accepted.connect(self._on_confirm)
 
     def _sync_buttons(self) -> None:
 
-        back_button = self._button_box.button(
-            QDialogButtonBox.StandardButton.Back
-        )
-        next_button = self._button_box.button(
-            QDialogButtonBox.StandardButton.Next
-        )
+        back_button = self._back_button
+        next_button = self._next_button
         confirm_button = self._button_box.button(
             QDialogButtonBox.StandardButton.Ok
         )

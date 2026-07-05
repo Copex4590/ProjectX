@@ -16,7 +16,7 @@ from gui.vesselcard import vessel_card_layout_manager
 from gui.widgets.camerapreviewpanel import CameraPreviewPanel
 from gui.widgets.mapwidget import MapWidget
 from i18n import language_manager, tr
-from statistics.statistics_manager import statistics_manager
+from vessel_statistics.statistics_manager import statistics_manager
 from timeline.timeline_manager import timeline_manager
 from logbook import logbook_manager
 from vessels.flags.flag_manager import flag_manager

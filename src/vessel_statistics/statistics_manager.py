@@ -14,7 +14,7 @@ from engines.timeline.arrival_departure_engine import (
     EVENT_DEPARTURE,
 )
 from models.vessel_record import VesselRecord
-from statistics.statistics_record import (
+from .statistics_record import (
     ActiveVesselEntry,
     DashboardStatistics,
     GlobalStatistics,
