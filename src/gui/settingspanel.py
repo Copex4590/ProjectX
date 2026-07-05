@@ -7,6 +7,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from gui.settings.playbacksettings import PlaybackSettingsPage
+
 
 class SettingsPanel(QFrame):
 
@@ -63,5 +65,7 @@ class SettingsPanel(QFrame):
         layout.addWidget(combo)
 
         layout.addWidget(QPushButton("Save"))
+
+        layout.addWidget(PlaybackSettingsPage())
 
         layout.addStretch()
