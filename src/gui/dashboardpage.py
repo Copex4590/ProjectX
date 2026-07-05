@@ -3,6 +3,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
+    QFileDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -22,6 +23,7 @@ from gui.i18n_support import bind_language_refresh
 from gui.observationwizard import ObservationWizard
 from gui.widgets.observationmapwidget import ObservationMapWidget
 from i18n import tr
+from logbook import logbook_manager
 from observation import observation_manager
 
 
@@ -298,6 +300,40 @@ class DashboardPage(QWidget):
         cameras_layout.addWidget(self._add_camera_button)
         layout.addWidget(self._cameras_card)
 
+        self._logbook_card = QFrame()
+        self._logbook_card.setStyleSheet("""
+            QFrame {
+                background: #252a31;
+                border: 1px solid #40444b;
+                border-radius: 10px;
+            }
+        """)
+        logbook_layout = QVBoxLayout(self._logbook_card)
+        logbook_layout.setContentsMargins(16, 16, 16, 16)
+        logbook_layout.setSpacing(10)
+
+        self._logbook_title = QLabel()
+        self._logbook_title.setStyleSheet(
+            "font-size: 16pt; font-weight: bold; color: white;"
+        )
+        logbook_layout.addWidget(self._logbook_title)
+
+        self._import_logbook_button = QPushButton()
+        self._import_logbook_button.setStyleSheet("""
+            QPushButton {
+                background: #343a42;
+                color: white;
+                border: 1px solid #4a5159;
+                border-radius: 6px;
+                padding: 6px 12px;
+            }
+            QPushButton:hover {
+                background: #3f464f;
+            }
+        """)
+        logbook_layout.addWidget(self._import_logbook_button)
+        layout.addWidget(self._logbook_card)
+
         grid = QGridLayout()
 
         self.ships = InfoCard("Ships")
@@ -325,6 +361,7 @@ class DashboardPage(QWidget):
         )
         self._map_widget.locationSelected.connect(self._on_map_location)
         self._add_camera_button.clicked.connect(self._add_camera)
+        self._import_logbook_button.clicked.connect(self._import_legacy_logbook)
 
         bind_language_refresh(self.refresh_translations)
 
@@ -360,6 +397,8 @@ class DashboardPage(QWidget):
         self._cameras_title.setText(tr("Attached Cameras"))
         self._no_cameras_label.setText(tr("No cameras attached."))
         self._add_camera_button.setText(tr("Add Camera"))
+        self._logbook_title.setText(tr("Vessel Logbook"))
+        self._import_logbook_button.setText(tr("Import Legacy Logbook"))
 
         self.refresh_observation()
         self.refresh_cameras()
@@ -469,6 +508,40 @@ class DashboardPage(QWidget):
             row.addWidget(edit_button)
             row.addWidget(delete_button)
             self._cameras_list.addWidget(row_widget)
+
+    def _import_legacy_logbook(self) -> None:
+
+        source = QFileDialog.getExistingDirectory(
+            self,
+            tr("Import Legacy Logbook"),
+            "",
+            QFileDialog.Option.ShowDirsOnly,
+        )
+
+        if not source:
+            return
+
+        try:
+            result = logbook_manager.import_legacy(source)
+        except FileNotFoundError as exc:
+            QMessageBox.warning(
+                self,
+                tr("Import Legacy Logbook"),
+                str(exc),
+            )
+            return
+
+        QMessageBox.information(
+            self,
+            tr("Import Legacy Logbook"),
+            tr(
+                "Legacy logbook import complete. "
+                "Imported: {imported}, skipped: {skipped}."
+            ).format(
+                imported=result.imported_folders,
+                skipped=result.skipped_folders,
+            ),
+        )
 
     def _add_camera(self) -> None:
 

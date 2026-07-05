@@ -6,6 +6,7 @@
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
 
     <style>
         html, body, #map {
@@ -324,6 +325,27 @@
             color: #9aa4af;
             font-weight: 500;
         }
+
+        .vessel-card__row--logbook {
+            justify-content: center;
+            margin-top: 4px;
+        }
+
+        .vessel-card__logbook-btn {
+            width: 100%;
+            border: 1px solid #4a5159;
+            border-radius: 6px;
+            background: #343a42;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        .vessel-card__logbook-btn:hover {
+            background: #3f464f;
+        }
     </style>
 </head>
 
@@ -346,6 +368,37 @@ L.tileLayer(
 const ships = {};
 const trails = {};
 let openPopupMmsi = null;
+let bridge = null;
+
+function initBridge()
+{
+    if (typeof qt === "undefined")
+        return;
+
+    new QWebChannel(qt.webChannelTransport, function(channel)
+    {
+        bridge = channel.objects.bridge;
+    });
+}
+
+function attachLogbookHandlers(popupElement)
+{
+    if (!popupElement || !bridge || !bridge.openLogbook)
+        return;
+
+    popupElement.querySelectorAll(".vessel-card__logbook-btn").forEach(function(btn)
+    {
+        btn.onclick = function()
+        {
+            const mmsi = Number(btn.getAttribute("data-mmsi"));
+
+            if (Number.isFinite(mmsi))
+                bridge.openLogbook(mmsi);
+        };
+    });
+}
+
+initBridge();
 let observationMarker = null;
 
 function setObservationPoint(lat, lon)
@@ -376,6 +429,7 @@ map.on("popupopen", function(event)
         if (marker.getPopup() === event.popup)
         {
             openPopupMmsi = Number(mmsi);
+            attachLogbookHandlers(event.popup.getElement());
             return;
         }
     }
@@ -534,6 +588,9 @@ function updateShips(list)
 
         marker.setPopupContent(popupContent(ship));
         restorePopupScroll(marker, scrollTop);
+
+        if (popupOpen)
+            attachLogbookHandlers(marker.getPopup().getElement());
 
         if (!trails[mmsi])
         {

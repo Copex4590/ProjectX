@@ -41,6 +41,7 @@ _LEVEL_SECTIONS = {
         "navigation",
         "identification",
         "camera",
+        "logbook",
     }),
     "detailed": frozenset({
         "header",
@@ -52,6 +53,7 @@ _LEVEL_SECTIONS = {
         "camera",
         "timeline",
         "statistics",
+        "logbook",
     }),
     "media": frozenset({
         "header",
@@ -63,6 +65,7 @@ _LEVEL_SECTIONS = {
         "camera",
         "timeline",
         "statistics",
+        "logbook",
     }),
 }
 
@@ -300,6 +303,24 @@ def _timeline_rows(translations: dict[str, str], ship: dict) -> str:
     )
 
 
+def _logbook_section(translations: dict[str, str], ship: dict) -> str:
+
+    if not ship.get("has_logbook"):
+        return ""
+
+    mmsi = ship.get("mmsi", "")
+    button_text = escape_text(translate(translations, "Vessel logbook"))
+
+    return (
+        f'<div class="vessel-card__row vessel-card__row--logbook">'
+        f'<button type="button" class="vessel-card__logbook-btn" '
+        f'data-mmsi="{escape_text(str(mmsi))}">'
+        f"📖 {button_text}"
+        f"</button>"
+        f"</div>"
+    )
+
+
 def _statistics_rows(translations: dict[str, str], ship: dict) -> str:
 
     return "".join([
@@ -331,6 +352,7 @@ _SECTION_BUILDERS = {
     "camera": lambda t, s: _camera_rows(t, s),
     "timeline": lambda t, s: _timeline_rows(t, s),
     "statistics": lambda t, s: _statistics_rows(t, s),
+    "logbook": lambda t, s: _logbook_section(t, s),
 }
 
 _SECTION_ORDER = (
@@ -343,6 +365,7 @@ _SECTION_ORDER = (
     "camera",
     "timeline",
     "statistics",
+    "logbook",
 )
 
 

@@ -31,6 +31,7 @@ from preferences import preferences_manager
 from inspector.inspector import PROJECT_VERSION
 from engines.ais.ais_catcher_launcher import ensure_ais_catcher_ready
 from engines.rtl.hybrid_engine import HybridEngine
+from logbook import logbook_recorder
 
 
 class MainWindow(QMainWindow):
@@ -42,6 +43,7 @@ class MainWindow(QMainWindow):
         self.resize(1600, 900)
 
         self.hybrid_engine = HybridEngine()
+        logbook_recorder.start()
 
         self.build_ui()
 

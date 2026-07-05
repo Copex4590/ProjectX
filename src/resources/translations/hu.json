@@ -344,5 +344,9 @@
   "Camera wizard help — test": "Kapcsolat teszt súgó",
   "Camera wizard help body — test": "Mentés előtt tesztelje a streamet.\n\nA sikeres teszt azt jelzi, hogy az URL elérhető.\n\nGyakori hiba: csak helyi hálózaton működő URL mentése VPN nélkül.",
   "Camera wizard help — summary": "Összegzés súgó",
-  "Camera wizard help body — summary": "Mentés előtt ellenőrizze az összes beállítást.\n\nA kamera az aktív megfigyelési ponthoz lesz rendelve.\n\nKésőbb az irányítópultról szerkesztheti."
+  "Camera wizard help body — summary": "Mentés előtt ellenőrizze az összes beállítást.\n\nA kamera az aktív megfigyelési ponthoz lesz rendelve.\n\nKésőbb az irányítópultról szerkesztheti.",
+  "Vessel Logbook": "Hajónapló",
+  "Import Legacy Logbook": "Régi hajónapló importálása",
+  "Legacy logbook import complete. Imported: {imported}, skipped: {skipped}.": "A régi hajónapló importálása kész. Importálva: {imported}, kihagyva: {skipped}.",
+  "Vessel logbook": "Hajónapló"
 }

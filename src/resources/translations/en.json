@@ -344,5 +344,9 @@
   "Camera wizard help — test": "Connection Test Help",
   "Camera wizard help body — test": "Test the stream before saving.\n\nA successful test confirms the URL is reachable.\n\nTypical mistake: saving a URL that works only on a local network without VPN.",
   "Camera wizard help — summary": "Summary Help",
-  "Camera wizard help body — summary": "Review all settings before saving.\n\nThe camera will be linked to the active Observation Point.\n\nYou can edit it later from the Dashboard."
+  "Camera wizard help body — summary": "Review all settings before saving.\n\nThe camera will be linked to the active Observation Point.\n\nYou can edit it later from the Dashboard.",
+  "Vessel Logbook": "Vessel Logbook",
+  "Import Legacy Logbook": "Import Legacy Logbook",
+  "Legacy logbook import complete. Imported: {imported}, skipped: {skipped}.": "Legacy logbook import complete. Imported: {imported}, skipped: {skipped}.",
+  "Vessel logbook": "Vessel Logbook"
 }

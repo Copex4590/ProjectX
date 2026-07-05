@@ -18,6 +18,7 @@ from gui.widgets.mapwidget import MapWidget
 from i18n import language_manager, tr
 from statistics.statistics_manager import statistics_manager
 from timeline.timeline_manager import timeline_manager
+from logbook import logbook_manager
 from vessels.flags.flag_manager import flag_manager
 from vessels.photo_manager import photo_manager
 
@@ -243,6 +244,7 @@ def _serialize_ship(ship) -> dict:
     payload["timeline_events"] = _timeline_events(ship.mmsi)
     payload["timeline_summary"] = _timeline_summary(ship.mmsi)
     payload["statistics_summary"] = _statistics_summary(ship.mmsi)
+    payload["has_logbook"] = logbook_manager.has_logbook(ship)
     payload["popup_html"] = vessel_card_layout_manager.render(payload)
 
     return payload
@@ -277,6 +279,7 @@ class MapPage(QWidget):
         self.map.loadFinished.connect(
             lambda _ok: self._on_map_ready()
         )
+        self.map.openLogbookRequested.connect(self._open_logbook)
         self.apply_personalization()
         self.refresh_observation_point()
 
@@ -320,6 +323,10 @@ class MapPage(QWidget):
 
         self._selected_mmsi = int(mmsi)
         self._refresh_camera_preview()
+
+    def _open_logbook(self, mmsi: int) -> None:
+
+        logbook_manager.open_logbook(int(mmsi))
 
     def _refresh_camera_preview(self):
 

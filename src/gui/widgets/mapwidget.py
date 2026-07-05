@@ -1,11 +1,24 @@
 from pathlib import Path
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QObject, QUrl, Signal, Slot
+from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 
+class _MapBridge(QObject):
+
+    openLogbookRequested = Signal(int)
+
+    @Slot(int)
+    def openLogbook(self, mmsi: int):
+
+        self.openLogbookRequested.emit(int(mmsi))
+
+
 class MapWidget(QWebEngineView):
+
+    openLogbookRequested = Signal(int)
 
     def __init__(self):
         super().__init__()
@@ -23,6 +36,13 @@ class MapWidget(QWebEngineView):
             QWebEngineSettings.JavascriptEnabled,
             True,
         )
+
+        self._bridge = _MapBridge()
+        self._bridge.openLogbookRequested.connect(self.openLogbookRequested)
+
+        channel = QWebChannel(self.page())
+        channel.registerObject("bridge", self._bridge)
+        self.page().setWebChannel(channel)
 
         html = (
             Path(__file__).resolve().parents[3]
