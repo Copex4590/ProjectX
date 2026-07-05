@@ -24,6 +24,16 @@ chmod +x scripts/fetch_leaflet.sh
 scripts/fetch_leaflet.sh
 ```
 
+## Build scripts (SAVE-067)
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/build_linux.sh` | PyInstaller one-dir bundle → `dist/projectx/` |
+| `scripts/build_windows.sh` | Windows bundle (requires Windows Python; see `BUILD_WINDOWS.md`) |
+| `scripts/clean_build.sh` | Remove `build/` and `dist/` |
+
+Full Windows workflow: **`BUILD_WINDOWS.md`**
+
 ## Linux installer
 
 Installs Project X to `~/.local/share/projectx`, creates a launcher, desktop shortcut, and applications menu entry.

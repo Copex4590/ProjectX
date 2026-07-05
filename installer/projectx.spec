@@ -1,9 +1,22 @@
 # -*- mode: python ; coding: utf-8 -*-
 # ============================================================================
-# Project X — PyInstaller spec
+# Project X — PyInstaller spec (Linux + Windows one-dir bundle)
 # ============================================================================
+#
+# Bundled runtime assets (via datas below):
+#   - Qt WebEngine (collect_all hooks)
+#   - Leaflet (src/resources/map/leaflet/)
+#   - Translations (src/resources/translations/)
+#   - Icons / flags / branding logos (src/resources/)
+#   - Map HTML / CSS / JavaScript (src/resources/map/)
+#   - Read-only config samples + camera packs
+#   - Seed data/ tree
+#
+# Writable runtime files use app.paths (APPDATA on Windows, ~/.local/share on Linux).
 
 from pathlib import Path
+
+from PyInstaller.utils.hooks import collect_all
 
 ROOT = Path(SPECPATH).resolve().parent.parent
 SRC = ROOT / "src"
@@ -20,30 +33,46 @@ _config_datas = [
     (str(CONFIG / "observation_points.json.example"), "config"),
 ]
 
+_resource_datas = [
+    (str(SRC / "resources"), "resources"),
+    *_config_datas,
+    (str(ROOT / "data"), "data"),
+    (str(BRANDING / "projectx.ico"), "."),
+    (str(BRANDING / "projectx-logo.png"), "."),
+]
+
+_webengine_datas = []
+_webengine_binaries = []
+_webengine_hiddenimports = []
+
+for _pkg in (
+    "PySide6.QtWebEngineWidgets",
+    "PySide6.QtWebEngineCore",
+    "PySide6.QtWebChannel",
+):
+    _datas, _binaries, _hiddenimports = collect_all(_pkg)
+    _webengine_datas += _datas
+    _webengine_binaries += _binaries
+    _webengine_hiddenimports += _hiddenimports
+
+_hiddenimports = [
+    *_webengine_hiddenimports,
+    "openpyxl",
+    "openpyxl.cell",
+    "openpyxl.workbook",
+    "websocket",
+    "websocket._abnf",
+    "websocket._core",
+]
+
 block_cipher = None
 
 a = Analysis(
     [str(SRC / "main.py")],
     pathex=[str(SRC)],
-    binaries=[],
-    datas=[
-        (str(SRC / "resources"), "resources"),
-        *_config_datas,
-        (str(ROOT / "data"), "data"),
-        (str(BRANDING / "projectx.ico"), "."),
-        (str(BRANDING / "projectx-logo.png"), "."),
-    ],
-    hiddenimports=[
-        "PySide6.QtWebEngineWidgets",
-        "PySide6.QtWebEngineCore",
-        "PySide6.QtWebChannel",
-        "openpyxl",
-        "openpyxl.cell",
-        "openpyxl.workbook",
-        "websocket",
-        "websocket._abnf",
-        "websocket._core",
-    ],
+    binaries=_webengine_binaries,
+    datas=[*_resource_datas, *_webengine_datas],
+    hiddenimports=_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
