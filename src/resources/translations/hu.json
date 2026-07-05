@@ -268,5 +268,14 @@
   "Confirm": "Megerősítés",
   "Next": "Tovább",
   "Back": "Vissza",
-  "Delete observation point '{name}'?": "Törli a(z) '{name}' megfigyelési pontot?"
+  "Delete observation point '{name}'?": "Törli a(z) '{name}' megfigyelési pontot?",
+  "Project X Setup": "Project X beállítás",
+  "Welcome to Project X.": "Üdvözöljük a Project X-ben.",
+  "This wizard will help you configure your first Observation Point.": "Ez a varázsló segít beállítani az első megfigyelési pontot.",
+  "Continue": "Tovább",
+  "Choose your language": "Válasszon nyelvet",
+  "Would you like to add your first camera now?": "Szeretné most hozzáadni az első kamerát?",
+  "Skip (recommended if you only want AIS)": "Kihagyás (ajánlott, ha csak AIS-t szeretne)",
+  "Configuration completed.": "A beállítás elkészült.",
+  "Open Dashboard": "Irányítópult megnyitása"
 }

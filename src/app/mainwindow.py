@@ -22,10 +22,11 @@ from gui.alertcenterpage import AlertCenterPage
 from gui.rulespage import RulesPage
 from gui.settingspage import SettingsPage
 from gui.eventbridge import EventBridge
-from gui.observationwizard import ObservationWizard
+from gui.firstrunwizard import FirstRunWizard
 
 from i18n import language_manager
 from observation import observation_manager
+from preferences import preferences_manager
 from inspector.inspector import PROJECT_VERSION
 from engines.ais.ais_catcher_launcher import ensure_ais_catcher_ready
 from engines.rtl.hybrid_engine import HybridEngine
@@ -90,16 +91,36 @@ class MainWindow(QMainWindow):
             connection,
         )
 
-        if not observation_manager.all():
-            QTimer.singleShot(0, self._show_observation_wizard)
+        if self._should_show_first_run_wizard():
+            QTimer.singleShot(0, self._show_first_run_wizard)
 
-    def _show_observation_wizard(self) -> None:
+    def _should_show_first_run_wizard(self) -> bool:
 
         if observation_manager.all():
+            preferences = preferences_manager.get()
+
+            if not preferences.first_run_completed:
+                preferences_manager.set_first_run_completed(True)
+
+            return False
+
+        preferences = preferences_manager.get()
+        return not preferences.first_run_completed
+
+    def _show_first_run_wizard(self) -> None:
+
+        if not self._should_show_first_run_wizard():
             return
 
-        wizard = ObservationWizard(self)
-        wizard.exec()
+        wizard = FirstRunWizard(self)
+
+        if wizard.exec() != FirstRunWizard.DialogCode.Accepted:
+            return
+
+        if wizard.open_camera_page:
+            self.pages.setCurrentIndex(3)
+        else:
+            self.pages.setCurrentIndex(0)
 
     def build_ui(self):
 

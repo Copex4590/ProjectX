@@ -36,6 +36,7 @@ class Preferences:
 
     language: str = DEFAULT_LANGUAGE
     vessel_card_layout: str = DEFAULT_VESSEL_CARD_LAYOUT
+    first_run_completed: bool = False
     version: int = SCHEMA_VERSION
 
     def to_dict(self) -> dict:
@@ -44,6 +45,7 @@ class Preferences:
             "version": SCHEMA_VERSION,
             "language": self.language,
             "vessel_card_layout": self.vessel_card_layout,
+            "first_run_completed": self.first_run_completed,
         }
 
     @classmethod
@@ -69,9 +71,12 @@ class Preferences:
         if layout not in SUPPORTED_VESSEL_CARD_LAYOUTS:
             layout = DEFAULT_VESSEL_CARD_LAYOUT
 
+        first_run_completed = bool(data.get("first_run_completed", False))
+
         return cls(
             language=language,
             vessel_card_layout=layout,
+            first_run_completed=first_run_completed,
             version=int(data.get("version", SCHEMA_VERSION)),
         )
 
@@ -100,5 +105,9 @@ class Preferences:
 
         if layout not in SUPPORTED_VESSEL_CARD_LAYOUTS:
             migrated["vessel_card_layout"] = DEFAULT_VESSEL_CARD_LAYOUT
+
+        migrated["first_run_completed"] = bool(
+            migrated.get("first_run_completed", False)
+        )
 
         return migrated

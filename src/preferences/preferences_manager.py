@@ -54,6 +54,12 @@ class PreferencesManager:
         current.vessel_card_layout = str(layout).strip().lower()
         return self.save(Preferences.from_dict(current.to_dict()))
 
+    def set_first_run_completed(self, completed: bool = True) -> Preferences:
+
+        current = self.get()
+        current.first_run_completed = bool(completed)
+        return self.save(Preferences.from_dict(current.to_dict()))
+
     def _load(self) -> Preferences:
 
         if not self._path.exists():

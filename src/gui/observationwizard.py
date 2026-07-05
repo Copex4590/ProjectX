@@ -26,31 +26,27 @@ from i18n import tr
 from observation import observation_manager
 
 
-class ObservationWizard(QDialog):
+class ObservationSetupWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-
-        self.setModal(True)
-        self.setMinimumWidth(560)
-        self.setMinimumHeight(520)
 
         self._picked_lat = CAMERA_LAT
         self._picked_lon = CAMERA_LON
 
         self._build_ui()
         self._connect_signals()
-        bind_language_refresh(self.refresh_translations)
-        self.refresh_translations()
 
     def refresh_translations(self) -> None:
 
-        self.setWindowTitle(tr("Observation Point Setup"))
         self._step1_title.setText(tr("Step 1 — Observation Point name"))
         self._name_label.setText(tr("Observation Point name"))
         self._name_input.setPlaceholderText(tr("Home"))
         self._examples_label.setText(
-            tr("Examples: Home, Hotel Victoria, Parliament, River Bank, Observation Deck")
+            tr(
+                "Examples: Home, Hotel Victoria, Parliament, "
+                "River Bank, Observation Deck"
+            )
         )
         self._step2_title.setText(tr("Step 2 — Choose location"))
         self._map_option.setText(tr("Click on map"))
@@ -60,45 +56,73 @@ class ObservationWizard(QDialog):
         self._confirm_label.setText(
             tr("Click the map once. A red marker appears. Confirm to save.")
         )
-        self._button_box.button(QDialogButtonBox.StandardButton.Back).setText(
-            tr("Back")
+
+    def substep_index(self) -> int:
+
+        return self._stack.currentIndex()
+
+    def on_enter(self) -> None:
+
+        if self.substep_index() == 1:
+            self._sync_location_mode()
+
+    def on_leave(self) -> None:
+
+        self._map_widget.enable_pick_mode(False)
+
+    def handle_next(self) -> bool:
+
+        if self.substep_index() != 0:
+            return False
+
+        if not self._name_input.text().strip():
+            return False
+
+        self._stack.setCurrentIndex(1)
+        self._sync_location_mode()
+        return False
+
+    def handle_back(self) -> bool:
+
+        if self.substep_index() != 1:
+            return True
+
+        self._stack.setCurrentIndex(0)
+        self._map_widget.enable_pick_mode(False)
+        return False
+
+    def handle_confirm(self) -> bool:
+
+        name = self._name_input.text().strip()
+
+        if not name:
+            return False
+
+        observation_manager.create(
+            name,
+            self._picked_lat,
+            self._picked_lon,
+            set_active=True,
         )
-        self._button_box.button(QDialogButtonBox.StandardButton.Next).setText(
-            tr("Next")
-        )
-        self._button_box.button(QDialogButtonBox.StandardButton.Cancel).setText(
-            tr("Cancel")
-        )
-        self._button_box.button(QDialogButtonBox.StandardButton.Ok).setText(
-            tr("Confirm")
-        )
+        return True
+
+    def update_outer_buttons(
+        self,
+        back_button,
+        next_button,
+        confirm_button,
+    ) -> None:
+
+        on_location_step = self.substep_index() == 1
+
+        back_button.setEnabled(on_location_step)
+        next_button.setVisible(not on_location_step)
+        confirm_button.setVisible(on_location_step)
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("""
-            QDialog {
-                background: #1d2127;
-            }
-
-            QLabel {
-                color: #d5dbe3;
-            }
-
-            QLineEdit, QDoubleSpinBox {
-                background: #252a31;
-                color: white;
-                border: 1px solid #40444b;
-                border-radius: 6px;
-                padding: 6px 8px;
-            }
-
-            QRadioButton {
-                color: #d5dbe3;
-            }
-        """)
-
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
 
         self._stack = QStackedWidget()
@@ -171,40 +195,11 @@ class ObservationWizard(QDialog):
 
         self._stack.addWidget(step2)
 
-        self._button_box = QDialogButtonBox()
-        self._button_box.addButton(
-            QDialogButtonBox.StandardButton.Back
-        )
-        self._button_box.addButton(
-            QDialogButtonBox.StandardButton.Next
-        )
-        self._button_box.addButton(
-            QDialogButtonBox.StandardButton.Cancel
-        )
-        self._button_box.addButton(
-            QDialogButtonBox.StandardButton.Ok
-        )
-        self._button_box.button(QDialogButtonBox.StandardButton.Back).setEnabled(
-            False
-        )
-        self._button_box.button(QDialogButtonBox.StandardButton.Ok).setVisible(
-            False
-        )
-        layout.addWidget(self._button_box)
-
         self._map_widget.set_observation_point(self._picked_lat, self._picked_lon)
         self._sync_location_mode()
 
     def _connect_signals(self) -> None:
 
-        self._button_box.accepted.connect(self._on_accept)
-        self._button_box.rejected.connect(self.reject)
-        self._button_box.button(QDialogButtonBox.StandardButton.Next).clicked.connect(
-            self._on_next
-        )
-        self._button_box.button(QDialogButtonBox.StandardButton.Back).clicked.connect(
-            self._on_back
-        )
         self._mode_group.idClicked.connect(self._on_mode_changed)
         self._map_widget.locationSelected.connect(self._on_map_location)
         self._latitude_input.valueChanged.connect(self._on_coords_changed)
@@ -247,50 +242,125 @@ class ObservationWizard(QDialog):
                 self._picked_lon,
             )
 
+
+class ObservationWizard(QDialog):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setModal(True)
+        self.setMinimumWidth(560)
+        self.setMinimumHeight(520)
+
+        self._build_ui()
+        self._connect_signals()
+        bind_language_refresh(self.refresh_translations)
+        self.refresh_translations()
+
+    def refresh_translations(self) -> None:
+
+        self.setWindowTitle(tr("Observation Point Setup"))
+        self._setup.refresh_translations()
+        self._button_box.button(QDialogButtonBox.StandardButton.Back).setText(
+            tr("Back")
+        )
+        self._button_box.button(QDialogButtonBox.StandardButton.Next).setText(
+            tr("Next")
+        )
+        self._button_box.button(QDialogButtonBox.StandardButton.Cancel).setText(
+            tr("Cancel")
+        )
+        self._button_box.button(QDialogButtonBox.StandardButton.Ok).setText(
+            tr("Confirm")
+        )
+        self._sync_buttons()
+
+    def _build_ui(self) -> None:
+
+        self.setStyleSheet("""
+            QDialog {
+                background: #1d2127;
+            }
+
+            QLabel {
+                color: #d5dbe3;
+            }
+
+            QLineEdit, QDoubleSpinBox {
+                background: #252a31;
+                color: white;
+                border: 1px solid #40444b;
+                border-radius: 6px;
+                padding: 6px 8px;
+            }
+
+            QRadioButton {
+                color: #d5dbe3;
+            }
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)
+
+        self._setup = ObservationSetupWidget()
+        layout.addWidget(self._setup)
+
+        self._button_box = QDialogButtonBox()
+        self._button_box.addButton(
+            QDialogButtonBox.StandardButton.Back
+        )
+        self._button_box.addButton(
+            QDialogButtonBox.StandardButton.Next
+        )
+        self._button_box.addButton(
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        self._button_box.addButton(
+            QDialogButtonBox.StandardButton.Ok
+        )
+        self._button_box.button(QDialogButtonBox.StandardButton.Back).setEnabled(
+            False
+        )
+        self._button_box.button(QDialogButtonBox.StandardButton.Ok).setVisible(
+            False
+        )
+        layout.addWidget(self._button_box)
+
+    def _connect_signals(self) -> None:
+
+        self._button_box.accepted.connect(self._on_accept)
+        self._button_box.rejected.connect(self.reject)
+        self._button_box.button(QDialogButtonBox.StandardButton.Next).clicked.connect(
+            self._on_next
+        )
+        self._button_box.button(QDialogButtonBox.StandardButton.Back).clicked.connect(
+            self._on_back
+        )
+
+    def _sync_buttons(self) -> None:
+
+        self._setup.update_outer_buttons(
+            self._button_box.button(QDialogButtonBox.StandardButton.Back),
+            self._button_box.button(QDialogButtonBox.StandardButton.Next),
+            self._button_box.button(QDialogButtonBox.StandardButton.Ok),
+        )
+
     def _on_next(self) -> None:
 
-        if self._stack.currentIndex() == 0:
-            if not self._name_input.text().strip():
-                return
-
-            self._stack.setCurrentIndex(1)
-            self._button_box.button(
-                QDialogButtonBox.StandardButton.Back
-            ).setEnabled(True)
-            self._button_box.button(
-                QDialogButtonBox.StandardButton.Next
-            ).setVisible(False)
-            self._button_box.button(
-                QDialogButtonBox.StandardButton.Ok
-            ).setVisible(True)
-            self._sync_location_mode()
+        self._setup.handle_next()
+        self._sync_buttons()
 
     def _on_back(self) -> None:
 
-        if self._stack.currentIndex() == 1:
-            self._stack.setCurrentIndex(0)
+        if self._setup.handle_back():
             self._button_box.button(
                 QDialogButtonBox.StandardButton.Back
             ).setEnabled(False)
-            self._button_box.button(
-                QDialogButtonBox.StandardButton.Next
-            ).setVisible(True)
-            self._button_box.button(
-                QDialogButtonBox.StandardButton.Ok
-            ).setVisible(False)
-            self._map_widget.enable_pick_mode(False)
+
+        self._sync_buttons()
 
     def _on_accept(self) -> None:
 
-        name = self._name_input.text().strip()
-
-        if not name:
-            return
-
-        observation_manager.create(
-            name,
-            self._picked_lat,
-            self._picked_lon,
-            set_active=True,
-        )
-        self.accept()
+        if self._setup.handle_confirm():
+            self.accept()
