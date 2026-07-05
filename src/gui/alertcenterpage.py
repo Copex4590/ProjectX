@@ -25,6 +25,8 @@ from alerts.alert_event import AlertEvent
 from alerts.alert_manager import AlertManager, alert_manager
 from alerts.alert_rule import SUPPORTED_RULE_TYPES
 from database import registry
+from gui.i18n_support import bind_language_refresh
+from i18n import tr
 
 _ALL_FILTER = "All"
 
@@ -48,6 +50,29 @@ def _display_text(value: str | None) -> str:
         return text
 
     return "—"
+
+
+def _tr_severity(value: str | None) -> str:
+
+    text = str(value or "").strip()
+
+    if not text:
+        return "—"
+
+    if text in _SEVERITY_FILTERS[1:]:
+        return tr(text)
+
+    return text
+
+
+def _tr_event_type(value: str | None) -> str:
+
+    text = str(value or "").strip()
+
+    if not text:
+        return "—"
+
+    return tr(text)
 
 
 def _format_timestamp(value: datetime | None) -> str:
@@ -106,6 +131,7 @@ class AlertCenterPage(QWidget):
 
         self._build_ui()
         self._connect_signals()
+        bind_language_refresh(self.refresh_translations)
         self.refresh()
 
     def refresh(self) -> list[AlertEvent]:
@@ -232,28 +258,32 @@ class AlertCenterPage(QWidget):
         layout.setContentsMargins(25, 25, 25, 25)
         layout.setSpacing(12)
 
-        title = QLabel("Alert Center")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setProperty("role", "title")
-        layout.addWidget(title)
+        self._title_label = QLabel(tr("Alert Center"))
+        self._title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._title_label.setProperty("role", "title")
+        layout.addWidget(self._title_label)
 
         summary = QGridLayout()
-        summary.addWidget(self._summary_label("Total Alerts"), 0, 0)
+        self._total_alerts_label = self._summary_label(tr("Total Alerts"))
+        summary.addWidget(self._total_alerts_label, 0, 0)
         self.total_alerts_value = QLabel("0")
         self.total_alerts_value.setProperty("role", "summary-value")
         summary.addWidget(self.total_alerts_value, 1, 0)
 
-        summary.addWidget(self._summary_label("Active Rules"), 0, 1)
+        self._active_rules_label = self._summary_label(tr("Active Rules"))
+        summary.addWidget(self._active_rules_label, 0, 1)
         self.active_rules_value = QLabel("0")
         self.active_rules_value.setProperty("role", "summary-value")
         summary.addWidget(self.active_rules_value, 1, 1)
 
-        summary.addWidget(self._summary_label("Alerts Today"), 0, 2)
+        self._alerts_today_label = self._summary_label(tr("Alerts Today"))
+        summary.addWidget(self._alerts_today_label, 0, 2)
         self.alerts_today_value = QLabel("0")
         self.alerts_today_value.setProperty("role", "summary-value")
         summary.addWidget(self.alerts_today_value, 1, 2)
 
-        summary.addWidget(self._summary_label("Critical Alerts"), 0, 3)
+        self._critical_alerts_label = self._summary_label(tr("Critical Alerts"))
+        summary.addWidget(self._critical_alerts_label, 0, 3)
         self.critical_alerts_value = QLabel("0")
         self.critical_alerts_value.setProperty("role", "summary-value")
         summary.addWidget(self.critical_alerts_value, 1, 3)
@@ -263,44 +293,50 @@ class AlertCenterPage(QWidget):
         controls.setHorizontalSpacing(12)
         controls.setVerticalSpacing(8)
 
-        controls.addWidget(self._field_label("Search"), 0, 0)
+        self._search_label = self._field_label(tr("Search"))
+        controls.addWidget(self._search_label, 0, 0)
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("MMSI, vessel name, or message")
+        self.search_input.setPlaceholderText(
+            tr("MMSI, vessel name, or message")
+        )
         controls.addWidget(self.search_input, 0, 1, 1, 3)
 
-        controls.addWidget(self._field_label("Severity"), 1, 0)
+        self._severity_label = self._field_label(tr("Severity"))
+        controls.addWidget(self._severity_label, 1, 0)
         self.severity_filter = QComboBox()
-        for value in _SEVERITY_FILTERS:
-            self.severity_filter.addItem(value)
+        self._populate_severity_filter()
         controls.addWidget(self.severity_filter, 1, 1)
 
-        controls.addWidget(self._field_label("Event Type"), 1, 2)
+        self._event_type_label = self._field_label(tr("Event Type"))
+        controls.addWidget(self._event_type_label, 1, 2)
         self.event_filter = QComboBox()
-        for value in _EVENT_FILTERS:
-            self.event_filter.addItem(value)
+        self._populate_event_filter()
         controls.addWidget(self.event_filter, 1, 3)
 
-        controls.addWidget(self._field_label("Rule"), 2, 0)
+        self._rule_label = self._field_label(tr("Rule"))
+        controls.addWidget(self._rule_label, 2, 0)
         self.rule_filter = QComboBox()
-        self.rule_filter.addItem(_ALL_FILTER)
+        self.rule_filter.addItem(tr("All"), _ALL_FILTER)
         controls.addWidget(self.rule_filter, 2, 1)
 
-        controls.addWidget(self._field_label("Date From"), 2, 2)
+        self._date_from_label = self._field_label(tr("Date From"))
+        controls.addWidget(self._date_from_label, 2, 2)
         self.date_from_input = QLineEdit()
-        self.date_from_input.setPlaceholderText("YYYY-MM-DD")
+        self.date_from_input.setPlaceholderText(tr("YYYY-MM-DD"))
         controls.addWidget(self.date_from_input, 2, 3)
 
-        controls.addWidget(self._field_label("Date To"), 3, 0)
+        self._date_to_label = self._field_label(tr("Date To"))
+        controls.addWidget(self._date_to_label, 3, 0)
         self.date_to_input = QLineEdit()
-        self.date_to_input.setPlaceholderText("YYYY-MM-DD")
+        self.date_to_input.setPlaceholderText(tr("YYYY-MM-DD"))
         controls.addWidget(self.date_to_input, 3, 1)
 
         button_row = QHBoxLayout()
         button_row.setSpacing(8)
 
-        self.refresh_button = QPushButton("Refresh")
-        self.clear_button = QPushButton("Clear Filters")
-        self.auto_refresh_checkbox = QCheckBox("Auto Refresh")
+        self.refresh_button = QPushButton(tr("Refresh"))
+        self.clear_button = QPushButton(tr("Clear Filters"))
+        self.auto_refresh_checkbox = QCheckBox(tr("Auto Refresh"))
         button_row.addWidget(self.refresh_button)
         button_row.addWidget(self.clear_button)
         button_row.addWidget(self.auto_refresh_checkbox)
@@ -310,14 +346,7 @@ class AlertCenterPage(QWidget):
         layout.addLayout(controls)
 
         self.table = QTableWidget(0, 6)
-        self.table.setHorizontalHeaderLabels([
-            "Time",
-            "Severity",
-            "Event",
-            "Vessel",
-            "Rule",
-            "Message",
-        ])
+        self.table.setHorizontalHeaderLabels(self._table_header_labels())
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
@@ -341,6 +370,78 @@ class AlertCenterPage(QWidget):
         label = QLabel(text)
         label.setProperty("role", "field")
         return label
+
+    @staticmethod
+    def _table_header_labels() -> list[str]:
+
+        return [
+            tr("Time"),
+            tr("Severity"),
+            tr("Event"),
+            tr("Vessel"),
+            tr("Rule"),
+            tr("Message"),
+        ]
+
+    def _populate_severity_filter(self) -> None:
+
+        current = self.severity_filter.currentData()
+
+        self.severity_filter.blockSignals(True)
+        self.severity_filter.clear()
+
+        for value in _SEVERITY_FILTERS:
+            label = tr("All") if value == _ALL_FILTER else tr(value)
+            self.severity_filter.addItem(label, value)
+
+        self._sync_filter_combo(self.severity_filter, current or _ALL_FILTER)
+        self.severity_filter.blockSignals(False)
+
+    def _populate_event_filter(self) -> None:
+
+        current = self.event_filter.currentData()
+
+        self.event_filter.blockSignals(True)
+        self.event_filter.clear()
+
+        for value in _EVENT_FILTERS:
+            label = tr("All") if value == _ALL_FILTER else tr(value)
+            self.event_filter.addItem(label, value)
+
+        self._sync_filter_combo(self.event_filter, current or _ALL_FILTER)
+        self.event_filter.blockSignals(False)
+
+    def refresh_translations(self) -> None:
+
+        self._title_label.setText(tr("Alert Center"))
+        self._total_alerts_label.setText(tr("Total Alerts"))
+        self._active_rules_label.setText(tr("Active Rules"))
+        self._alerts_today_label.setText(tr("Alerts Today"))
+        self._critical_alerts_label.setText(tr("Critical Alerts"))
+
+        self._search_label.setText(tr("Search"))
+        self._severity_label.setText(tr("Severity"))
+        self._event_type_label.setText(tr("Event Type"))
+        self._rule_label.setText(tr("Rule"))
+        self._date_from_label.setText(tr("Date From"))
+        self._date_to_label.setText(tr("Date To"))
+
+        self.search_input.setPlaceholderText(
+            tr("MMSI, vessel name, or message")
+        )
+        self.date_from_input.setPlaceholderText(tr("YYYY-MM-DD"))
+        self.date_to_input.setPlaceholderText(tr("YYYY-MM-DD"))
+
+        self.refresh_button.setText(tr("Refresh"))
+        self.clear_button.setText(tr("Clear Filters"))
+        self.auto_refresh_checkbox.setText(tr("Auto Refresh"))
+
+        self._populate_severity_filter()
+        self._populate_event_filter()
+        self._refresh_rule_filter_options()
+
+        self.table.setHorizontalHeaderLabels(self._table_header_labels())
+        self._populate_table()
 
     def _connect_signals(self) -> None:
 
@@ -370,15 +471,21 @@ class AlertCenterPage(QWidget):
     def _read_filters_from_ui(self) -> None:
 
         self._filters.search_text = self.search_input.text().strip().lower()
-        self._filters.severity = self.severity_filter.currentText()
-        self._filters.event_type = self.event_filter.currentText()
-        self._filters.rule_name = self.rule_filter.currentText()
+        self._filters.severity = (
+            self.severity_filter.currentData() or _ALL_FILTER
+        )
+        self._filters.event_type = (
+            self.event_filter.currentData() or _ALL_FILTER
+        )
+        self._filters.rule_name = (
+            self.rule_filter.currentData() or _ALL_FILTER
+        )
         self._filters.date_from = self.date_from_input.text().strip()
         self._filters.date_to = self.date_to_input.text().strip()
 
     def _sync_filter_combo(self, combo: QComboBox, value: str) -> None:
 
-        index = combo.findText(value or _ALL_FILTER)
+        index = combo.findData(value or _ALL_FILTER)
 
         if index < 0:
             index = 0
@@ -387,7 +494,7 @@ class AlertCenterPage(QWidget):
 
     def _refresh_rule_filter_options(self) -> None:
 
-        current = self.rule_filter.currentText()
+        current = self.rule_filter.currentData()
         names = sorted({
             _display_text(rule.name)
             for rule in self._manager.rules()
@@ -396,12 +503,12 @@ class AlertCenterPage(QWidget):
 
         self.rule_filter.blockSignals(True)
         self.rule_filter.clear()
-        self.rule_filter.addItem(_ALL_FILTER)
+        self.rule_filter.addItem(tr("All"), _ALL_FILTER)
 
         for name in names:
-            self.rule_filter.addItem(name)
+            self.rule_filter.addItem(name, name)
 
-        self._sync_filter_combo(self.rule_filter, current)
+        self._sync_filter_combo(self.rule_filter, current or _ALL_FILTER)
         self.rule_filter.blockSignals(False)
 
     def _vessel_name(self, mmsi: int) -> str:
@@ -553,8 +660,8 @@ class AlertCenterPage(QWidget):
 
             values = [
                 _format_timestamp(event.timestamp),
-                _display_text(event.severity),
-                _display_text(event.event_type),
+                _tr_severity(event.severity),
+                _tr_event_type(event.event_type),
                 vessel_label,
                 self._rule_name(event),
                 _display_text(event.message),

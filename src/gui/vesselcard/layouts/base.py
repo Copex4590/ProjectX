@@ -128,7 +128,10 @@ def format_bool(translations: dict[str, str], value: Any) -> tuple[str, str]:
     return "—", "vessel-card__value--empty"
 
 
-def normalize_source(value: Any) -> tuple[str, str]:
+def normalize_source(
+    translations: dict[str, str],
+    value: Any,
+) -> tuple[str, str]:
 
     text = str(value or "").strip().lower()
 
@@ -136,13 +139,13 @@ def normalize_source(value: Any) -> tuple[str, str]:
         return "—", "vessel-card__badge--unknown"
 
     if "hybrid" in text:
-        return "Hybrid", "vessel-card__badge--hybrid"
+        return translate(translations, "Hybrid"), "vessel-card__badge--hybrid"
 
     if "rtl" in text:
-        return "RTL", "vessel-card__badge--rtl"
+        return translate(translations, "RTL"), "vessel-card__badge--rtl"
 
     if "ais" in text:
-        return "AIS", "vessel-card__badge--ais"
+        return translate(translations, "AIS"), "vessel-card__badge--ais"
 
     return escape_text(text), "vessel-card__badge--unknown"
 
@@ -224,16 +227,19 @@ def build_photo_section(translations: dict[str, str], ship: dict) -> str:
     """
 
 
-def build_flag_markup(ship: dict) -> str:
+def build_flag_markup(
+    ship: dict,
+    translations: dict[str, str] | None = None,
+) -> str:
 
     if not ship.get("flag_url"):
         return ""
 
     flag_code = ship.get("flag_code")
     alt_text = (
-        f"{escape_text(flag_code)} flag"
+        f"{escape_text(flag_code)} {translate(translations or {}, 'flag')}"
         if not is_empty(flag_code)
-        else "Default flag"
+        else translate(translations or {}, "Default flag")
     )
     fallback = ship.get("flag_fallback_url")
     fallback_attr = (

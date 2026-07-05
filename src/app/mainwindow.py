@@ -118,7 +118,6 @@ class MainWindow(QMainWindow):
         language_manager.language_changed.connect(
             self._apply_personalization
         )
-        self._apply_personalization()
 
         self.vessels_page.shipSelected.connect(
             self.focus_ship
@@ -140,9 +139,50 @@ class MainWindow(QMainWindow):
 
         self.setStatusBar(StatusPanel())
 
+        self._apply_personalization()
+
     def _apply_personalization(self) -> None:
 
         self.map_page.apply_personalization()
+
+        for page in (
+            self.dashboard_page,
+            self.vessels_page,
+            self.camera_page,
+            self.vessel_database_page,
+            self.vessel_timeline_page,
+            self.statistics_page,
+            self.alert_center_page,
+            self.rules_page,
+            self.settings_page,
+        ):
+            refresh = getattr(page, "refresh_translations", None)
+
+            if callable(refresh):
+                refresh()
+
+        connection_refresh = getattr(
+            self.connection_panel,
+            "refresh_translations",
+            None,
+        )
+
+        if callable(connection_refresh):
+            connection_refresh()
+
+        menu_refresh = getattr(self.menuBar(), "refresh_translations", None)
+
+        if callable(menu_refresh):
+            menu_refresh()
+
+        status_refresh = getattr(
+            self.statusBar(),
+            "refresh_translations",
+            None,
+        )
+
+        if callable(status_refresh):
+            status_refresh()
 
     def focus_ship(self, mmsi):
 

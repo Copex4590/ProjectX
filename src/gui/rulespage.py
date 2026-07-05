@@ -39,6 +39,8 @@ from alerts.alert_rule import (
     SUPPORTED_RULE_TYPES,
     AlertRule,
 )
+from gui.i18n_support import bind_language_refresh
+from i18n import tr
 
 _SEVERITY_INFO = "info"
 _SEVERITY_WARNING = "warning"
@@ -73,6 +75,29 @@ def _format_timestamp(value: datetime | None) -> str:
         return "—"
 
     return value.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _tr_severity(value: str | None) -> str:
+
+    text = str(value or "").strip()
+
+    if not text:
+        return "—"
+
+    if text in _SEVERITY_OPTIONS:
+        return tr(text)
+
+    return text
+
+
+def _tr_event_type(value: str | None) -> str:
+
+    text = str(value or "").strip()
+
+    if not text:
+        return "—"
+
+    return tr(text)
 
 
 def _severity_from_priority(priority: int) -> str:
@@ -112,11 +137,14 @@ class RuleEditorDialog(QDialog):
         self._rule = rule
         self._saved_rule: AlertRule | None = None
 
-        self.setWindowTitle("Edit Rule" if rule else "New Rule")
+        self.setWindowTitle(
+            tr("Edit Rule") if rule else tr("New Rule")
+        )
         self.setModal(True)
         self.resize(520, 420)
         self._build_ui()
         self._load_rule(rule)
+        bind_language_refresh(self.refresh_translations)
 
     def validated_rule(self) -> AlertRule | None:
 
@@ -152,25 +180,27 @@ class RuleEditorDialog(QDialog):
         form.setSpacing(10)
 
         self.name_input = QLineEdit()
-        form.addRow(self._field_label("Name"), self.name_input)
+        self._name_label = self._field_label(tr("Name"))
+        form.addRow(self._name_label, self.name_input)
 
-        self.enabled_checkbox = QCheckBox("Enabled")
-        self.enabled_checkbox.setChecked(True)
-        form.addRow(self._field_label("Enabled"), self.enabled_checkbox)
+        self.enabled_checkbox = QCheckBox(tr("Enabled"))
+        self._enabled_label = self._field_label(tr("Enabled"))
+        form.addRow(self._enabled_label, self.enabled_checkbox)
 
         self.priority_input = QSpinBox()
         self.priority_input.setRange(0, 100)
-        form.addRow(self._field_label("Priority"), self.priority_input)
+        self._priority_label = self._field_label(tr("Priority"))
+        form.addRow(self._priority_label, self.priority_input)
 
         self.severity_combo = QComboBox()
-        for value in _SEVERITY_OPTIONS:
-            self.severity_combo.addItem(value)
-        form.addRow(self._field_label("Severity"), self.severity_combo)
+        self._populate_severity_combo()
+        self._severity_label = self._field_label(tr("Severity"))
+        form.addRow(self._severity_label, self.severity_combo)
 
         self.event_type_combo = QComboBox()
-        for value in SUPPORTED_RULE_TYPES:
-            self.event_type_combo.addItem(value)
-        form.addRow(self._field_label("Event Type"), self.event_type_combo)
+        self._populate_event_type_combo()
+        self._event_type_label = self._field_label(tr("Event Type"))
+        form.addRow(self._event_type_label, self.event_type_combo)
 
         layout.addLayout(form)
 
@@ -188,19 +218,29 @@ class RuleEditorDialog(QDialog):
             QDialogButtonBox.StandardButton.Save
             | QDialogButtonBox.StandardButton.Cancel
         )
+        self._save_button = buttons.button(
+            QDialogButtonBox.StandardButton.Save
+        )
+        self._cancel_button = buttons.button(
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        self._save_button.setText(tr("Save"))
+        self._cancel_button.setText(tr("Cancel"))
         buttons.accepted.connect(self._on_save)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-        self.severity_combo.currentTextChanged.connect(
+        self.severity_combo.currentIndexChanged.connect(
             self._on_severity_changed
         )
         self.priority_input.valueChanged.connect(
             self._on_priority_changed
         )
-        self.event_type_combo.currentTextChanged.connect(
+        self.event_type_combo.currentIndexChanged.connect(
             self._on_event_type_changed
         )
+
+        self.enabled_checkbox.setChecked(True)
 
     def _field_label(self, text: str) -> QLabel:
 
@@ -208,15 +248,80 @@ class RuleEditorDialog(QDialog):
         label.setProperty("role", "field")
         return label
 
+    def _populate_severity_combo(self) -> None:
+
+        current = self.severity_combo.currentData()
+
+        self.severity_combo.blockSignals(True)
+        self.severity_combo.clear()
+
+        for value in _SEVERITY_OPTIONS:
+            self.severity_combo.addItem(tr(value), value)
+
+        index = self.severity_combo.findData(current or _SEVERITY_INFO)
+
+        if index < 0:
+            index = 0
+
+        self.severity_combo.setCurrentIndex(index)
+        self.severity_combo.blockSignals(False)
+
+    def _populate_event_type_combo(self) -> None:
+
+        current = self.event_type_combo.currentData()
+
+        self.event_type_combo.blockSignals(True)
+        self.event_type_combo.clear()
+
+        for value in SUPPORTED_RULE_TYPES:
+            self.event_type_combo.addItem(tr(value), value)
+
+        index = self.event_type_combo.findData(
+            current or SUPPORTED_RULE_TYPES[0]
+        )
+
+        if index < 0:
+            index = 0
+
+        self.event_type_combo.setCurrentIndex(index)
+        self.event_type_combo.blockSignals(False)
+
+    def refresh_translations(self) -> None:
+
+        self.setWindowTitle(
+            tr("Edit Rule") if self._rule else tr("New Rule")
+        )
+        self._name_label.setText(tr("Name"))
+        self._enabled_label.setText(tr("Enabled"))
+        self.enabled_checkbox.setText(tr("Enabled"))
+        self._priority_label.setText(tr("Priority"))
+        self._severity_label.setText(tr("Severity"))
+        self._event_type_label.setText(tr("Event Type"))
+
+        self._save_button.setText(tr("Save"))
+        self._cancel_button.setText(tr("Cancel"))
+
+        self._populate_severity_combo()
+        self._populate_event_type_combo()
+
+        for event_type, page in self._condition_pages.items():
+            self._refresh_condition_page_labels(page)
+
+        current_event_type = self.event_type_combo.currentData()
+        self._on_event_type_changed(current_event_type)
+
     def _build_condition_page(self, event_type: str) -> QWidget:
 
         page = QWidget()
         form = QFormLayout(page)
         form.setSpacing(8)
+        page._field_labels = {}
 
         message_input = QLineEdit()
-        message_input.setPlaceholderText("Optional alert message")
-        form.addRow(self._field_label("Message"), message_input)
+        message_input.setPlaceholderText(tr("Optional alert message"))
+        message_label = self._field_label(tr("Message"))
+        form.addRow(message_label, message_input)
+        page._field_labels["Message"] = message_label
         setattr(page, "message_input", message_input)
 
         if event_type in {
@@ -225,8 +330,10 @@ class RuleEditorDialog(QDialog):
             RULE_TYPE_SPEED_OVER,
         }:
             mmsi_input = QLineEdit()
-            mmsi_input.setPlaceholderText("Optional MMSI filter")
-            form.addRow(self._field_label("MMSI"), mmsi_input)
+            mmsi_input.setPlaceholderText(tr("Optional MMSI filter"))
+            mmsi_label = self._field_label(tr("MMSI"))
+            form.addRow(mmsi_label, mmsi_input)
+            page._field_labels["MMSI"] = mmsi_label
             setattr(page, "mmsi_input", mmsi_input)
 
         if event_type == RULE_TYPE_SPEED_OVER:
@@ -234,7 +341,9 @@ class RuleEditorDialog(QDialog):
             speed_input.setRange(0.1, 100.0)
             speed_input.setDecimals(1)
             speed_input.setValue(12.0)
-            form.addRow(self._field_label("Speed Limit"), speed_input)
+            speed_label = self._field_label(tr("Speed Limit"))
+            form.addRow(speed_label, speed_input)
+            page._field_labels["Speed Limit"] = speed_label
             setattr(page, "speed_input", speed_input)
 
         if event_type in {RULE_TYPE_ENTER_REGION, RULE_TYPE_EXIT_REGION}:
@@ -242,27 +351,44 @@ class RuleEditorDialog(QDialog):
             latitude_input.setRange(-90.0, 90.0)
             latitude_input.setDecimals(5)
             latitude_input.setValue(47.5)
-            form.addRow(self._field_label("Latitude"), latitude_input)
+            latitude_label = self._field_label(tr("Latitude"))
+            form.addRow(latitude_label, latitude_input)
+            page._field_labels["Latitude"] = latitude_label
             setattr(page, "latitude_input", latitude_input)
 
             longitude_input = QDoubleSpinBox()
             longitude_input.setRange(-180.0, 180.0)
             longitude_input.setDecimals(5)
             longitude_input.setValue(19.0)
-            form.addRow(self._field_label("Longitude"), longitude_input)
+            longitude_label = self._field_label(tr("Longitude"))
+            form.addRow(longitude_label, longitude_input)
+            page._field_labels["Longitude"] = longitude_label
             setattr(page, "longitude_input", longitude_input)
 
             radius_input = QDoubleSpinBox()
             radius_input.setRange(0.1, 5000.0)
             radius_input.setDecimals(1)
             radius_input.setValue(10.0)
-            form.addRow(self._field_label("Radius (km)"), radius_input)
+            radius_label = self._field_label(tr("Radius (km)"))
+            form.addRow(radius_label, radius_input)
+            page._field_labels["Radius (km)"] = radius_label
             setattr(page, "radius_input", radius_input)
 
         return page
 
-    def _on_severity_changed(self, severity: str) -> None:
+    def _refresh_condition_page_labels(self, page: QWidget) -> None:
 
+        page.message_input.setPlaceholderText(tr("Optional alert message"))
+
+        for key, label in page._field_labels.items():
+            label.setText(tr(key))
+
+        if hasattr(page, "mmsi_input"):
+            page.mmsi_input.setPlaceholderText(tr("Optional MMSI filter"))
+
+    def _on_severity_changed(self, _index: int) -> None:
+
+        severity = self.severity_combo.currentData() or _SEVERITY_INFO
         priority = _SEVERITY_PRIORITY.get(severity, 25)
         self.priority_input.blockSignals(True)
         self.priority_input.setValue(priority)
@@ -272,14 +398,19 @@ class RuleEditorDialog(QDialog):
 
         severity = _severity_from_priority(priority)
         self.severity_combo.blockSignals(True)
-        index = self.severity_combo.findText(severity)
+        index = self.severity_combo.findData(severity)
 
         if index >= 0:
             self.severity_combo.setCurrentIndex(index)
 
         self.severity_combo.blockSignals(False)
 
-    def _on_event_type_changed(self, event_type: str) -> None:
+    def _on_event_type_changed(self, _index_or_type) -> None:
+
+        if isinstance(_index_or_type, int):
+            event_type = self.event_type_combo.currentData()
+        else:
+            event_type = _index_or_type
 
         page = self._condition_pages.get(event_type)
 
@@ -289,8 +420,10 @@ class RuleEditorDialog(QDialog):
     def _load_rule(self, rule: AlertRule | None) -> None:
 
         if rule is None:
-            self._on_event_type_changed(self.event_type_combo.currentText())
-            self._on_severity_changed(self.severity_combo.currentText())
+            self._on_event_type_changed(
+                self.event_type_combo.currentData()
+            )
+            self._on_severity_changed(self.severity_combo.currentIndex())
             return
 
         self.name_input.setText(rule.name)
@@ -298,7 +431,7 @@ class RuleEditorDialog(QDialog):
         self.priority_input.setValue(int(rule.priority))
         self._on_priority_changed(int(rule.priority))
 
-        index = self.event_type_combo.findText(rule.event_type)
+        index = self.event_type_combo.findData(rule.event_type)
 
         if index >= 0:
             self.event_type_combo.setCurrentIndex(index)
@@ -373,12 +506,12 @@ class RuleEditorDialog(QDialog):
         name = self.name_input.text().strip()
 
         if not name:
-            return "Rule name is required."
+            return tr("Rule name is required.")
 
-        event_type = self.event_type_combo.currentText()
+        event_type = self.event_type_combo.currentData()
 
         if event_type not in SUPPORTED_RULE_TYPES:
-            return "Select a supported event type."
+            return tr("Select a supported event type.")
 
         conditions = self._collect_conditions(event_type)
 
@@ -386,21 +519,23 @@ class RuleEditorDialog(QDialog):
             speed_limit = conditions.get("speed_limit")
 
             if speed_limit is None or float(speed_limit) <= 0:
-                return "Speed limit must be greater than zero."
+                return tr("Speed limit must be greater than zero.")
 
         if event_type in {RULE_TYPE_ENTER_REGION, RULE_TYPE_EXIT_REGION}:
             for key in ("latitude", "longitude", "radius_km"):
                 if key not in conditions:
-                    return "Region rules require latitude, longitude, and radius."
+                    return tr(
+                        "Region rules require latitude, longitude, and radius."
+                    )
 
             if float(conditions["radius_km"]) <= 0:
-                return "Region radius must be greater than zero."
+                return tr("Region radius must be greater than zero.")
 
         if hasattr(self._condition_pages[event_type], "mmsi_input"):
             mmsi_text = self._condition_pages[event_type].mmsi_input.text().strip()
 
             if mmsi_text and _parse_optional_int(mmsi_text) is None:
-                return "MMSI must be a positive integer."
+                return tr("MMSI must be a positive integer.")
 
         return None
 
@@ -409,10 +544,14 @@ class RuleEditorDialog(QDialog):
         error = self._validate()
 
         if error:
-            QMessageBox.warning(self, "Validation Error", error)
+            QMessageBox.warning(
+                self,
+                tr("Validation Error"),
+                error,
+            )
             return
 
-        event_type = self.event_type_combo.currentText()
+        event_type = self.event_type_combo.currentData()
         conditions = self._collect_conditions(event_type)
 
         self._saved_rule = AlertRule(
@@ -443,6 +582,7 @@ class RulesPage(QWidget):
 
         self._build_ui()
         self._connect_signals()
+        bind_language_refresh(self.refresh_translations)
         self.refresh()
 
     def refresh(self) -> list[AlertRule]:
@@ -499,8 +639,8 @@ class RulesPage(QWidget):
 
         answer = QMessageBox.question(
             self,
-            "Delete Rule",
-            f"Delete rule '{rule.name}'?",
+            tr("Delete Rule"),
+            tr("Delete rule '{name}'?").replace("{name}", rule.name),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -520,7 +660,7 @@ class RulesPage(QWidget):
             return None
 
         duplicate = AlertRule(
-            name=f"{rule.name} (Copy)",
+            name=f"{rule.name} {tr('(Copy)')}",
             enabled=rule.enabled,
             priority=rule.priority,
             event_type=rule.event_type,
@@ -544,17 +684,24 @@ class RulesPage(QWidget):
         ]
 
         if rule_matches:
-            message = (
-                f"Rule '{rule.name}' matched.\n"
-                f"Severity: {rule_matches[0].severity}\n"
-                f"Message: {rule_matches[0].message}"
+            matched_line = tr("Rule '{name}' matched.").replace(
+                "{name}",
+                rule.name,
             )
-            QMessageBox.information(self, "Test Rule", message)
+            message = (
+                f"{matched_line}\n"
+                f"{tr('Severity')}: {_tr_severity(rule_matches[0].severity)}\n"
+                f"{tr('Message')}: {rule_matches[0].message}"
+            )
+            QMessageBox.information(self, tr("Test Rule"), message)
         else:
             QMessageBox.information(
                 self,
-                "Test Rule",
-                f"Rule '{rule.name}' did not match the test event.",
+                tr("Test Rule"),
+                tr("Rule '{name}' did not match the test event.").replace(
+                    "{name}",
+                    rule.name,
+                ),
             )
 
         self.refresh()
@@ -608,28 +755,32 @@ class RulesPage(QWidget):
         layout.setContentsMargins(25, 25, 25, 25)
         layout.setSpacing(12)
 
-        title = QLabel("Rule Management")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setProperty("role", "title")
-        layout.addWidget(title)
+        self._title_label = QLabel(tr("Rule Management"))
+        self._title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._title_label.setProperty("role", "title")
+        layout.addWidget(self._title_label)
 
         summary = QGridLayout()
-        summary.addWidget(self._summary_label("Total Rules"), 0, 0)
+        self._total_rules_label = self._summary_label(tr("Total Rules"))
+        summary.addWidget(self._total_rules_label, 0, 0)
         self.total_rules_value = QLabel("0")
         self.total_rules_value.setProperty("role", "summary-value")
         summary.addWidget(self.total_rules_value, 1, 0)
 
-        summary.addWidget(self._summary_label("Enabled Rules"), 0, 1)
+        self._enabled_rules_label = self._summary_label(tr("Enabled Rules"))
+        summary.addWidget(self._enabled_rules_label, 0, 1)
         self.enabled_rules_value = QLabel("0")
         self.enabled_rules_value.setProperty("role", "summary-value")
         summary.addWidget(self.enabled_rules_value, 1, 1)
 
-        summary.addWidget(self._summary_label("Disabled Rules"), 0, 2)
+        self._disabled_rules_label = self._summary_label(tr("Disabled Rules"))
+        summary.addWidget(self._disabled_rules_label, 0, 2)
         self.disabled_rules_value = QLabel("0")
         self.disabled_rules_value.setProperty("role", "summary-value")
         summary.addWidget(self.disabled_rules_value, 1, 2)
 
-        summary.addWidget(self._summary_label("Rule Types"), 0, 3)
+        self._rule_types_label = self._summary_label(tr("Rule Types"))
+        summary.addWidget(self._rule_types_label, 0, 3)
         self.rule_types_value = QLabel("0")
         self.rule_types_value.setProperty("role", "summary-value")
         summary.addWidget(self.rule_types_value, 1, 3)
@@ -638,13 +789,13 @@ class RulesPage(QWidget):
         actions = QHBoxLayout()
         actions.setSpacing(8)
 
-        self.new_button = QPushButton("New Rule")
-        self.edit_button = QPushButton("Edit Rule")
-        self.toggle_button = QPushButton("Enable / Disable")
-        self.duplicate_button = QPushButton("Duplicate Rule")
-        self.delete_button = QPushButton("Delete Rule")
-        self.test_button = QPushButton("Test Rule")
-        self.refresh_button = QPushButton("Refresh")
+        self.new_button = QPushButton(tr("New Rule"))
+        self.edit_button = QPushButton(tr("Edit Rule"))
+        self.toggle_button = QPushButton(tr("Enable / Disable"))
+        self.duplicate_button = QPushButton(tr("Duplicate Rule"))
+        self.delete_button = QPushButton(tr("Delete Rule"))
+        self.test_button = QPushButton(tr("Test Rule"))
+        self.refresh_button = QPushButton(tr("Refresh"))
 
         for button in (
             self.new_button,
@@ -661,14 +812,7 @@ class RulesPage(QWidget):
         layout.addLayout(actions)
 
         self.table = QTableWidget(0, 6)
-        self.table.setHorizontalHeaderLabels([
-            "Enabled",
-            "Name",
-            "Type",
-            "Priority",
-            "Last Triggered",
-            "Trigger Count",
-        ])
+        self.table.setHorizontalHeaderLabels(self._table_header_labels())
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
@@ -688,6 +832,37 @@ class RulesPage(QWidget):
         label = QLabel(text)
         label.setProperty("role", "summary-title")
         return label
+
+    @staticmethod
+    def _table_header_labels() -> list[str]:
+
+        return [
+            tr("Enabled"),
+            tr("Name"),
+            tr("Type"),
+            tr("Priority"),
+            tr("Last Triggered"),
+            tr("Trigger Count"),
+        ]
+
+    def refresh_translations(self) -> None:
+
+        self._title_label.setText(tr("Rule Management"))
+        self._total_rules_label.setText(tr("Total Rules"))
+        self._enabled_rules_label.setText(tr("Enabled Rules"))
+        self._disabled_rules_label.setText(tr("Disabled Rules"))
+        self._rule_types_label.setText(tr("Rule Types"))
+
+        self.new_button.setText(tr("New Rule"))
+        self.edit_button.setText(tr("Edit Rule"))
+        self.toggle_button.setText(tr("Enable / Disable"))
+        self.duplicate_button.setText(tr("Duplicate Rule"))
+        self.delete_button.setText(tr("Delete Rule"))
+        self.test_button.setText(tr("Test Rule"))
+        self.refresh_button.setText(tr("Refresh"))
+
+        self.table.setHorizontalHeaderLabels(self._table_header_labels())
+        self._populate_table()
 
     def _connect_signals(self) -> None:
 
@@ -816,9 +991,9 @@ class RulesPage(QWidget):
             trigger_count = stats.get("count", 0)
 
             values = [
-                "Yes" if rule.enabled else "No",
+                tr("Yes") if rule.enabled else tr("No"),
                 _display_text(rule.name),
-                _display_text(rule.event_type),
+                _tr_event_type(rule.event_type),
                 str(rule.priority),
                 _format_timestamp(last_triggered),
                 str(trigger_count),
@@ -839,8 +1014,8 @@ class RulesPage(QWidget):
         if rule_id is None:
             QMessageBox.information(
                 self,
-                "Edit Rule",
-                "Select a rule to edit.",
+                tr("Edit Rule"),
+                tr("Select a rule to edit."),
             )
             return
 
@@ -853,8 +1028,8 @@ class RulesPage(QWidget):
         if rule_id is None:
             QMessageBox.information(
                 self,
-                "Enable / Disable",
-                "Select a rule first.",
+                tr("Enable / Disable"),
+                tr("Select a rule first."),
             )
             return
 
@@ -883,8 +1058,8 @@ class RulesPage(QWidget):
         if rule_id is None:
             QMessageBox.information(
                 self,
-                "Duplicate Rule",
-                "Select a rule to duplicate.",
+                tr("Duplicate Rule"),
+                tr("Select a rule to duplicate."),
             )
             return
 
@@ -897,8 +1072,8 @@ class RulesPage(QWidget):
         if rule_id is None:
             QMessageBox.information(
                 self,
-                "Delete Rule",
-                "Select a rule to delete.",
+                tr("Delete Rule"),
+                tr("Select a rule to delete."),
             )
             return
 
@@ -911,8 +1086,8 @@ class RulesPage(QWidget):
         if rule_id is None:
             QMessageBox.information(
                 self,
-                "Test Rule",
-                "Select a rule to test.",
+                tr("Test Rule"),
+                tr("Select a rule to test."),
             )
             return
 

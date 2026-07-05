@@ -25,6 +25,8 @@ from engines.timeline.arrival_departure_engine import (
     EVENT_ARRIVAL,
     EVENT_DEPARTURE,
 )
+from gui.i18n_support import bind_language_refresh
+from i18n import tr
 from timeline.timeline_manager import TimelineManager, timeline_manager
 from timeline.timeline_recorder import EVENT_POSITION_UPDATE
 from timeline.timeline_record import TimelineRecord
@@ -36,6 +38,24 @@ _EVENT_FILTERS = (
     EVENT_ARRIVAL,
     EVENT_DEPARTURE,
     EVENT_POSITION_UPDATE,
+)
+
+_EVENT_LABEL_KEYS = {
+    _ALL_FILTER: "All",
+    EVENT_ARRIVAL: "ARRIVAL",
+    EVENT_DEPARTURE: "DEPARTURE",
+    EVENT_POSITION_UPDATE: "POSITION_UPDATE",
+}
+
+_TABLE_HEADER_KEYS = (
+    "Timestamp",
+    "Event",
+    "MMSI",
+    "Name",
+    "Latitude",
+    "Longitude",
+    "Speed",
+    "Source",
 )
 
 
@@ -113,7 +133,30 @@ class VesselTimelinePage(QWidget):
 
         self._build_ui()
         self._connect_signals()
+        bind_language_refresh(self.refresh_translations)
+        self.refresh_translations()
         self.refresh()
+
+    def refresh_translations(self) -> None:
+
+        self.title_label.setText(tr("Vessel Timeline"))
+        self.total_events_label.setText(tr("Total Events"))
+        self.arrivals_label.setText(tr("Arrivals"))
+        self.departures_label.setText(tr("Departures"))
+        self.position_updates_label.setText(tr("Position Updates"))
+        self.search_label.setText(tr("Search"))
+        self.event_type_label.setText(tr("Event Type"))
+        self.date_from_label.setText(tr("Date From"))
+        self.date_to_label.setText(tr("Date To"))
+        self.search_input.setPlaceholderText(tr("MMSI or vessel name"))
+        self.date_from_input.setPlaceholderText(tr("YYYY-MM-DD"))
+        self.date_to_input.setPlaceholderText(tr("YYYY-MM-DD"))
+        self.refresh_button.setText(tr("Refresh"))
+        self.clear_button.setText(tr("Clear Filters"))
+        self.table.setHorizontalHeaderLabels([
+            tr(key) for key in _TABLE_HEADER_KEYS
+        ])
+        self._refresh_event_filter()
 
     def refresh(self) -> list[TimelineRecord]:
 
@@ -215,28 +258,32 @@ class VesselTimelinePage(QWidget):
         layout.setContentsMargins(25, 25, 25, 25)
         layout.setSpacing(12)
 
-        title = QLabel("Vessel Timeline")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setProperty("role", "title")
-        layout.addWidget(title)
+        self.title_label = QLabel(tr("Vessel Timeline"))
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_label.setProperty("role", "title")
+        layout.addWidget(self.title_label)
 
         summary = QGridLayout()
-        summary.addWidget(self._summary_label("Total Events"), 0, 0)
+        self.total_events_label = self._summary_label("Total Events")
+        summary.addWidget(self.total_events_label, 0, 0)
         self.total_value = QLabel("0")
         self.total_value.setProperty("role", "summary-value")
         summary.addWidget(self.total_value, 1, 0)
 
-        summary.addWidget(self._summary_label("Arrivals"), 0, 1)
+        self.arrivals_label = self._summary_label("Arrivals")
+        summary.addWidget(self.arrivals_label, 0, 1)
         self.arrival_value = QLabel("0")
         self.arrival_value.setProperty("role", "summary-value")
         summary.addWidget(self.arrival_value, 1, 1)
 
-        summary.addWidget(self._summary_label("Departures"), 0, 2)
+        self.departures_label = self._summary_label("Departures")
+        summary.addWidget(self.departures_label, 0, 2)
         self.departure_value = QLabel("0")
         self.departure_value.setProperty("role", "summary-value")
         summary.addWidget(self.departure_value, 1, 2)
 
-        summary.addWidget(self._summary_label("Position Updates"), 0, 3)
+        self.position_updates_label = self._summary_label("Position Updates")
+        summary.addWidget(self.position_updates_label, 0, 3)
         self.position_value = QLabel("0")
         self.position_value.setProperty("role", "summary-value")
         summary.addWidget(self.position_value, 1, 3)
@@ -246,32 +293,35 @@ class VesselTimelinePage(QWidget):
         controls.setHorizontalSpacing(12)
         controls.setVerticalSpacing(8)
 
-        controls.addWidget(self._field_label("Search"), 0, 0)
+        self.search_label = self._field_label("Search")
+        controls.addWidget(self.search_label, 0, 0)
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("MMSI or vessel name")
+        self.search_input.setPlaceholderText(tr("MMSI or vessel name"))
         controls.addWidget(self.search_input, 0, 1, 1, 3)
 
-        controls.addWidget(self._field_label("Event Type"), 1, 0)
+        self.event_type_label = self._field_label("Event Type")
+        controls.addWidget(self.event_type_label, 1, 0)
         self.event_filter = QComboBox()
-        for value in _EVENT_FILTERS:
-            self.event_filter.addItem(value)
+        self._fill_event_filter(self.event_filter)
         controls.addWidget(self.event_filter, 1, 1)
 
-        controls.addWidget(self._field_label("Date From"), 1, 2)
+        self.date_from_label = self._field_label("Date From")
+        controls.addWidget(self.date_from_label, 1, 2)
         self.date_from_input = QLineEdit()
-        self.date_from_input.setPlaceholderText("YYYY-MM-DD")
+        self.date_from_input.setPlaceholderText(tr("YYYY-MM-DD"))
         controls.addWidget(self.date_from_input, 1, 3)
 
-        controls.addWidget(self._field_label("Date To"), 2, 0)
+        self.date_to_label = self._field_label("Date To")
+        controls.addWidget(self.date_to_label, 2, 0)
         self.date_to_input = QLineEdit()
-        self.date_to_input.setPlaceholderText("YYYY-MM-DD")
+        self.date_to_input.setPlaceholderText(tr("YYYY-MM-DD"))
         controls.addWidget(self.date_to_input, 2, 1)
 
         button_row = QHBoxLayout()
         button_row.setSpacing(8)
 
-        self.refresh_button = QPushButton("Refresh")
-        self.clear_button = QPushButton("Clear Filters")
+        self.refresh_button = QPushButton(tr("Refresh"))
+        self.clear_button = QPushButton(tr("Clear Filters"))
         button_row.addWidget(self.refresh_button)
         button_row.addWidget(self.clear_button)
         button_row.addStretch()
@@ -282,14 +332,7 @@ class VesselTimelinePage(QWidget):
 
         self.table = QTableWidget(0, 8)
         self.table.setHorizontalHeaderLabels([
-            "Timestamp",
-            "Event",
-            "MMSI",
-            "Name",
-            "Latitude",
-            "Longitude",
-            "Speed",
-            "Source",
+            tr(key) for key in _TABLE_HEADER_KEYS
         ])
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setSelectionBehavior(
@@ -302,17 +345,32 @@ class VesselTimelinePage(QWidget):
 
         layout.addWidget(self.table)
 
-    def _summary_label(self, text: str) -> QLabel:
+    def _summary_label(self, key: str) -> QLabel:
 
-        label = QLabel(text)
+        label = QLabel(tr(key))
         label.setProperty("role", "summary-title")
         return label
 
-    def _field_label(self, text: str) -> QLabel:
+    def _field_label(self, key: str) -> QLabel:
 
-        label = QLabel(text)
+        label = QLabel(tr(key))
         label.setProperty("role", "field")
         return label
+
+    def _fill_event_filter(self, combo: QComboBox) -> None:
+
+        for value in _EVENT_FILTERS:
+            label_key = _EVENT_LABEL_KEYS.get(value, value)
+            combo.addItem(tr(label_key), value)
+
+    def _refresh_event_filter(self) -> None:
+
+        current = self.event_filter.currentData() or _ALL_FILTER
+        self.event_filter.blockSignals(True)
+        self.event_filter.clear()
+        self._fill_event_filter(self.event_filter)
+        self._sync_filter_combo(self.event_filter, current)
+        self.event_filter.blockSignals(False)
 
     def _connect_signals(self) -> None:
 
@@ -321,8 +379,8 @@ class VesselTimelinePage(QWidget):
         self.search_input.textChanged.connect(
             lambda _value: self.apply_filters()
         )
-        self.event_filter.currentTextChanged.connect(
-            lambda _value: self.apply_filters()
+        self.event_filter.currentIndexChanged.connect(
+            lambda _index: self.apply_filters()
         )
         self.date_from_input.textChanged.connect(
             lambda _value: self.apply_filters()
@@ -335,13 +393,13 @@ class VesselTimelinePage(QWidget):
     def _read_filters_from_ui(self) -> None:
 
         self._filters.search_text = self.search_input.text().strip().lower()
-        self._filters.event_type = self.event_filter.currentText()
+        self._filters.event_type = self.event_filter.currentData() or _ALL_FILTER
         self._filters.date_from = self.date_from_input.text().strip()
         self._filters.date_to = self.date_to_input.text().strip()
 
     def _sync_filter_combo(self, combo: QComboBox, value: str) -> None:
 
-        index = combo.findText(value or _ALL_FILTER)
+        index = combo.findData(value or _ALL_FILTER)
 
         if index < 0:
             index = 0

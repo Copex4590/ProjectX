@@ -8,6 +8,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal
 
 from database import registry
+from gui.i18n_support import bind_language_refresh
+from i18n import tr
 
 
 class VesselsPage(QWidget):
@@ -19,15 +21,15 @@ class VesselsPage(QWidget):
 
         layout = QVBoxLayout(self)
 
-        title = QLabel("Vessels")
-        title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("""
+        self._title_label = QLabel(tr("Vessels"))
+        self._title_label.setAlignment(Qt.AlignCenter)
+        self._title_label.setStyleSheet("""
             font-size:26pt;
             font-weight:bold;
             color:white;
         """)
 
-        layout.addWidget(title)
+        layout.addWidget(self._title_label)
 
         self.list = QListWidget()
 
@@ -46,6 +48,13 @@ class VesselsPage(QWidget):
 
         self._last_count = -1
 
+        bind_language_refresh(self.refresh_translations)
+
+        self.refresh()
+
+    def refresh_translations(self) -> None:
+
+        self._title_label.setText(tr("Vessels"))
         self.refresh()
 
     def refresh(self):
@@ -62,7 +71,7 @@ class VesselsPage(QWidget):
         for ship in ships:
 
             item = QListWidgetItem(
-                f"{ship.name:28} {ship.speed:5.1f} km/h"
+                f"{ship.name:28} {ship.speed:5.1f} {tr('km/h')}"
             )
 
             item.setData(

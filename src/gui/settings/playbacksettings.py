@@ -19,6 +19,8 @@ from PySide6.QtWidgets import (
 
 from engines.playback import BackendRegistry, backend_registry
 from engines.playback.backend import PlaybackBackend
+from gui.i18n_support import bind_language_refresh
+from i18n import tr
 from playback.preferences import (
     PlaybackMode,
     PlaybackPreferences,
@@ -95,10 +97,11 @@ def _is_backend_available(backend: PlaybackBackend) -> bool:
 
 def _backend_label(backend: PlaybackBackend) -> str:
 
-    return _BACKEND_LABELS.get(
+    label = _BACKEND_LABELS.get(
         backend.name.lower(),
         backend.name.strip().title(),
     )
+    return tr(label)
 
 
 def _resolve_preferred_backend(
@@ -131,6 +134,8 @@ class PlaybackSettingsPage(QFrame):
 
         self._build_ui()
         self._connect_signals()
+        bind_language_refresh(self.refresh_translations)
+        self.refresh_translations()
         self.load_settings()
 
     def load_settings(self) -> PlaybackPreferences:
@@ -202,41 +207,67 @@ class PlaybackSettingsPage(QFrame):
         layout.setContentsMargins(0, 12, 0, 0)
         layout.setSpacing(10)
 
-        title = QLabel("Playback Settings")
-        title.setProperty("role", "section")
-        layout.addWidget(title)
+        self._title_label = QLabel(tr("Playback Settings"))
+        self._title_label.setProperty("role", "section")
+        layout.addWidget(self._title_label)
 
-        layout.addWidget(self._field_label("Playback Mode"))
+        self._mode_label = self._field_label(tr("Playback Mode"))
+        layout.addWidget(self._mode_label)
         self.mode_combo = QComboBox()
-        self.mode_combo.addItems(["Automatic", "User Preferred"])
         layout.addWidget(self.mode_combo)
 
-        layout.addWidget(self._field_label("Preferred Backend"))
+        self._backend_label = self._field_label(tr("Preferred Backend"))
+        layout.addWidget(self._backend_label)
         self.backend_combo = QComboBox()
         layout.addWidget(self.backend_combo)
 
-        layout.addWidget(self._field_label("Custom Backend"))
-        layout.addWidget(self._field_label("Executable", caption=True))
+        self._custom_backend_label = self._field_label(tr("Custom Backend"))
+        layout.addWidget(self._custom_backend_label)
+        self._executable_label = self._field_label(tr("Executable"), caption=True)
+        layout.addWidget(self._executable_label)
         self.executable_input = QLineEdit()
-        self.executable_input.setPlaceholderText("Path to playback executable")
         layout.addWidget(self.executable_input)
 
-        layout.addWidget(self._field_label("Arguments", caption=True))
+        self._arguments_label = self._field_label(tr("Arguments"), caption=True)
+        layout.addWidget(self._arguments_label)
         self.arguments_input = QLineEdit()
-        self.arguments_input.setPlaceholderText("Optional launch arguments")
         layout.addWidget(self.arguments_input)
 
         button_row = QHBoxLayout()
         button_row.setSpacing(8)
 
-        self.save_button = QPushButton("Save")
-        self.restore_button = QPushButton("Restore Defaults")
+        self.save_button = QPushButton()
+        self.restore_button = QPushButton()
 
         button_row.addWidget(self.save_button)
         button_row.addWidget(self.restore_button)
         button_row.addStretch()
 
         layout.addLayout(button_row)
+
+    def refresh_translations(self) -> None:
+
+        self._title_label.setText(tr("Playback Settings"))
+        self._mode_label.setText(tr("Playback Mode"))
+        self._backend_label.setText(tr("Preferred Backend"))
+        self._custom_backend_label.setText(tr("Custom Backend"))
+        self._executable_label.setText(tr("Executable"))
+        self._arguments_label.setText(tr("Arguments"))
+
+        mode_index = self.mode_combo.currentIndex()
+        self.mode_combo.blockSignals(True)
+        self.mode_combo.clear()
+        self.mode_combo.addItems([tr("Automatic"), tr("User Preferred")])
+        if 0 <= mode_index < self.mode_combo.count():
+            self.mode_combo.setCurrentIndex(mode_index)
+        self.mode_combo.blockSignals(False)
+
+        self.executable_input.setPlaceholderText(tr("Path to playback executable"))
+        self.arguments_input.setPlaceholderText(tr("Optional launch arguments"))
+        self.save_button.setText(tr("Save"))
+        self.restore_button.setText(tr("Restore Defaults"))
+
+        self._populate_backend_combo(available_backends(self._registry))
 
     def _field_label(self, text: str, *, caption: bool = False) -> QLabel:
 

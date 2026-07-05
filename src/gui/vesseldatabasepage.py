@@ -22,6 +22,8 @@ from PySide6.QtWidgets import (
 
 from database import registry
 from database.vessel_database import VesselDatabase, vessel_database
+from gui.i18n_support import bind_language_refresh
+from i18n import tr
 from models.ship import Ship
 from models.vessel_record import VesselRecord
 
@@ -40,6 +42,17 @@ _SORT_COLUMNS = {
 }
 
 _SOURCE_FILTERS = (_ALL_FILTER, "RTL", "AIS", "Hybrid")
+
+_TABLE_HEADER_KEYS = (
+    "Name",
+    "MMSI",
+    "IMO",
+    "Callsign",
+    "Type",
+    "Flag",
+    "Length",
+    "Last Seen",
+)
 
 
 def _format_last_seen(value: datetime | None) -> str:
@@ -123,7 +136,32 @@ class VesselDatabasePage(QWidget):
 
         self._build_ui()
         self._connect_signals()
+        bind_language_refresh(self.refresh_translations)
+        self.refresh_translations()
         self.refresh()
+
+    def refresh_translations(self) -> None:
+
+        self.title_label.setText(tr("Vessel Database"))
+        self.total_vessels_label.setText(tr("Total Vessels"))
+        self.search_label.setText(tr("Search"))
+        self.type_label.setText(tr("Ship Type"))
+        self.flag_label.setText(tr("Flag"))
+        self.source_label.setText(tr("Source"))
+        self.has_imo_label.setText(tr("Has IMO"))
+        self.has_callsign_label.setText(tr("Has Callsign"))
+        self.seen_today_label.setText(tr("Seen Today"))
+        self.activity_label.setText(tr("Activity"))
+        self.sort_label.setText(tr("Sort By"))
+        self.search_input.setPlaceholderText(
+            tr("MMSI, IMO, name, callsign, or destination")
+        )
+        self.refresh_button.setText(tr("Refresh"))
+        self.clear_button.setText(tr("Clear Filters"))
+        self.table.setHorizontalHeaderLabels([
+            tr(key) for key in _TABLE_HEADER_KEYS
+        ])
+        self._refresh_translatable_combos()
 
     def refresh(self) -> list[VesselRecord]:
 
@@ -185,7 +223,7 @@ class VesselDatabasePage(QWidget):
         self._sync_filter_combo(self.activity_filter, _ALL_FILTER)
 
         self.sort_filter.blockSignals(True)
-        self._sync_filter_combo(self.sort_filter, _SORT_COLUMNS["name"])
+        self._sync_filter_combo(self.sort_filter, "name")
         self.sort_filter.blockSignals(False)
 
         self._populate_table()
@@ -209,9 +247,8 @@ class VesselDatabasePage(QWidget):
             self._filters.sort_column = key
             self._filters.sort_ascending = True
 
-        label = _SORT_COLUMNS.get(key, "Name")
         self.sort_filter.blockSignals(True)
-        self._sync_filter_combo(self.sort_filter, label)
+        self._sync_filter_combo(self.sort_filter, key)
         self.sort_filter.blockSignals(False)
         self._populate_table()
 
@@ -277,13 +314,14 @@ class VesselDatabasePage(QWidget):
         layout.setContentsMargins(25, 25, 25, 25)
         layout.setSpacing(12)
 
-        title = QLabel("Vessel Database")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setProperty("role", "title")
-        layout.addWidget(title)
+        self.title_label = QLabel(tr("Vessel Database"))
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_label.setProperty("role", "title")
+        layout.addWidget(self.title_label)
 
         summary = QGridLayout()
-        summary.addWidget(self._summary_label("Total Vessels"), 0, 0)
+        self.total_vessels_label = self._summary_label("Total Vessels")
+        summary.addWidget(self.total_vessels_label, 0, 0)
         self.total_value = QLabel("0")
         self.total_value.setProperty("role", "summary-value")
         summary.addWidget(self.total_value, 1, 0)
@@ -293,62 +331,65 @@ class VesselDatabasePage(QWidget):
         controls.setHorizontalSpacing(12)
         controls.setVerticalSpacing(8)
 
-        controls.addWidget(self._field_label("Search"), 0, 0)
+        self.search_label = self._field_label("Search")
+        controls.addWidget(self.search_label, 0, 0)
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText(
-            "MMSI, IMO, name, callsign, or destination"
+            tr("MMSI, IMO, name, callsign, or destination")
         )
         controls.addWidget(self.search_input, 0, 1, 1, 5)
 
-        controls.addWidget(self._field_label("Ship Type"), 1, 0)
+        self.type_label = self._field_label("Ship Type")
+        controls.addWidget(self.type_label, 1, 0)
         self.type_filter = QComboBox()
         controls.addWidget(self.type_filter, 1, 1)
 
-        controls.addWidget(self._field_label("Flag"), 1, 2)
+        self.flag_label = self._field_label("Flag")
+        controls.addWidget(self.flag_label, 1, 2)
         self.flag_filter = QComboBox()
         controls.addWidget(self.flag_filter, 1, 3)
 
-        controls.addWidget(self._field_label("Source"), 1, 4)
+        self.source_label = self._field_label("Source")
+        controls.addWidget(self.source_label, 1, 4)
         self.source_filter = QComboBox()
-        for value in _SOURCE_FILTERS:
-            self.source_filter.addItem(value)
+        self._fill_source_combo(self.source_filter)
         controls.addWidget(self.source_filter, 1, 5)
 
-        controls.addWidget(self._field_label("Has IMO"), 2, 0)
+        self.has_imo_label = self._field_label("Has IMO")
+        controls.addWidget(self.has_imo_label, 2, 0)
         self.has_imo_filter = QComboBox()
         self._fill_yes_no_combo(self.has_imo_filter)
         controls.addWidget(self.has_imo_filter, 2, 1)
 
-        controls.addWidget(self._field_label("Has Callsign"), 2, 2)
+        self.has_callsign_label = self._field_label("Has Callsign")
+        controls.addWidget(self.has_callsign_label, 2, 2)
         self.has_callsign_filter = QComboBox()
         self._fill_yes_no_combo(self.has_callsign_filter)
         controls.addWidget(self.has_callsign_filter, 2, 3)
 
-        controls.addWidget(self._field_label("Seen Today"), 2, 4)
+        self.seen_today_label = self._field_label("Seen Today")
+        controls.addWidget(self.seen_today_label, 2, 4)
         self.seen_today_filter = QComboBox()
         self._fill_yes_no_combo(self.seen_today_filter)
         controls.addWidget(self.seen_today_filter, 2, 5)
 
-        controls.addWidget(self._field_label("Activity"), 3, 0)
+        self.activity_label = self._field_label("Activity")
+        controls.addWidget(self.activity_label, 3, 0)
         self.activity_filter = QComboBox()
-        self.activity_filter.addItems([
-            _ALL_FILTER,
-            _ACTIVE_FILTER,
-            _INACTIVE_FILTER,
-        ])
+        self._fill_activity_combo(self.activity_filter)
         controls.addWidget(self.activity_filter, 3, 1)
 
-        controls.addWidget(self._field_label("Sort By"), 3, 2)
+        self.sort_label = self._field_label("Sort By")
+        controls.addWidget(self.sort_label, 3, 2)
         self.sort_filter = QComboBox()
-        for label in _SORT_COLUMNS.values():
-            self.sort_filter.addItem(label)
+        self._fill_sort_combo(self.sort_filter)
         controls.addWidget(self.sort_filter, 3, 3)
 
         button_row = QHBoxLayout()
         button_row.setSpacing(8)
 
-        self.refresh_button = QPushButton("Refresh")
-        self.clear_button = QPushButton("Clear Filters")
+        self.refresh_button = QPushButton(tr("Refresh"))
+        self.clear_button = QPushButton(tr("Clear Filters"))
         button_row.addWidget(self.refresh_button)
         button_row.addWidget(self.clear_button)
         button_row.addStretch()
@@ -359,14 +400,7 @@ class VesselDatabasePage(QWidget):
 
         self.table = QTableWidget(0, 8)
         self.table.setHorizontalHeaderLabels([
-            "Name",
-            "MMSI",
-            "IMO",
-            "Callsign",
-            "Type",
-            "Flag",
-            "Length",
-            "Last Seen",
+            tr(key) for key in _TABLE_HEADER_KEYS
         ])
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setSelectionBehavior(
@@ -379,21 +413,82 @@ class VesselDatabasePage(QWidget):
 
         layout.addWidget(self.table)
 
-    def _summary_label(self, text: str) -> QLabel:
+    def _summary_label(self, key: str) -> QLabel:
 
-        label = QLabel(text)
+        label = QLabel(tr(key))
         label.setProperty("role", "summary-title")
         return label
 
-    def _field_label(self, text: str) -> QLabel:
+    def _field_label(self, key: str) -> QLabel:
 
-        label = QLabel(text)
+        label = QLabel(tr(key))
         label.setProperty("role", "field")
         return label
 
     def _fill_yes_no_combo(self, combo: QComboBox) -> None:
 
-        combo.addItems([_ALL_FILTER, _YES_FILTER, _NO_FILTER])
+        for internal, label_key in (
+            (_ALL_FILTER, "All"),
+            (_YES_FILTER, "Yes"),
+            (_NO_FILTER, "No"),
+        ):
+            combo.addItem(tr(label_key), internal)
+
+    def _fill_activity_combo(self, combo: QComboBox) -> None:
+
+        for internal, label_key in (
+            (_ALL_FILTER, "All"),
+            (_ACTIVE_FILTER, "Active filter"),
+            (_INACTIVE_FILTER, "Inactive"),
+        ):
+            combo.addItem(tr(label_key), internal)
+
+    def _fill_source_combo(self, combo: QComboBox) -> None:
+
+        for value in _SOURCE_FILTERS:
+            combo.addItem(tr(value), value)
+
+    def _fill_sort_combo(self, combo: QComboBox) -> None:
+
+        for key, label_key in _SORT_COLUMNS.items():
+            combo.addItem(tr(label_key), key)
+
+    def _refresh_translatable_combos(self) -> None:
+
+        source_value = self.source_filter.currentData() or _ALL_FILTER
+        self.source_filter.blockSignals(True)
+        self.source_filter.clear()
+        self._fill_source_combo(self.source_filter)
+        self._sync_filter_combo(self.source_filter, source_value)
+        self.source_filter.blockSignals(False)
+
+        for combo in (
+            self.has_imo_filter,
+            self.has_callsign_filter,
+            self.seen_today_filter,
+        ):
+            current = combo.currentData() or _ALL_FILTER
+            combo.blockSignals(True)
+            combo.clear()
+            self._fill_yes_no_combo(combo)
+            self._sync_filter_combo(combo, current)
+            combo.blockSignals(False)
+
+        activity_value = self.activity_filter.currentData() or _ALL_FILTER
+        self.activity_filter.blockSignals(True)
+        self.activity_filter.clear()
+        self._fill_activity_combo(self.activity_filter)
+        self._sync_filter_combo(self.activity_filter, activity_value)
+        self.activity_filter.blockSignals(False)
+
+        sort_value = self.sort_filter.currentData() or "name"
+        self.sort_filter.blockSignals(True)
+        self.sort_filter.clear()
+        self._fill_sort_combo(self.sort_filter)
+        self._sync_filter_combo(self.sort_filter, sort_value)
+        self.sort_filter.blockSignals(False)
+
+        self._populate_filter_options()
 
     def _connect_signals(self) -> None:
 
@@ -410,29 +505,32 @@ class VesselDatabasePage(QWidget):
             self.seen_today_filter,
             self.activity_filter,
         ):
-            widget.currentTextChanged.connect(
-                lambda _value: self.apply_filters()
+            widget.currentIndexChanged.connect(
+                lambda _index: self.apply_filters()
             )
 
-        self.sort_filter.currentTextChanged.connect(self._on_sort_changed)
+        self.sort_filter.currentIndexChanged.connect(self._on_sort_changed)
         self.table.cellDoubleClicked.connect(self._on_row_double_clicked)
 
-    def _on_sort_changed(self, label: str) -> None:
+    def _on_sort_changed(self, _index: int) -> None:
 
-        reverse_map = {value: key for key, value in _SORT_COLUMNS.items()}
-        column = reverse_map.get(label, "name")
+        column = self.sort_filter.currentData() or "name"
         self.sort_by(column)
 
     def _read_filters_from_ui(self) -> None:
 
         self._filters.search_text = self.search_input.text().strip().lower()
-        self._filters.ship_type = self.type_filter.currentText()
-        self._filters.flag = self.flag_filter.currentText()
-        self._filters.source = self.source_filter.currentText()
-        self._filters.has_imo = self.has_imo_filter.currentText()
-        self._filters.has_callsign = self.has_callsign_filter.currentText()
-        self._filters.seen_today = self.seen_today_filter.currentText()
-        self._filters.activity = self.activity_filter.currentText()
+        self._filters.ship_type = self.type_filter.currentData() or _ALL_FILTER
+        self._filters.flag = self.flag_filter.currentData() or _ALL_FILTER
+        self._filters.source = self.source_filter.currentData() or _ALL_FILTER
+        self._filters.has_imo = self.has_imo_filter.currentData() or _ALL_FILTER
+        self._filters.has_callsign = (
+            self.has_callsign_filter.currentData() or _ALL_FILTER
+        )
+        self._filters.seen_today = (
+            self.seen_today_filter.currentData() or _ALL_FILTER
+        )
+        self._filters.activity = self.activity_filter.currentData() or _ALL_FILTER
 
     def _update_summary(self) -> None:
 
@@ -471,17 +569,17 @@ class VesselDatabasePage(QWidget):
 
         combo.blockSignals(True)
         combo.clear()
-        combo.addItem(_ALL_FILTER)
+        combo.addItem(tr("All"), _ALL_FILTER)
 
         for value in values:
-            combo.addItem(value)
+            combo.addItem(value, value)
 
         self._sync_filter_combo(combo, current_value)
         combo.blockSignals(False)
 
     def _sync_filter_combo(self, combo: QComboBox, value: str) -> None:
 
-        index = combo.findText(value or _ALL_FILTER)
+        index = combo.findData(value or _ALL_FILTER)
 
         if index < 0:
             index = 0

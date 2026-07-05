@@ -5,10 +5,11 @@ from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 
 from database import registry
+from engines.camera import camera_selection_engine
 from gui.vesselcard import vessel_card_layout_manager
 from gui.widgets.camerapreviewpanel import CameraPreviewPanel
 from gui.widgets.mapwidget import MapWidget
-from i18n import language_manager
+from i18n import language_manager, tr
 from statistics.statistics_manager import statistics_manager
 from timeline.timeline_manager import timeline_manager
 from vessels.flags.flag_manager import flag_manager
@@ -70,13 +71,13 @@ def _timeline_summary(mmsi: int) -> str:
     counts = Counter(record.event_type for record in records)
     latest = max(records, key=lambda record: record.timestamp)
     parts = [
-        f"{count} {event_type}"
+        f"{count} {tr(event_type)}"
         for event_type, count in sorted(counts.items())
     ]
 
     return (
-        f"{len(records)} events ({', '.join(parts)}); "
-        f"latest {latest.event_type} "
+        f"{len(records)} {tr('events')} ({', '.join(parts)}); "
+        f"{tr('latest')} {tr(latest.event_type)} "
         f"{latest.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
     )
 
@@ -89,18 +90,76 @@ def _statistics_summary(mmsi: int) -> str:
         return "—"
 
     parts = [
-        f"observations {stats.total_observations}",
-        f"arrivals {stats.total_arrivals}",
-        f"departures {stats.total_departures}",
+        f"{tr('observations')} {stats.total_observations}",
+        f"{tr('arrivals')} {stats.total_arrivals}",
+        f"{tr('departures')} {stats.total_departures}",
     ]
 
     if stats.average_speed is not None:
-        parts.append(f"avg speed {stats.average_speed:.1f} kn")
+        parts.append(
+            f"{tr('avg speed')} {stats.average_speed:.1f} kn"
+        )
 
     if stats.maximum_speed is not None:
-        parts.append(f"max speed {stats.maximum_speed:.1f} kn")
+        parts.append(
+            f"{tr('max speed')} {stats.maximum_speed:.1f} kn"
+        )
 
     return "; ".join(parts)
+
+
+def _timeline_events(mmsi: int, limit: int = 3) -> list[dict]:
+
+    records = timeline_manager.history(mmsi)
+
+    if not records:
+        return []
+
+    latest = sorted(records, key=lambda record: record.timestamp, reverse=True)
+
+    return [
+        {
+            "event_type": record.event_type,
+            "timestamp": record.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        for record in latest[:limit]
+    ]
+
+
+def _enrich_camera_fields(ship, payload: dict) -> None:
+
+    match = camera_selection_engine.get_best_camera(ship)
+
+    if match is None:
+        payload["camera_name"] = None
+        payload["camera_bearing_deg"] = None
+        return
+
+    payload["camera_name"] = match.camera.name
+    payload["camera_distance_km"] = round(match.distance_km, 2)
+    payload["camera_bearing_deg"] = match.camera.bearing_deg_to(
+        ship.lat,
+        ship.lon,
+    )
+
+
+def _enrich_statistics_fields(mmsi: int, payload: dict) -> None:
+
+    stats = statistics_manager.vessel_statistics(mmsi)
+
+    if stats is None:
+        payload["stats_first_seen"] = None
+        payload["stats_last_seen"] = None
+        payload["stats_observation_count"] = None
+        return
+
+    payload["stats_first_seen"] = (
+        stats.first_seen.isoformat() if stats.first_seen else None
+    )
+    payload["stats_last_seen"] = (
+        stats.last_seen.isoformat() if stats.last_seen else None
+    )
+    payload["stats_observation_count"] = stats.total_observations
 
 
 def _serialize_ship(ship) -> dict:
@@ -133,6 +192,9 @@ def _serialize_ship(ship) -> dict:
 
     payload.update(_serialize_flag(payload.get("flag", "")))
     payload.update(_serialize_photo(ship.mmsi))
+    _enrich_camera_fields(ship, payload)
+    _enrich_statistics_fields(ship.mmsi, payload)
+    payload["timeline_events"] = _timeline_events(ship.mmsi)
     payload["timeline_summary"] = _timeline_summary(ship.mmsi)
     payload["statistics_summary"] = _statistics_summary(ship.mmsi)
     payload["popup_html"] = vessel_card_layout_manager.render(payload)

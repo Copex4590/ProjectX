@@ -3,11 +3,35 @@ from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
 
 from cameras import camera_manager
 from engines.camera import camera_selection_engine
+from gui.i18n_support import bind_language_refresh
+from i18n import tr
 from models.ship import Ship
 from playback.live_camera_workflow import live_camera_workflow
 
 
 class CameraPreviewPanel(QFrame):
+
+    _DETAIL_KEYS = (
+        "name",
+        "country",
+        "distance",
+        "confidence",
+        "direction",
+        "radius",
+        "status",
+        "playback",
+    )
+
+    _CAPTION_KEYS = {
+        "name": "Camera",
+        "country": "Country",
+        "distance": "Distance",
+        "confidence": "Confidence",
+        "direction": "Viewing Direction",
+        "radius": "Visibility Radius",
+        "status": "Camera Status",
+        "playback": "Playback",
+    }
 
     def __init__(self):
         super().__init__()
@@ -16,6 +40,12 @@ class CameraPreviewPanel(QFrame):
 
         self._last_mmsi = None
         self._workflow = live_camera_workflow
+        self._empty_message_key = "No camera available"
+        self._error_message_key = None
+        self._error_message_raw = None
+        self._camera_enabled = None
+        self._playback_key = None
+        self._playback_backend = None
 
         self.setMinimumWidth(300)
         self.setMaximumWidth(360)
@@ -73,9 +103,9 @@ class CameraPreviewPanel(QFrame):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(10)
 
-        self.title = QLabel("Camera Preview")
-        self.title.setProperty("role", "title")
-        layout.addWidget(self.title)
+        self._title_label = QLabel(tr("Camera Preview"))
+        self._title_label.setProperty("role", "title")
+        layout.addWidget(self._title_label)
 
         self.video_host = QFrame()
         self.video_host.setObjectName("videoHost")
@@ -86,16 +116,15 @@ class CameraPreviewPanel(QFrame):
         details_layout.setContentsMargins(0, 0, 0, 0)
         details_layout.setSpacing(8)
 
-        self._value_labels = {
-            "name": self._add_row(details_layout, "Camera"),
-            "country": self._add_row(details_layout, "Country"),
-            "distance": self._add_row(details_layout, "Distance"),
-            "confidence": self._add_row(details_layout, "Confidence"),
-            "direction": self._add_row(details_layout, "Viewing Direction"),
-            "radius": self._add_row(details_layout, "Visibility Radius"),
-            "status": self._add_row(details_layout, "Camera Status"),
-            "playback": self._add_row(details_layout, "Playback"),
-        }
+        self._caption_labels = {}
+        self._value_labels = {}
+
+        for field in self._DETAIL_KEYS:
+            caption_key = self._CAPTION_KEYS[field]
+            self._value_labels[field] = self._add_row(
+                details_layout,
+                caption_key,
+            )
 
         layout.addWidget(self.details)
 
@@ -106,23 +135,26 @@ class CameraPreviewPanel(QFrame):
         self.error_label.setVisible(False)
         layout.addWidget(self.error_label)
 
-        self.empty_label = QLabel("No camera available")
+        self.empty_label = QLabel(tr("No camera available"))
         self.empty_label.setProperty("role", "empty")
         self.empty_label.setAlignment(Qt.AlignCenter)
         self.empty_label.setWordWrap(True)
         layout.addWidget(self.empty_label)
 
+        bind_language_refresh(self.refresh_translations)
+
         self.show_empty()
 
-    def _add_row(self, layout, caption: str) -> QLabel:
+    def _add_row(self, layout, caption_key: str) -> QLabel:
 
         row = QWidget()
         row_layout = QVBoxLayout(row)
         row_layout.setContentsMargins(0, 0, 0, 0)
         row_layout.setSpacing(2)
 
-        label = QLabel(caption)
+        label = QLabel(tr(caption_key))
         label.setProperty("role", "caption")
+        self._caption_labels[caption_key] = label
 
         value = QLabel("—")
         value.setProperty("role", "value")
@@ -133,6 +165,34 @@ class CameraPreviewPanel(QFrame):
         layout.addWidget(row)
 
         return value
+
+    def refresh_translations(self) -> None:
+
+        self._title_label.setText(tr("Camera Preview"))
+
+        for caption_key, caption_label in self._caption_labels.items():
+            caption_label.setText(tr(caption_key))
+
+        if self.empty_label.isVisible():
+            self.empty_label.setText(tr(self._empty_message_key))
+
+        if self._camera_enabled is not None:
+            self._value_labels["status"].setText(
+                tr("Enabled")
+                if self._camera_enabled
+                else tr("Disabled")
+            )
+
+        if self._playback_backend:
+            self._value_labels["playback"].setText(self._playback_backend)
+        elif self._playback_key:
+            self._value_labels["playback"].setText(tr(self._playback_key))
+
+        if self.error_label.isVisible():
+            if self._error_message_key:
+                self.error_label.setText(tr(self._error_message_key))
+            elif self._error_message_raw:
+                self.error_label.setText(self._error_message_raw)
 
     def show_for_ship(self, ship: Ship | None):
 
@@ -192,30 +252,45 @@ class CameraPreviewPanel(QFrame):
         self._value_labels["radius"].setText(
             f"{camera.visibility_radius_km:.2f} km"
         )
+        self._camera_enabled = camera.enabled
         self._value_labels["status"].setText(
-            "Enabled" if camera.enabled else "Disabled"
+            tr("Enabled") if camera.enabled else tr("Disabled")
         )
 
     def _update_playback_state(self, result):
 
         if result.success:
             self.error_label.setVisible(False)
+            self._error_message_key = None
+            self._error_message_raw = None
+            self._playback_key = "Active"
+            self._playback_backend = result.backend_name
             self._value_labels["playback"].setText(
-                result.backend_name or "Active"
+                result.backend_name or tr("Active")
             )
             return
 
-        self._value_labels["playback"].setText("Unavailable")
+        self._playback_key = "Unavailable"
+        self._playback_backend = None
+        self._value_labels["playback"].setText(tr("Unavailable"))
+        self._error_message_key = None
+        self._error_message_raw = result.message
         self.error_label.setText(result.message)
         self.error_label.setVisible(True)
 
-    def show_empty(self, message: str = "No camera available"):
+    def show_empty(self, message_key: str = "No camera available"):
 
         self._workflow.stop()
         self._last_mmsi = None
+        self._camera_enabled = None
+        self._playback_key = None
+        self._playback_backend = None
+        self._error_message_key = None
+        self._error_message_raw = None
+        self._empty_message_key = message_key
         self.details.setVisible(False)
         self.error_label.setVisible(False)
-        self.empty_label.setText(message)
+        self.empty_label.setText(tr(message_key))
         self.empty_label.setVisible(True)
 
     def video_container(self) -> QFrame:

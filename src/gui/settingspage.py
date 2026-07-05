@@ -269,12 +269,34 @@ class SettingsPage(QWidget):
             lambda _code: self._refresh_labels()
         )
 
+    def refresh_translations(self) -> None:
+
+        self._refresh_labels()
+
     def _refresh_labels(self) -> None:
 
         self.title_label.setText(tr("Settings"))
         self.section_label.setText(tr("Personalization"))
         self.language_label.setText(tr("Language"))
         self.layout_label.setText(tr("Vessel Card"))
+
+        playback_refresh = getattr(
+            self.playback_settings,
+            "refresh_translations",
+            None,
+        )
+
+        if callable(playback_refresh):
+            playback_refresh()
+
+        diagnostics_refresh = getattr(
+            self.camera_diagnostics,
+            "refresh_translations",
+            None,
+        )
+
+        if callable(diagnostics_refresh):
+            diagnostics_refresh()
 
         current_language = self.language_combo.currentData()
         current_layout = self.layout_combo.currentData()

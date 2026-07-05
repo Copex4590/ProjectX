@@ -20,6 +20,8 @@ from PySide6.QtWidgets import (
 )
 
 from database.camera_registry import CameraRegistry, camera_registry
+from gui.i18n_support import bind_language_refresh
+from i18n import tr
 from engines.camera.diagnostics import (
     CameraDiagnosticsEngine,
     CameraDiagnosticsReport,
@@ -30,11 +32,14 @@ from engines.camera.diagnostics import (
 
 FilterStatus = Literal["all", "ok", "warning", "error"]
 
-_SEVERITY_LABELS = {
-    DiagnosticSeverity.OK: "OK",
-    DiagnosticSeverity.WARNING: "Warning",
-    DiagnosticSeverity.ERROR: "Error",
-}
+def _severity_label(severity: DiagnosticSeverity) -> str:
+
+    labels = {
+        DiagnosticSeverity.OK: tr("OK"),
+        DiagnosticSeverity.WARNING: tr("Warning"),
+        DiagnosticSeverity.ERROR: tr("Error"),
+    }
+    return labels.get(severity, severity.value)
 
 _PLAYBACK_READY_PATTERN = re.compile(
     r"Playback provider '([^']+)' and backend '([^']+)' are available\."
@@ -83,10 +88,10 @@ def _provider_backend(result: DiagnosticResult) -> tuple[str, str]:
         return match.group(1), match.group(2)
 
     if "provider" in result.message.lower():
-        return "Unavailable", "—"
+        return tr("Unavailable"), "—"
 
     if "backend" in result.message.lower():
-        return "—", "Unavailable"
+        return "—", tr("Unavailable")
 
     return "—", "—"
 
@@ -108,6 +113,7 @@ class CameraDiagnosticsPanel(QFrame):
 
         self._build_ui()
         self._connect_signals()
+        bind_language_refresh(self.refresh_translations)
 
     def refresh(self) -> list[CameraDiagnosticsReport]:
 
@@ -163,9 +169,9 @@ class CameraDiagnosticsPanel(QFrame):
         layout.setContentsMargins(0, 12, 0, 0)
         layout.setSpacing(10)
 
-        title = QLabel("Camera Diagnostics")
-        title.setProperty("role", "section")
-        layout.addWidget(title)
+        self._title_label = QLabel(tr("Camera Diagnostics"))
+        self._title_label.setProperty("role", "section")
+        layout.addWidget(self._title_label)
 
         summary = QGridLayout()
         summary.setHorizontalSpacing(16)
@@ -189,29 +195,18 @@ class CameraDiagnosticsPanel(QFrame):
         controls = QHBoxLayout()
         controls.setSpacing(8)
 
-        self.refresh_button = QPushButton("Refresh")
+        self.refresh_button = QPushButton()
         controls.addWidget(self.refresh_button)
 
-        controls.addWidget(self._field_label("Filter"))
+        self._filter_label = self._field_label(tr("Filter"))
+        controls.addWidget(self._filter_label)
         self.filter_combo = QComboBox()
-        self.filter_combo.addItem("All", "all")
-        self.filter_combo.addItem("OK", "ok")
-        self.filter_combo.addItem("Warning", "warning")
-        self.filter_combo.addItem("Error", "error")
         controls.addWidget(self.filter_combo)
         controls.addStretch()
 
         layout.addLayout(controls)
 
         self.table = QTableWidget(0, 6)
-        self.table.setHorizontalHeaderLabels([
-            "Camera",
-            "Status",
-            "Provider",
-            "Backend",
-            "Message",
-            "Recommendation",
-        ])
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -219,15 +214,55 @@ class CameraDiagnosticsPanel(QFrame):
 
         layout.addWidget(self.table)
 
-    def _summary_value(self, title_text: str) -> dict[str, QLabel]:
+        self.refresh_translations()
 
-        title = QLabel(title_text)
+    def refresh_translations(self) -> None:
+
+        self._title_label.setText(tr("Camera Diagnostics"))
+
+        for summary in (
+            self.total_value,
+            self.healthy_value,
+            self.warnings_value,
+            self.errors_value,
+        ):
+            summary["title"].setText(tr(summary["title_key"]))
+
+        self.refresh_button.setText(tr("Refresh"))
+        self._filter_label.setText(tr("Filter"))
+
+        filter_index = self.filter_combo.currentIndex()
+        self.filter_combo.blockSignals(True)
+        self.filter_combo.clear()
+        self.filter_combo.addItem(tr("All"), "all")
+        self.filter_combo.addItem(tr("OK"), "ok")
+        self.filter_combo.addItem(tr("Warning"), "warning")
+        self.filter_combo.addItem(tr("Error"), "error")
+        if 0 <= filter_index < self.filter_combo.count():
+            self.filter_combo.setCurrentIndex(filter_index)
+        self.filter_combo.blockSignals(False)
+
+        self.table.setHorizontalHeaderLabels([
+            tr("Camera"),
+            tr("Status"),
+            tr("Provider"),
+            tr("Backend"),
+            tr("Message"),
+            tr("Recommendation"),
+        ])
+
+        if self._reports:
+            self._populate_table()
+
+    def _summary_value(self, title_key: str) -> dict[str, QLabel | str]:
+
+        title = QLabel(tr(title_key))
         title.setProperty("role", "summary-title")
 
         value = QLabel("0")
         value.setProperty("role", "summary-value")
 
-        return {"title": title, "value": value}
+        return {"title": title, "value": value, "title_key": title_key}
 
     def _field_label(self, text: str) -> QLabel:
 
@@ -290,7 +325,7 @@ class CameraDiagnosticsPanel(QFrame):
 
             values = [
                 _camera_label(result.camera_id, self._registry),
-                _SEVERITY_LABELS.get(result.severity, result.severity.value),
+                _severity_label(result.severity),
                 provider,
                 backend,
                 result.message,

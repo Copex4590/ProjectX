@@ -57,13 +57,13 @@
         }
 
         .vessel-card {
-            --vc-bg: rgba(18, 22, 30, 0.82);
+            --vc-bg: rgba(18, 22, 30, 0.88);
             --vc-border: rgba(255, 255, 255, 0.1);
             --vc-text: #eef2f7;
             --vc-muted: #8b95a5;
-            --vc-label: #5c6675;
+            --vc-label: #6b7688;
             --vc-accent: #5b9cf5;
-            --vc-radius: 14px;
+            --vc-radius: 12px;
 
             font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
             color: var(--vc-text);
@@ -72,126 +72,83 @@
             -webkit-backdrop-filter: blur(14px);
             border: 1px solid var(--vc-border);
             border-radius: var(--vc-radius);
-            box-shadow:
-                0 10px 32px rgba(0, 0, 0, 0.42),
-                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
             overflow: hidden;
-            width: min(360px, calc(100vw - 48px));
+            width: min(320px, calc(100vw - 48px));
         }
 
         .vessel-card--compact {
+            width: min(260px, calc(100vw - 48px));
+            max-height: min(38vh, 280px);
+        }
+
+        .vessel-card--standard {
             width: min(300px, calc(100vw - 48px));
         }
 
-        .vessel-card--compact .vessel-card__header {
-            padding: 8px 10px 6px;
-        }
-
-        .vessel-card--compact .vessel-card__photo {
-            min-height: 56px;
-            max-height: 72px;
-        }
-
-        .vessel-card--compact .vessel-card__name {
-            font-size: 0.98rem;
-        }
-
-        .vessel-card--compact .vessel-card__body {
-            padding: 8px 10px 10px;
-        }
-
-        .vessel-card--compact .vessel-card__grid {
-            gap: 6px 10px;
-        }
-
-        .vessel-card--compact .vessel-card__label {
-            font-size: 0.62rem;
-        }
-
-        .vessel-card--compact .vessel-card__value {
-            font-size: 0.78rem;
-        }
-
-        .vessel-card--standard .vessel-card__header {
-            padding: 11px 13px 9px;
-        }
-
-        .vessel-card--standard .vessel-card__body {
-            padding: 10px 12px 12px;
-        }
-
-        .vessel-card--standard .vessel-card__block {
-            margin-bottom: 8px;
+        .vessel-card--detailed {
+            width: min(320px, calc(100vw - 48px));
         }
 
         .vessel-card--media {
-            width: min(400px, calc(100vw - 48px));
+            width: min(340px, calc(100vw - 48px));
         }
 
-        .vessel-card--media .vessel-card__photo {
-            min-height: 220px;
-            max-height: 280px;
+        .vessel-card__scroll {
+            display: flex;
+            flex-direction: column;
+            padding: 0;
         }
 
-        .vessel-card--media .vessel-card__camera-panel {
-            margin: 0 12px 12px;
-            padding: 14px;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .vessel-card--media .vessel-card__camera-title {
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--vc-muted);
-            margin-bottom: 8px;
-        }
-
-        .vessel-card--media .vessel-card__camera-value {
-            font-size: 1.05rem;
-            font-weight: 600;
-        }
-
-        .vessel-card--detailed .vessel-card__body {
-            max-height: min(60vh, 480px);
+        .vessel-card__scroll--scrollable {
+            max-height: min(58vh, 420px);
             overflow-y: auto;
+            overflow-x: hidden;
         }
 
-        .vessel-card--compact {
-            max-height: min(42vh, 320px);
-            overflow: hidden;
+        .vessel-card__hero {
+            display: flex;
+            gap: 8px;
+            padding: 8px 10px 6px;
+            align-items: flex-start;
         }
 
-        .vessel-card--media .vessel-card__photo-image {
-            object-fit: cover;
-            max-height: min(32vh, 280px);
+        .vessel-card--compact .vessel-card__hero {
+            padding: 6px 8px 4px;
+            gap: 6px;
         }
 
-        .vessel-card__header {
-            padding: 13px 15px 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            background: linear-gradient(
-                180deg,
-                rgba(255, 255, 255, 0.04) 0%,
-                transparent 100%
-            );
+        .vessel-card__hero .vessel-card__photo {
+            width: 72px;
+            min-height: 54px;
+            max-height: 64px;
+            flex-shrink: 0;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            aspect-ratio: auto;
         }
 
-        .vessel-card__header:not(:has(.vessel-card__badge)) {
-            padding-bottom: 13px;
+        .vessel-card--media .vessel-card__hero .vessel-card__photo {
+            width: 110px;
+            min-height: 78px;
+            max-height: 96px;
+        }
+
+        .vessel-card--detailed .vessel-card__hero .vessel-card__photo {
+            width: 84px;
+            min-height: 62px;
+            max-height: 72px;
+        }
+
+        .vessel-card__identity {
+            flex: 1;
+            min-width: 0;
         }
 
         .vessel-card__photo {
             position: relative;
-            width: 100%;
-            min-height: 140px;
-            max-height: 200px;
-            aspect-ratio: 16 / 9;
             background: rgba(255, 255, 255, 0.03);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -201,7 +158,7 @@
         .vessel-card__photo-image {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
             display: block;
         }
 
@@ -214,16 +171,16 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 4px;
             color: var(--vc-muted);
-            font-size: 0.78rem;
+            font-size: 0.62rem;
             text-align: center;
-            padding: 16px;
+            padding: 6px;
         }
 
         .vessel-card__photo-icon {
-            width: 34px;
-            height: 34px;
+            width: 22px;
+            height: 22px;
             opacity: 0.55;
         }
 
@@ -235,16 +192,15 @@
         .vessel-card__title-row {
             display: flex;
             align-items: flex-start;
-            gap: 10px;
-            margin-bottom: 7px;
+            gap: 6px;
         }
 
         .vessel-card__flag {
-            width: 30px;
-            height: 21px;
+            width: 24px;
+            height: 16px;
             object-fit: contain;
             flex-shrink: 0;
-            border-radius: 3px;
+            border-radius: 2px;
             border: 1px solid rgba(255, 255, 255, 0.12);
             background: rgba(255, 255, 255, 0.04);
         }
@@ -255,182 +211,71 @@
 
         .vessel-card__name {
             margin: 0;
-            font-size: 1.15rem;
+            font-size: 0.92rem;
             font-weight: 700;
-            letter-spacing: -0.025em;
-            line-height: 1.15;
+            line-height: 1.2;
             word-break: break-word;
             color: #f8fafc;
             flex: 1;
             min-width: 0;
         }
 
-        .vessel-card__badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
+        .vessel-card--compact .vessel-card__name {
+            font-size: 0.82rem;
         }
 
-        .vessel-card__badges:empty {
-            display: none;
+        .vessel-card__type {
+            margin-top: 3px;
+            font-size: 0.68rem;
+            color: var(--vc-muted);
+            line-height: 1.2;
         }
 
-        .vessel-card__badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 2px 9px 2px 7px;
-            border-radius: 999px;
-            font-size: 0.6rem;
-            font-weight: 700;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            border: 1px solid transparent;
-            line-height: 1.3;
-        }
-
-        .vessel-card__badge-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            flex-shrink: 0;
-            box-shadow: 0 0 6px currentColor;
-        }
-
-        .vessel-card__badge--type {
-            color: #b8c5d9;
+        .vessel-card__divider {
+            height: 1px;
             background: rgba(255, 255, 255, 0.06);
-            border-color: rgba(255, 255, 255, 0.09);
-        }
-
-        .vessel-card__badge--type .vessel-card__badge-dot {
-            background: #94a3b8;
-            box-shadow: none;
-        }
-
-        .vessel-card__badge--source {
-            color: #fff;
-        }
-
-        .vessel-card__badge--rtl {
-            background: linear-gradient(
-                135deg,
-                rgba(245, 158, 11, 0.3),
-                rgba(217, 119, 6, 0.16)
-            );
-            border-color: rgba(251, 191, 36, 0.42);
-            color: #fde68a;
-            box-shadow: 0 0 14px rgba(245, 158, 11, 0.12);
-        }
-
-        .vessel-card__badge--rtl .vessel-card__badge-dot {
-            background: #fbbf24;
-        }
-
-        .vessel-card__badge--ais {
-            background: linear-gradient(
-                135deg,
-                rgba(59, 130, 246, 0.3),
-                rgba(37, 99, 235, 0.16)
-            );
-            border-color: rgba(96, 165, 250, 0.42);
-            color: #bfdbfe;
-            box-shadow: 0 0 14px rgba(59, 130, 246, 0.12);
-        }
-
-        .vessel-card__badge--ais .vessel-card__badge-dot {
-            background: #60a5fa;
-        }
-
-        .vessel-card__badge--hybrid {
-            background: linear-gradient(
-                135deg,
-                rgba(139, 92, 246, 0.3),
-                rgba(109, 40, 217, 0.16)
-            );
-            border-color: rgba(167, 139, 250, 0.42);
-            color: #ddd6fe;
-            box-shadow: 0 0 14px rgba(139, 92, 246, 0.12);
-        }
-
-        .vessel-card__badge--hybrid .vessel-card__badge-dot {
-            background: #a78bfa;
-        }
-
-        .vessel-card__body {
-            padding: 8px 11px 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .vessel-card__block {
-            background: rgba(255, 255, 255, 0.025);
-            border: 1px solid rgba(255, 255, 255, 0.045);
-            border-radius: 10px;
-            padding: 7px 10px;
-        }
-
-        .vessel-card__block-title {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            margin: 0 0 5px;
-            font-size: 0.58rem;
-            font-weight: 700;
-            letter-spacing: 0.11em;
-            text-transform: uppercase;
-            color: #7a8494;
-        }
-
-        .vessel-card__block-icon {
-            width: 11px;
-            height: 11px;
-            flex-shrink: 0;
-            stroke: var(--vc-accent);
-            opacity: 0.85;
-        }
-
-        .vessel-card__grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 5px 10px;
             margin: 0;
         }
 
-        .vessel-card__item {
+        .vessel-card__row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 5px 10px;
             min-width: 0;
         }
 
-        .vessel-card__item--full {
-            grid-column: 1 / -1;
+        .vessel-card--compact .vessel-card__row {
+            padding: 4px 8px;
         }
 
         .vessel-card__label {
-            display: block;
-            font-size: 0.56rem;
+            flex: 0 0 38%;
+            font-size: 0.62rem;
             font-weight: 600;
-            letter-spacing: 0.07em;
+            letter-spacing: 0.04em;
             text-transform: uppercase;
             color: var(--vc-label);
-            margin-bottom: 1px;
+            line-height: 1.3;
+        }
+
+        .vessel-card--compact .vessel-card__label {
+            font-size: 0.58rem;
         }
 
         .vessel-card__value {
-            display: block;
+            flex: 1;
+            text-align: right;
             font-size: 0.76rem;
             font-weight: 500;
             color: var(--vc-text);
             word-break: break-word;
-            line-height: 1.25;
+            line-height: 1.3;
         }
 
-        .vessel-card__value--mono {
-            font-variant-numeric: tabular-nums;
-            font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
-            font-size: 0.72rem;
-            font-weight: 600;
-            color: #dce4ef;
+        .vessel-card--compact .vessel-card__value {
+            font-size: 0.7rem;
         }
 
         .vessel-card__value--empty {
@@ -444,18 +289,8 @@
         }
 
         .vessel-card__value--off {
-            color: #5f6b7a;
-            font-weight: 400;
-        }
-
-        @media (max-width: 320px) {
-            .vessel-card__grid {
-                grid-template-columns: 1fr;
-            }
-
-            .vessel-card__item--full {
-                grid-column: auto;
-            }
+            color: #9aa4af;
+            font-weight: 500;
         }
     </style>
 </head>
@@ -478,6 +313,45 @@ L.tileLayer(
 
 const ships = {};
 const trails = {};
+let openPopupMmsi = null;
+
+map.on("popupopen", function(event)
+{
+    for (const [mmsi, marker] of Object.entries(ships))
+    {
+        if (marker.getPopup() === event.popup)
+        {
+            openPopupMmsi = Number(mmsi);
+            return;
+        }
+    }
+});
+
+map.on("popupclose", function()
+{
+    openPopupMmsi = null;
+});
+
+function restorePopupScroll(marker, scrollTop)
+{
+    if (!scrollTop)
+        return;
+
+    requestAnimationFrame(function()
+    {
+        const popupElement = marker.getPopup().getElement();
+
+        if (!popupElement)
+            return;
+
+        const scrollElement = popupElement.querySelector(
+            ".vessel-card__scroll--scrollable"
+        );
+
+        if (scrollElement)
+            scrollElement.scrollTop = scrollTop;
+    });
+}
 
 function popupContent(ship)
 {
@@ -518,7 +392,27 @@ function updateShips(list)
             ships[mmsi].setLatLng(pos);
         }
 
-        ships[mmsi].setPopupContent(popupContent(ship));
+        const marker = ships[mmsi];
+        const popupOpen = openPopupMmsi === mmsi && marker.isPopupOpen();
+        let scrollTop = 0;
+
+        if (popupOpen)
+        {
+            const popupElement = marker.getPopup().getElement();
+
+            if (popupElement)
+            {
+                const scrollElement = popupElement.querySelector(
+                    ".vessel-card__scroll--scrollable"
+                );
+
+                if (scrollElement)
+                    scrollTop = scrollElement.scrollTop;
+            }
+        }
+
+        marker.setPopupContent(popupContent(ship));
+        restorePopupScroll(marker, scrollTop);
 
         if (!trails[mmsi])
         {

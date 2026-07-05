@@ -19,6 +19,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from gui.i18n_support import bind_language_refresh
+from i18n import tr
 from statistics.statistics_manager import StatisticsManager, statistics_manager
 
 _AUTO_REFRESH_MS = 30000
@@ -26,8 +28,10 @@ _AUTO_REFRESH_MS = 30000
 
 class SummaryCard(QFrame):
 
-    def __init__(self, title: str, parent=None):
+    def __init__(self, title_key: str, parent=None):
         super().__init__(parent)
+
+        self._title_key = title_key
 
         self.setStyleSheet("""
             QFrame {
@@ -40,7 +44,7 @@ class SummaryCard(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(14, 14, 14, 14)
 
-        self.title_label = QLabel(title)
+        self.title_label = QLabel(tr(title_key))
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title_label.setStyleSheet("color: #9aa4af; font-size: 10pt;")
 
@@ -57,11 +61,17 @@ class SummaryCard(QFrame):
 
         self.value_label.setText(value)
 
+    def refresh_translations(self) -> None:
+
+        self.title_label.setText(tr(self._title_key))
+
 
 class TopListPanel(QFrame):
 
-    def __init__(self, title: str, parent=None):
+    def __init__(self, title_key: str, parent=None):
         super().__init__(parent)
+
+        self._title_key = title_key
 
         self.setStyleSheet("""
             QFrame {
@@ -80,9 +90,9 @@ class TopListPanel(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
 
-        heading = QLabel(title)
-        heading.setStyleSheet("color: #d5dbe3; font-size: 11pt; font-weight: 600;")
-        layout.addWidget(heading)
+        self.heading = QLabel(tr(title_key))
+        self.heading.setStyleSheet("color: #d5dbe3; font-size: 11pt; font-weight: 600;")
+        layout.addWidget(self.heading)
 
         self.list_widget = QListWidget()
         layout.addWidget(self.list_widget)
@@ -92,7 +102,7 @@ class TopListPanel(QFrame):
         self.list_widget.clear()
 
         if not items:
-            item = QListWidgetItem("No data")
+            item = QListWidgetItem(tr("No data"))
             item.setFlags(Qt.ItemFlag.NoItemFlags)
             self.list_widget.addItem(item)
             return
@@ -100,13 +110,25 @@ class TopListPanel(QFrame):
         for text in items:
             self.list_widget.addItem(text)
 
+    def refresh_translations(self) -> None:
+
+        self.heading.setText(tr(self._title_key))
+
+        if self.list_widget.count() == 1:
+            item = self.list_widget.item(0)
+
+            if item is not None and not (
+                item.flags() & Qt.ItemFlag.ItemIsEnabled
+            ):
+                item.setText(tr("No data"))
+
 
 class SimpleBarChart(QFrame):
 
-    def __init__(self, title: str, parent=None):
+    def __init__(self, title_key: str, parent=None):
         super().__init__(parent)
 
-        self._title = title
+        self._title_key = title_key
         self._values: list[int] = []
         self._labels: list[str] = []
         self.setMinimumHeight(220)
@@ -124,6 +146,10 @@ class SimpleBarChart(QFrame):
         self._labels = list(labels or [])
         self.update()
 
+    def refresh_translations(self) -> None:
+
+        self.update()
+
     def paintEvent(self, event) -> None:
 
         painter = QPainter(self)
@@ -135,7 +161,7 @@ class SimpleBarChart(QFrame):
         title_font.setBold(True)
         painter.setFont(title_font)
         painter.setPen(QColor("#d5dbe3"))
-        painter.drawText(12, 24, self._title)
+        painter.drawText(12, 24, tr(self._title_key))
 
         chart_rect = self.rect().adjusted(16, 36, -16, -16)
 
@@ -144,7 +170,7 @@ class SimpleBarChart(QFrame):
             painter.drawText(
                 chart_rect,
                 Qt.AlignmentFlag.AlignCenter,
-                "No data",
+                tr("No data"),
             )
             painter.end()
             return
@@ -191,7 +217,38 @@ class StatisticsPage(QWidget):
         self._auto_refresh_timer.timeout.connect(self.refresh)
 
         self._build_ui()
+        bind_language_refresh(self.refresh_translations)
+        self.refresh_translations()
         self.refresh()
+
+    def refresh_translations(self) -> None:
+
+        self.title_label.setText(tr("Statistics Dashboard"))
+        self.refresh_button.setText(tr("Refresh"))
+        self.auto_refresh_checkbox.setText(tr("Auto Refresh"))
+
+        for card in (
+            self.total_vessels_card,
+            self.active_vessels_card,
+            self.arrivals_today_card,
+            self.departures_today_card,
+            self.position_updates_card,
+        ):
+            card.refresh_translations()
+
+        for panel in (
+            self.ship_types_panel,
+            self.flags_panel,
+            self.active_vessels_panel,
+        ):
+            panel.refresh_translations()
+
+        for chart in (
+            self.arrivals_chart,
+            self.departures_chart,
+            self.activity_chart,
+        ):
+            chart.refresh_translations()
 
     def refresh(self) -> None:
 
@@ -265,17 +322,17 @@ class StatisticsPage(QWidget):
         layout.setContentsMargins(25, 25, 25, 25)
         layout.setSpacing(12)
 
-        title = QLabel("Statistics Dashboard")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet(
+        self.title_label = QLabel(tr("Statistics Dashboard"))
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_label.setStyleSheet(
             "color: white; font-size: 26pt; font-weight: bold;"
         )
-        layout.addWidget(title)
+        layout.addWidget(self.title_label)
 
         controls = QHBoxLayout()
         controls.setSpacing(8)
 
-        self.refresh_button = QPushButton("Refresh")
+        self.refresh_button = QPushButton(tr("Refresh"))
         self.refresh_button.setStyleSheet("""
             QPushButton {
                 background: #1976d2;
@@ -287,7 +344,7 @@ class StatisticsPage(QWidget):
         """)
         controls.addWidget(self.refresh_button)
 
-        self.auto_refresh_checkbox = QCheckBox("Auto Refresh")
+        self.auto_refresh_checkbox = QCheckBox(tr("Auto Refresh"))
         self.auto_refresh_checkbox.setStyleSheet("color: #d5dbe3;")
         controls.addWidget(self.auto_refresh_checkbox)
         controls.addStretch()
@@ -313,9 +370,9 @@ class StatisticsPage(QWidget):
         lists = QGridLayout()
         lists.setHorizontalSpacing(12)
 
-        self.ship_types_panel = TopListPanel("Top 10 Ship Types")
-        self.flags_panel = TopListPanel("Top 10 Flags")
-        self.active_vessels_panel = TopListPanel("Top 10 Most Active Vessels")
+        self.ship_types_panel = TopListPanel("Top Ship Types")
+        self.flags_panel = TopListPanel("Top Flags")
+        self.active_vessels_panel = TopListPanel("Top Active Vessels")
 
         lists.addWidget(self.ship_types_panel, 0, 0)
         lists.addWidget(self.flags_panel, 0, 1)
@@ -328,7 +385,7 @@ class StatisticsPage(QWidget):
 
         self.arrivals_chart = SimpleBarChart("Arrivals by Hour")
         self.departures_chart = SimpleBarChart("Departures by Hour")
-        self.activity_chart = SimpleBarChart("Vessel Activity (Last 24 Hours)")
+        self.activity_chart = SimpleBarChart("Activity Last 24 Hours")
 
         charts.addWidget(self.arrivals_chart, 0, 0)
         charts.addWidget(self.departures_chart, 0, 1)
