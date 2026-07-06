@@ -113,6 +113,33 @@ PY
 if [[ $? -ne 0 ]]; then FAILED=1; fi
 
 echo ""
+echo "--- Windows release artifact ---"
+WIN_FILE="$("$PYTHON" - <<'PY'
+import json
+from pathlib import Path
+print(json.loads(Path("release/manifest.json").read_text(encoding="utf-8"))["packages"]["windows"]["file"])
+PY
+)"
+WIN_RELEASE="$ROOT/release/windows/$WIN_FILE"
+WIN_WEBSITE="$ROOT/website/downloads/windows/$WIN_FILE"
+
+if [[ -f "$WIN_RELEASE" ]]; then
+    ok "Windows installer present: release/windows/$WIN_FILE"
+    if [[ -f "$WIN_WEBSITE" ]]; then
+        ok "Website Windows download present: website/downloads/windows/$WIN_FILE"
+        if cmp -s "$WIN_RELEASE" "$WIN_WEBSITE"; then
+            ok "Windows release and website copies match"
+        else
+            fail "Windows website copy differs from release/windows/ (run ./scripts/prepare_release.sh)"
+        fi
+    else
+        warn "Website Windows download missing: website/downloads/windows/$WIN_FILE"
+    fi
+else
+    warn "Windows installer not built yet: release/windows/$WIN_FILE"
+fi
+
+echo ""
 echo "--- Release artifacts ---"
 ARTIFACT_PATHS=()
 while IFS= read -r line; do
@@ -216,6 +243,22 @@ if command -v curl >/dev/null 2>&1; then
             fail "HTTP $code $url"
         fi
     done
+
+    WIN_DL="$("$PYTHON" - <<'PY'
+import json
+from pathlib import Path
+c = json.loads(Path("website/releases.json").read_text(encoding="utf-8"))
+print("downloads/windows/" + c["windows"]["file"])
+PY
+)"
+    if [[ -f "$ROOT/website/$WIN_DL" ]]; then
+        code="$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${PORT}/${WIN_DL}")"
+        if [[ "$code" == "200" ]]; then
+            ok "HTTP $code http://127.0.0.1:${PORT}/${WIN_DL}"
+        else
+            fail "HTTP $code Windows download URL (expected 200): ${WIN_DL}"
+        fi
+    fi
 else
     warn "curl not available; skipped website HTTP smoke test"
 fi

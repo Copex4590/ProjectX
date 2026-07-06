@@ -39,7 +39,7 @@ scripts\build_windows.bat
 This runs:
 
 1. PyInstaller → `dist\projectx\projectx.exe`
-2. Inno Setup → `website\downloads\windows\ProjectX-Setup.exe`
+2. Inno Setup → `release\windows\ProjectX-Setup.exe`
 
 PyInstaller-only (skip installer):
 

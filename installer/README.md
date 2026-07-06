@@ -31,6 +31,7 @@ scripts/fetch_leaflet.sh
 | `scripts/build_windows.bat` | **Native Windows release build (primary — dual-boot workflow)** |
 | `scripts/build_installer.bat` | Compile `ProjectX-Setup.exe` after PyInstaller |
 | `scripts/verify_windows_installer.bat` | Silent install/uninstall verification (Windows) |
+| `scripts/verify_windows_release.sh` | Verify `release/windows/` artifact, website copy, checksums (Linux) |
 | `scripts/build_windows.ps1` | PowerShell alternative to `build_windows.bat` |
 | `scripts/build_linux_release.sh` | **Official Linux release packages → `release/linux/`** |
 | `scripts/prepare_release.sh` | Sync notes, website copies, checksums |

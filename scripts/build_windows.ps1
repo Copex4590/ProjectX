@@ -68,17 +68,31 @@ try {
     Write-Host "Running PyInstaller ..."
     & $venvPython -m PyInstaller --noconfirm (Join-Path $Root "installer\projectx.spec")
 
-    $exePath = Join-Path $Root "dist\projectx\projectx.exe"
-    if (-not (Test-Path $exePath)) {
-        throw "Expected output not found: dist\projectx\projectx.exe"
+    $bundleRoot = Join-Path $Root "dist\projectx"
+    $bundleRequired = @(
+        (Join-Path $bundleRoot "projectx.exe"),
+        (Join-Path $bundleRoot "resources\translations\en.json"),
+        (Join-Path $bundleRoot "resources\translations\hu.json"),
+        (Join-Path $bundleRoot "resources\map\leaflet\leaflet.js"),
+        (Join-Path $bundleRoot "resources\branding\projectx-logo.png"),
+        (Join-Path $bundleRoot "projectx.ico"),
+        (Join-Path $bundleRoot "config\playback.json")
+    )
+    foreach ($path in $bundleRequired) {
+        if (-not (Test-Path $path)) {
+            throw "PyInstaller bundle incomplete, missing: $path"
+        }
     }
-    Write-Host "[OK] Verified: dist\projectx\projectx.exe`n"
+    Write-Host "[OK] PyInstaller bundle verified: executable, translations, map, branding, icon, config`n"
 
-    if ($env:SKIP_INSTALLER -eq "1") {
-        Write-Host "[SKIP] Installer build skipped (SKIP_INSTALLER=1).`n"
-    } else {
+    $exePath = Join-Path $Root "dist\projectx\projectx.exe"
+    if ($env:SKIP_INSTALLER -ne "1") {
         & (Join-Path $Root "scripts\build_installer.bat")
         if ($LASTEXITCODE -ne 0) { throw "Installer build failed." }
+        $installerPath = Join-Path $Root "release\windows\ProjectX-Setup.exe"
+        if (-not (Test-Path $installerPath)) {
+            throw "Expected installer not found: release\windows\ProjectX-Setup.exe"
+        }
     }
 
     Write-Host ""
@@ -87,6 +101,9 @@ try {
     $installerPath = Join-Path $Root "release\windows\ProjectX-Setup.exe"
     if (Test-Path $installerPath) {
         Write-Host "Windows installer:`n  $installerPath`n"
+        Write-Host "Next steps:"
+        Write-Host "  1. Run scripts\verify_windows_installer.bat"
+        Write-Host "  2. Run ./scripts/prepare_release.sh on Linux"
     }
     exit 0
 }

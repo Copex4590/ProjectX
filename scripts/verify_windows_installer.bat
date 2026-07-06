@@ -60,10 +60,26 @@ if not exist "%TEST_DIR%\projectx.ico" (
     echo [OK] Application icon present.
 )
 if not exist "%TEST_DIR%\resources\translations\en.json" (
-    echo [FAIL] Bundled resources missing under install directory.
+    echo [FAIL] Bundled translation missing: en.json
     exit /b 1
 )
-echo [OK] Bundled resources present.
+if not exist "%TEST_DIR%\resources\translations\hu.json" (
+    echo [FAIL] Bundled translation missing: hu.json
+    exit /b 1
+)
+if not exist "%TEST_DIR%\resources\map\leaflet\leaflet.js" (
+    echo [FAIL] Bundled map resource missing: leaflet.js
+    exit /b 1
+)
+if not exist "%TEST_DIR%\resources\branding\projectx-logo.png" (
+    echo [FAIL] Bundled branding missing: projectx-logo.png
+    exit /b 1
+)
+if not exist "%TEST_DIR%\config\playback.json" (
+    echo [FAIL] Bundled config missing: playback.json
+    exit /b 1
+)
+echo [OK] Bundled resources present (translations, map, branding, config).
 
 echo [3/4] Executable present ...
 if not exist "%TEST_EXE%" (

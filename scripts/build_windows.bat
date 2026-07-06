@@ -39,6 +39,13 @@ if errorlevel 1 goto :report_failure
 call :build_installer
 if errorlevel 1 goto :report_failure
 
+if not exist "%ROOT%\release\windows\ProjectX-Setup.exe" (
+    echo [FAIL] Expected installer not found: release\windows\ProjectX-Setup.exe
+    goto :report_failure
+)
+echo [OK] Verified: release\windows\ProjectX-Setup.exe
+echo.
+
 call :sync_website_installer
 if errorlevel 1 goto :report_failure
 
@@ -130,13 +137,27 @@ echo.
 exit /b 0
 
 :verify_output
-if exist "%ROOT%\dist\projectx\projectx.exe" (
-    echo [OK] Verified: dist\projectx\projectx.exe
-    echo.
-    exit /b 0
+set "BUNDLE=%ROOT%\dist\projectx"
+set "MISSING="
+
+if not exist "%BUNDLE%\projectx.exe" set "MISSING=!MISSING! projectx.exe"
+if not exist "%BUNDLE%\resources\translations\en.json" set "MISSING=!MISSING! resources\translations\en.json"
+if not exist "%BUNDLE%\resources\translations\hu.json" set "MISSING=!MISSING! resources\translations\hu.json"
+if not exist "%BUNDLE%\resources\map\leaflet\leaflet.js" set "MISSING=!MISSING! resources\map\leaflet\leaflet.js"
+if not exist "%BUNDLE%\resources\branding\projectx-logo.png" set "MISSING=!MISSING! resources\branding\projectx-logo.png"
+if not exist "%BUNDLE%\projectx.ico" set "MISSING=!MISSING! projectx.ico"
+if not exist "%BUNDLE%\config\playback.json" set "MISSING=!MISSING! config\playback.json"
+
+if defined MISSING (
+    echo [FAIL] PyInstaller bundle incomplete under dist\projectx\:
+    echo        !MISSING!
+    exit /b 1
 )
-echo [FAIL] Expected output not found: dist\projectx\projectx.exe
-exit /b 1
+
+echo [OK] PyInstaller bundle verified:
+echo        executable, translations, map, branding, icon, config
+echo.
+exit /b 0
 
 :build_installer
 if /I "%SKIP_INSTALLER%"=="1" (
@@ -185,7 +206,8 @@ if exist "%ROOT%\release\windows\ProjectX-Setup.exe" (
     echo.
     echo Next steps:
     echo   1. Run scripts\verify_windows_installer.bat
-    echo   2. Run scripts\prepare_release.sh to refresh checksums and manifest
+    echo   2. Run ./scripts/prepare_release.sh on Linux to refresh checksums
+    echo   3. On a clean VM: install, confirm First Run Wizard, smoke-test map
 ) else (
     echo.
     echo Next steps:
