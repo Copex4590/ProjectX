@@ -89,6 +89,11 @@ prepare_assets() {
     done
 }
 
+verify_data_tree() {
+    echo "Verifying data/ tree contains no runtime artifacts..."
+    "$HOST_PYTHON" "$ROOT/scripts/verify_data_tree_clean.py"
+}
+
 verify_paths() {
     echo "Verifying runtime path resolution..."
 
@@ -179,6 +184,8 @@ run_pyinstaller_windows() {
         "$win_python" -m PyInstaller --noconfirm "$spec_win"
     )
 
+    "$HOST_PYTHON" "$ROOT/scripts/verify_bundle_no_data.py"
+
     if [[ -f "$ROOT/dist/projectx/projectx.exe" ]]; then
         echo "Windows bundle written to: $ROOT/dist/projectx/"
     else
@@ -196,6 +203,7 @@ if [[ -z "$HOST_PYTHON" ]]; then
 fi
 
 prepare_assets
+verify_data_tree
 verify_paths
 
 if [[ "$PREPARE_ONLY" -eq 1 ]]; then

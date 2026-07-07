@@ -10,9 +10,9 @@
 #   - Icons / flags / branding logos (src/resources/)
 #   - Map HTML / CSS / JavaScript (src/resources/map/)
 #   - Read-only config samples + camera packs
-#   - Seed data/ tree
 #
-# Writable runtime files use app.paths (APPDATA on Windows, ~/.local/share on Linux).
+# Writable runtime data (DBs, logbooks, photos) use app.paths user-data dirs.
+# The repo data/ tree is development-only and must not be bundled.
 
 from pathlib import Path
 
@@ -37,7 +37,6 @@ _config_datas = [
 _resource_datas = [
     (str(SRC / "resources"), "resources"),
     *_config_datas,
-    (str(ROOT / "data"), "data"),
     (str(BRANDING / "projectx.ico"), "."),
     (str(BRANDING / "projectx-logo.png"), "."),
 ]

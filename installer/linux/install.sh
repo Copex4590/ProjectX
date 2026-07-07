@@ -82,11 +82,7 @@ echo "Installing ${APP_NAME} to ${INSTALL_DIR}"
 cp -a "${SOURCE_DIR}/src" "${INSTALL_DIR}/"
 cp -a "${SOURCE_DIR}/requirements.txt" "${INSTALL_DIR}/"
 
-if [[ -d "${SOURCE_DIR}/data" ]]; then
-    cp -a "${SOURCE_DIR}/data" "${INSTALL_DIR}/"
-else
-    mkdir -p "${INSTALL_DIR}/data"
-fi
+mkdir -p "${INSTALL_DIR}/data/Hajók" "${INSTALL_DIR}/data/vessel_photos"
 
 ICON_SRC="${SOURCE_DIR}/src/resources/branding/projectx-logo.png"
 ICON_TARGET="${INSTALL_DIR}/projectx.png"

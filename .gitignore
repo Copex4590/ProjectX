@@ -20,6 +20,10 @@ src/config/camera_packs/state.json
 src/alerts/alerts.db
 src/timeline/timeline.db
 src/database/vessels.db
+data/*.db
+data/vessel_photos/*.db
+data/Hajók/*/
+!data/Hajók/.gitkeep
 
 # Build artifacts
 build/

@@ -33,7 +33,7 @@ Project X is **ready for a first Windows release candidate build** after the fix
 
 ### Build readiness
 - PyInstaller spec: `installer/projectx.spec`
-  - Bundles `resources/`, read-only `config/` subsets, sample `data/`
+  - Bundles `resources/` and read-only `config/` subsets only
   - `hiddenimports` for Qt WebEngine, WebChannel, openpyxl, websocket
   - Windowed mode with tracebacks disabled (`disable_windowed_traceback=True`)
 - Build commands documented in `installer/README.md`
@@ -90,10 +90,11 @@ Project X is **ready for a first Windows release candidate build** after the fix
 | `src/config/camera_packs/` | `config/camera_packs/` | Country packs (read-only) |
 | `src/config/playback.json` | `config/` | Playback defaults |
 | `src/config/*.example` | `config/` | Reference only |
-| `data/` | `data/` | Sample / seed data |
 | `projectx.ico`, `projectx-logo.png` | `.` | Windows icon and splash |
 
-**Excluded from bundle** (created at runtime): `preferences.json`, `cameras.json`, `observation_points.json`, `ais_api_key.txt`, `camera_packs/state.json`
+**Not bundled:** runtime `data/` (DBs, logbooks, photos). Created in user data at first launch.
+
+**Excluded from bundle** (created at runtime): `preferences.json`, `cameras.json`, `observation_points.json`, `ais_api_key.txt`, `camera_packs/state.json`, all SQLite databases
 
 ---
 

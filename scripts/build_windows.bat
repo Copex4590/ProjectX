@@ -27,6 +27,9 @@ if errorlevel 1 goto :report_failure
 call :check_bundled_assets
 if errorlevel 1 goto :report_failure
 
+call :verify_data_tree
+if errorlevel 1 goto :report_failure
+
 call :install_dependencies
 if errorlevel 1 goto :report_failure
 
@@ -109,6 +112,14 @@ echo        Pull the latest repository on Linux, commit bundled assets, then try
 echo        Leaflet fetch (Linux): scripts/fetch_leaflet.sh
 exit /b 1
 
+:verify_data_tree
+echo Verifying data/ tree contains no runtime artifacts ...
+"%VENV_PY%" "%ROOT%\scripts\verify_data_tree_clean.py"
+if errorlevel 1 exit /b 1
+echo [OK] data/ tree is clean.
+echo.
+exit /b 0
+
 :install_dependencies
 echo Upgrading pip ...
 "%VENV_PY%" -m pip install --upgrade pip
@@ -151,6 +162,11 @@ if not exist "%BUNDLE%\config\playback.json" set "MISSING=!MISSING! config\playb
 if defined MISSING (
     echo [FAIL] PyInstaller bundle incomplete under dist\projectx\:
     echo        !MISSING!
+    exit /b 1
+)
+
+if exist "%BUNDLE%\data" (
+    echo [FAIL] dist\projectx\data\ must not exist in release bundles.
     exit /b 1
 )
 

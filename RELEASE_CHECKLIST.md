@@ -41,7 +41,7 @@
 |------|--------|----------|
 | **Windows build** | Ready (scripts) | `scripts/build_windows.bat`, `scripts/build_windows.ps1`, dual-boot workflow in `BUILD_WINDOWS.md` |
 | **Linux build** | Ready (scripts) | `scripts/build_linux.sh`, auto `.venv`, asset checks |
-| **PyInstaller** | Ready | `installer/projectx.spec` — `collect_all` for Qt WebEngine, resources, config subset, seed `data/` |
+| **PyInstaller** | Ready | `installer/projectx.spec` — `collect_all` for Qt WebEngine, resources, read-only config subset; runtime `data/` not bundled |
 | **Windows installer script** | Ready | `installer/windows/projectx.iss` (Inno Setup 6) |
 | **Linux installer script** | Ready | `installer/linux/install.sh`, desktop entry, uninstall script |
 | **Runtime resources** | Ready | Leaflet offline bundle, map HTML, translations, flags, camera config packs |
@@ -81,7 +81,7 @@
 |------|-------|
 | **HybridEngine deployment paths** | `src/engines/rtl/hybrid_engine.py` uses hardcoded `/home/zoli/...` paths for RTL file playback, cache, and API key. Functional on original Linux deployment only unless env/deployment is adjusted. |
 | **AIS-Catcher default executable** | `src/config/aiscatcher.py` defaults to `/home/zoli/AIS-catcher/build/AIS-catcher`. Windows/end-user installs must set `PROJECTX_AIS_CATCHER_EXECUTABLE`. |
-| **Vessel photo storage paths** | `src/vessels/photo_registry.py` resolves photos relative to source tree, not `app.paths.runtime_data_dir()` — may behave incorrectly in frozen Windows builds when writing photos. |
+| **Vessel photo storage paths** | Fixed — `photo_registry.py` uses `runtime_data_dir()`; `ensure_runtime_data_dirs()` creates structure at startup |
 | **Playback config path** | `src/config/playback.py` uses package directory, not frozen runtime config dir — read-only defaults OK, user overrides via env only. |
 | **Alert automation** | Alert evaluation API exists; automatic hooks from monitoring/timeline not wired (documented in README). |
 | **Camera packs → active registry** | Packs managed but not fully loaded into active camera registry (README limitation). |

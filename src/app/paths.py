@@ -75,3 +75,15 @@ def runtime_config_path(filename: str) -> Path:
 def runtime_data_path(filename: str) -> Path:
 
     return runtime_data_dir() / filename
+
+
+_RUNTIME_DATA_SUBDIRS = ("Hajók", "vessel_photos")
+
+
+def ensure_runtime_data_dirs() -> None:
+
+    data_dir = runtime_data_dir()
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    for name in _RUNTIME_DATA_SUBDIRS:
+        (data_dir / name).mkdir(parents=True, exist_ok=True)

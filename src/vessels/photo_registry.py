@@ -9,15 +9,15 @@ from datetime import datetime
 from pathlib import Path
 from threading import Lock
 
+from app.paths import runtime_data_dir
 from vessels.photo_record import PhotoRecord
 
-_VESSELS_DIR = Path(__file__).resolve().parent
-_PROJECT_ROOT = _VESSELS_DIR.parent.parent
+_DEFAULT_VESSEL_PHOTOS_DIR = runtime_data_dir() / "vessel_photos"
 
 VESSEL_PHOTOS_DIR = Path(
     os.environ.get(
         "PROJECTX_VESSEL_PHOTOS_DIR",
-        str(_PROJECT_ROOT / "data" / "vessel_photos"),
+        str(_DEFAULT_VESSEL_PHOTOS_DIR),
     )
 )
 

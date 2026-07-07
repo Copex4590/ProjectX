@@ -14,6 +14,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app.logging_config import configure_logging
 from app.mainwindow import MainWindow
+from app.paths import ensure_runtime_data_dirs
 from branding.assets import app_icon
 from gui.splashscreen import create_splash_screen
 from i18n import tr
@@ -64,6 +65,7 @@ class Application:
 
         configure_logging()
         _install_exception_hook()
+        ensure_runtime_data_dirs()
 
         self.qt = QApplication(sys.argv)
         self.qt.setApplicationName(PROJECT_NAME)

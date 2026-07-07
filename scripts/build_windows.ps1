@@ -57,6 +57,11 @@ try {
     }
     Write-Host "[OK] Bundled assets present in repository.`n"
 
+    Write-Host "Verifying data/ tree contains no runtime artifacts ..."
+    & $venvPython (Join-Path $Root "scripts\verify_data_tree_clean.py")
+    if ($LASTEXITCODE -ne 0) { throw "data/ tree contains developer runtime artifacts." }
+    Write-Host "[OK] data/ tree is clean.`n"
+
     Write-Host "Upgrading pip ..."
     & $venvPython -m pip install --upgrade pip
     Write-Host "Installing requirements.txt ..."
@@ -82,6 +87,9 @@ try {
         if (-not (Test-Path $path)) {
             throw "PyInstaller bundle incomplete, missing: $path"
         }
+    }
+    if (Test-Path (Join-Path $bundleRoot "data")) {
+        throw "dist\projectx\data\ must not exist in release bundles."
     }
     Write-Host "[OK] PyInstaller bundle verified: executable, translations, map, branding, icon, config`n"
 

@@ -68,9 +68,10 @@ dist/projectx/
   projectx-logo.png
   resources/
   config/
-  data/
   ... PySide6 / Qt WebEngine runtime ...
 ```
+
+User data is created at first launch under `%APPDATA%\Project X\data\` (not bundled).
 
 Smoke-test after build:
 
@@ -147,10 +148,10 @@ Bundles:
 - Translations (`src/resources/translations/`)
 - Map HTML / CSS / JavaScript
 - Icons, flags, branding logos
-- Read-only config samples and seed `data/`
+- Read-only config samples (`.example` files, camera packs, static cameras)
 - Windows icon on `projectx.exe`
 
-Writable runtime files use `src/app/paths.py` (`%APPDATA%/Project X/` on Windows).
+Writable runtime data (DBs, logbooks, photos) is **not bundled**. It is created in the user data directory at first launch via `ensure_runtime_data_dirs()` in `src/app/paths.py`.
 
 ---
 

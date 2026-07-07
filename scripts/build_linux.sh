@@ -84,6 +84,11 @@ prepare_assets() {
     done
 }
 
+verify_data_tree() {
+    echo "Verifying data/ tree contains no runtime artifacts..."
+    "$PYTHON" "$ROOT/scripts/verify_data_tree_clean.py"
+}
+
 verify_paths() {
     echo "Verifying runtime path resolution..."
 
@@ -127,6 +132,7 @@ run_pyinstaller() {
     echo "Running PyInstaller for Linux..."
     "$PYTHON" -m PyInstaller --noconfirm "$ROOT/installer/projectx.spec"
     echo "Linux bundle written to: $ROOT/dist/projectx/"
+    "$PYTHON" "$ROOT/scripts/verify_bundle_no_data.py"
 }
 
 if [[ -z "$PYTHON" ]]; then
@@ -138,6 +144,7 @@ if [[ -z "$PYTHON" ]]; then
 fi
 
 prepare_assets
+verify_data_tree
 verify_paths
 
 if [[ "$PREPARE_ONLY" -eq 1 ]]; then
