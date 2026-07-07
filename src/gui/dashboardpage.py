@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -125,7 +126,13 @@ class DashboardPage(QWidget):
         self._move_lat = CAMERA_LAT
         self._move_lon = CAMERA_LON
 
-        layout = QVBoxLayout(self)
+        root_layout = QVBoxLayout(self)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+
+        content = QWidget()
+        layout = QVBoxLayout(content)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
 
@@ -528,6 +535,9 @@ class DashboardPage(QWidget):
 
         layout.addLayout(grid)
         layout.addStretch()
+
+        root_layout.addWidget(scroll)
+        scroll.setWidget(content)
 
         self._move_button.clicked.connect(self._start_move_mode)
         self._save_move_button.clicked.connect(self._save_move)
