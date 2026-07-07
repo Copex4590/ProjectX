@@ -13,8 +13,8 @@ from observation.coords import (
     fallback_coordinates,
 )
 from gui.vesselcard import vessel_card_layout_manager
+from gui.mapcontroller import MapController
 from gui.widgets.camerapreviewpanel import CameraPreviewPanel
-from gui.widgets.mapwidget import MapWidget
 from i18n import language_manager, tr
 from vessel_statistics.statistics_manager import statistics_manager
 from timeline.timeline_manager import timeline_manager
@@ -168,21 +168,28 @@ def _enrich_camera_fields(ship, payload: dict) -> None:
     payload["camera_name"] = None
 
     if ship.lat is not None and ship.lon is not None:
-        origin_lat, origin_lon = fallback_coordinates()
+        origin = fallback_coordinates()
+
+        if origin is None:
+            payload["camera_bearing_deg"] = None
+            payload["camera_distance_km"] = None
+            return
+
+        origin_lat, origin_lon = origin
         payload["camera_bearing_deg"] = bearing_deg_from_origin(
             ship.lat,
             ship.lon,
             origin_lat=origin_lat,
             origin_lon=origin_lon,
         )
-        payload["camera_distance_km"] = round(
-            distance_km_from_origin(
-                ship.lat,
-                ship.lon,
-                origin_lat=origin_lat,
-                origin_lon=origin_lon,
-            ),
-            2,
+        distance_km = distance_km_from_origin(
+            ship.lat,
+            ship.lon,
+            origin_lat=origin_lat,
+            origin_lon=origin_lon,
+        )
+        payload["camera_distance_km"] = (
+            round(distance_km, 2) if distance_km is not None else None
         )
         return
 
@@ -263,7 +270,8 @@ class MapPage(QWidget):
         map_layout = QVBoxLayout(map_container)
         map_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.map = MapWidget()
+        self._map_controller = MapController.instance()
+        self.map = self._map_controller.widget()
         map_layout.addWidget(self.map)
 
         layout.addWidget(map_container, 1)
@@ -281,7 +289,7 @@ class MapPage(QWidget):
         )
         self.map.openLogbookRequested.connect(self._open_logbook)
         self.apply_personalization()
-        self.refresh_observation_point()
+        self._map_controller.refresh_observation_points()
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_ships)
@@ -291,16 +299,16 @@ class MapPage(QWidget):
     def _on_map_ready(self) -> None:
 
         self.apply_personalization()
-        self.refresh_observation_point()
+        self._map_controller.refresh_observation_points()
 
     def refresh_observation_point(self) -> None:
 
-        origin_lat, origin_lon = fallback_coordinates()
-        self.map.set_observation_point(origin_lat, origin_lon)
+        self._map_controller.refresh_observation_points()
 
     def on_observation_changed(self) -> None:
 
         self.refresh_observation_point()
+        self._map_controller.maybe_prompt_reference_selection()
         self.update_ships()
 
     def apply_personalization(self, layout: str | None = None) -> None:

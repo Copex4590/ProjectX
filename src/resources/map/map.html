@@ -73,9 +73,77 @@
             width: 18px;
             height: 18px;
             border-radius: 50%;
-            background: #e53935;
             border: 2px solid #ffffff;
+        }
+
+        .observation-marker--active {
+            background: #43a047;
+            box-shadow: 0 0 8px rgba(67, 160, 71, 0.75);
+        }
+
+        .observation-marker--inactive {
+            background: #e53935;
             box-shadow: 0 0 8px rgba(229, 57, 53, 0.75);
+        }
+
+        .map-context-menu {
+            position: absolute;
+            z-index: 2000;
+            min-width: 180px;
+            padding: 4px 0;
+            border-radius: 8px;
+            background: rgba(29, 33, 39, 0.96);
+            border: 1px solid #3d4a5c;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+            font-size: 13px;
+            color: #d5dbe3;
+        }
+
+        .map-context-menu[hidden] {
+            display: none;
+        }
+
+        .map-context-menu__item {
+            display: block;
+            width: 100%;
+            padding: 8px 14px;
+            border: none;
+            background: transparent;
+            color: inherit;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .map-context-menu__item:hover {
+            background: rgba(25, 118, 210, 0.22);
+        }
+
+        .map-context-menu__item--danger:hover {
+            background: rgba(229, 57, 53, 0.22);
+        }
+
+        .map-empty-state {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            max-width: min(90%, 320px);
+            padding: 12px 16px;
+            border-radius: 10px;
+            background: rgba(29, 33, 39, 0.92);
+            border: 1px solid #3d4a5c;
+            color: #d5dbe3;
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+            font-size: 13px;
+            text-align: center;
+            pointer-events: none;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        }
+
+        .map-empty-state[hidden] {
+            display: none;
         }
 
         .vessel-card {
@@ -333,9 +401,9 @@
 
         .vessel-card__logbook-btn {
             width: 100%;
-            border: 1px solid #4a5159;
+            border: 1px solid #2d5a8e;
             border-radius: 6px;
-            background: #343a42;
+            background: #243651;
             color: white;
             font-size: 12px;
             font-weight: 600;
@@ -344,7 +412,7 @@
         }
 
         .vessel-card__logbook-btn:hover {
-            background: #3f464f;
+            background: #2d4a6f;
         }
     </style>
 </head>
@@ -352,10 +420,22 @@
 <body>
 
 <div id="map"></div>
+<div id="empty-state" class="map-empty-state" hidden></div>
+<div id="context-menu" class="map-context-menu" hidden></div>
 
 <script>
 
-const map = L.map("map").setView([47.4979, 19.0402], 11);
+const WORLD_BOUNDS = L.latLngBounds(
+    L.latLng(-60, -180),
+    L.latLng(75, 180)
+);
+
+const map = L.map("map", {
+    worldCopyJump: true,
+    minZoom: 2,
+    maxBounds: WORLD_BOUNDS,
+    maxBoundsViscosity: 1.0
+});
 
 L.tileLayer(
     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -399,28 +479,322 @@ function attachLogbookHandlers(popupElement)
 }
 
 initBridge();
-let observationMarker = null;
+const observationMarkers = {};
+let observationRecords = {};
+let pickEnabled = false;
+let movePointId = null;
+let contextLatLng = null;
 
-function setObservationPoint(lat, lon)
+function observationIcon(active)
 {
-    const position = [lat, lon];
+    const stateClass = active
+        ? "observation-marker--active"
+        : "observation-marker--inactive";
 
-    if (!observationMarker)
+    return L.divIcon({
+        className: "",
+        html: "<div class='observation-marker " + stateClass + "'></div>",
+        iconSize: [18, 18],
+        iconAnchor: [9, 9]
+    });
+}
+
+function hideContextMenu()
+{
+    const menu = document.getElementById("context-menu");
+
+    if (menu)
+        menu.hidden = true;
+}
+
+function showContextMenu(clientX, clientY, items)
+{
+    const menu = document.getElementById("context-menu");
+
+    if (!menu)
+        return;
+
+    menu.innerHTML = "";
+
+    for (const item of items)
     {
-        const icon = L.divIcon({
-            className: "",
-            html: "<div class='observation-marker'></div>",
-            iconSize: [18, 18],
-            iconAnchor: [9, 9]
-        });
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "map-context-menu__item";
 
-        observationMarker = L.marker(position, { icon: icon }).addTo(map);
+        if (item.danger)
+            button.classList.add("map-context-menu__item--danger");
+
+        button.textContent = item.label;
+        button.onclick = function()
+        {
+            hideContextMenu();
+            item.action();
+        };
+        menu.appendChild(button);
+    }
+
+    const mapElement = document.getElementById("map");
+    const rect = mapElement.getBoundingClientRect();
+    menu.style.left = Math.min(clientX - rect.left, rect.width - 200) + "px";
+    menu.style.top = Math.min(clientY - rect.top, rect.height - (items.length * 36)) + "px";
+    menu.hidden = false;
+}
+
+document.addEventListener("click", hideContextMenu);
+
+function fitWorldMap()
+{
+    map.fitBounds(WORLD_BOUNDS, { padding: [20, 20] });
+}
+
+function showEmptyOverlay(message)
+{
+    const overlay = document.getElementById("empty-state");
+
+    if (!overlay)
+        return;
+
+    if (message)
+    {
+        overlay.textContent = message;
+        overlay.hidden = false;
     }
     else
     {
-        observationMarker.setLatLng(position);
+        overlay.textContent = "";
+        overlay.hidden = true;
     }
 }
+
+function clearObservationPoints(message)
+{
+    for (const pointId in observationMarkers)
+    {
+        map.removeLayer(observationMarkers[pointId]);
+        delete observationMarkers[pointId];
+    }
+
+    observationRecords = {};
+    movePointId = null;
+    fitWorldMap();
+    showEmptyOverlay(message || "");
+}
+
+function updateObservationPoints(points)
+{
+    const activeIds = new Set();
+
+    showEmptyOverlay("");
+
+    for (const point of points)
+    {
+        const pointId = String(point.id);
+        activeIds.add(pointId);
+
+        const position = [point.lat, point.lon];
+        observationRecords[pointId] = point;
+
+        if (!observationMarkers[pointId])
+        {
+            const marker = L.marker(position, {
+                icon: observationIcon(!!point.active)
+            }).addTo(map);
+
+            marker.on("contextmenu", function(event)
+            {
+                L.DomEvent.stopPropagation(event);
+                event.originalEvent.preventDefault();
+                showObservationContextMenu(
+                    pointId,
+                    event.originalEvent.clientX,
+                    event.originalEvent.clientY
+                );
+            });
+
+            observationMarkers[pointId] = marker;
+        }
+        else
+        {
+            observationMarkers[pointId].setLatLng(position);
+            observationMarkers[pointId].setIcon(
+                observationIcon(!!point.active)
+            );
+        }
+    }
+
+    for (const pointId in observationMarkers)
+    {
+        if (!activeIds.has(pointId))
+        {
+            map.removeLayer(observationMarkers[pointId]);
+            delete observationMarkers[pointId];
+            delete observationRecords[pointId];
+        }
+    }
+
+    if (points.length === 0)
+    {
+        fitWorldMap();
+        return;
+    }
+
+    if (points.length === 1)
+    {
+        map.setView(
+            [points[0].lat, points[0].lon],
+            Math.max(map.getZoom(), 11)
+        );
+    }
+}
+
+function showObservationContextMenu(pointId, clientX, clientY)
+{
+    const point = observationRecords[pointId];
+
+    if (!point || !bridge || !bridge.observationAction)
+        return;
+
+    const items = [
+        {
+            label: "Rename",
+            action: function()
+            {
+                bridge.observationAction(pointId, "rename");
+            }
+        },
+        {
+            label: "Move",
+            action: function()
+            {
+                bridge.observationAction(pointId, "move");
+            }
+        },
+        {
+            label: "Activate",
+            action: function()
+            {
+                bridge.observationAction(pointId, "activate");
+            }
+        },
+        {
+            label: "Deactivate",
+            action: function()
+            {
+                bridge.observationAction(pointId, "deactivate");
+            }
+        },
+        {
+            label: "Assign camera",
+            action: function()
+            {
+                bridge.observationAction(pointId, "assign_camera");
+            }
+        },
+        {
+            label: "Open camera",
+            action: function()
+            {
+                bridge.observationAction(pointId, "open_camera");
+            }
+        },
+        {
+            label: "Delete",
+            danger: true,
+            action: function()
+            {
+                bridge.observationAction(pointId, "delete");
+            }
+        }
+    ];
+
+    showContextMenu(clientX, clientY, items);
+}
+
+function showEmptyMapContextMenu(latlng, clientX, clientY)
+{
+    if (!bridge || !bridge.mapEmptyAction)
+        return;
+
+    contextLatLng = latlng;
+
+    showContextMenu(clientX, clientY, [
+        {
+            label: "Create observation point",
+            action: function()
+            {
+                if (!contextLatLng)
+                    return;
+
+                bridge.mapEmptyAction(
+                    "create",
+                    contextLatLng.lat,
+                    contextLatLng.lng
+                );
+            }
+        }
+    ]);
+}
+
+function enablePickMode(enabled)
+{
+    pickEnabled = !!enabled;
+}
+
+function enableMoveMode(pointId)
+{
+    movePointId = pointId ? String(pointId) : null;
+}
+
+function clearObservationPoint(message)
+{
+    clearObservationPoints(message);
+}
+
+function setObservationPoint(lat, lon)
+{
+    updateObservationPoints([
+        {
+            id: "__legacy__",
+            name: "",
+            lat: lat,
+            lon: lon,
+            active: true
+        }
+    ]);
+}
+
+map.on("contextmenu", function(event)
+{
+    event.originalEvent.preventDefault();
+    hideContextMenu();
+    showEmptyMapContextMenu(
+        event.latlng,
+        event.originalEvent.clientX,
+        event.originalEvent.clientY
+    );
+});
+
+map.on("click", function(event)
+{
+    if (pickEnabled && bridge && bridge.reportLocation)
+    {
+        bridge.reportLocation(event.latlng.lat, event.latlng.lng);
+        return;
+    }
+
+    if (movePointId && bridge && bridge.observationMoved)
+    {
+        bridge.observationMoved(
+            movePointId,
+            event.latlng.lat,
+            event.latlng.lng
+        );
+        movePointId = null;
+    }
+});
+
+fitWorldMap();
 
 map.on("popupopen", function(event)
 {
