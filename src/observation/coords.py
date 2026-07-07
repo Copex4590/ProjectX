@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import math
 
-from engines.rtl.hybrid_engine import CAMERA_LAT, CAMERA_LON
 from observation.observation_manager import observation_manager
 
 
@@ -16,14 +15,14 @@ def observation_coordinates() -> tuple[float, float] | None:
     return observation_manager.coordinates()
 
 
-def fallback_coordinates() -> tuple[float, float]:
+def reference_coordinates() -> tuple[float, float] | None:
 
-    coords = observation_coordinates()
+    return observation_manager.reference_coordinates()
 
-    if coords is not None:
-        return coords
 
-    return CAMERA_LAT, CAMERA_LON
+def fallback_coordinates() -> tuple[float, float] | None:
+
+    return reference_coordinates()
 
 
 def distance_km_from_origin(
@@ -32,10 +31,15 @@ def distance_km_from_origin(
     *,
     origin_lat: float | None = None,
     origin_lon: float | None = None,
-) -> float:
+) -> float | None:
 
     if origin_lat is None or origin_lon is None:
-        origin_lat, origin_lon = fallback_coordinates()
+        coords = fallback_coordinates()
+
+        if coords is None:
+            return None
+
+        origin_lat, origin_lon = coords
 
     delta_lat = latitude - origin_lat
     delta_lon = longitude - origin_lon
@@ -48,10 +52,15 @@ def bearing_deg_from_origin(
     *,
     origin_lat: float | None = None,
     origin_lon: float | None = None,
-) -> float:
+) -> float | None:
 
     if origin_lat is None or origin_lon is None:
-        origin_lat, origin_lon = fallback_coordinates()
+        coords = fallback_coordinates()
+
+        if coords is None:
+            return None
+
+        origin_lat, origin_lon = coords
 
     lat1 = math.radians(origin_lat)
     lat2 = math.radians(latitude)
