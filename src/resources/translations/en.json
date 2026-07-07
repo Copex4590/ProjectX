@@ -468,6 +468,7 @@
   "No vessels": "No vessels",
   "No cameras": "No cameras",
   "No observation point": "No observation point",
+  "No observation point configured": "No observation point configured",
   "No vessels found": "No vessels found",
   "No events found": "No events found",
   "No alerts found": "No alerts found",
@@ -548,5 +549,14 @@
   "Logbook": "Logbook",
   "Configuration": "Configuration",
   "Project X could not start because an unexpected error occurred.": "Project X could not start because an unexpected error occurred.",
-  "Project X could not start because the main window failed to initialize.": "Project X could not start because the main window failed to initialize."
+  "Project X could not start because the main window failed to initialize.": "Project X could not start because the main window failed to initialize.",
+  "Reference Observation Point": "Reference Observation Point",
+  "Multiple observation points are active. Choose which one to use for distance and bearing calculations.": "Multiple observation points are active. Choose which one to use for distance and bearing calculations.",
+  "Reference point": "Reference point",
+  "Create observation point": "Create observation point",
+  "Move observation point": "Move observation point",
+  "Click the map to place the observation point at a new location.": "Click the map to place the observation point at a new location.",
+  "Open camera": "Open camera",
+  "No camera is assigned to this observation point.": "No camera is assigned to this observation point.",
+  "Camera playback opens from the map sidebar for now. A dedicated resizable camera window arrives in a later phase.": "Camera playback opens from the map sidebar for now. A dedicated resizable camera window arrives in a later phase."
 }

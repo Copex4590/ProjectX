@@ -468,6 +468,7 @@
   "No vessels": "Nincs hajó",
   "No cameras": "Nincs kamera",
   "No observation point": "Nincs megfigyelőpont",
+  "No observation point configured": "Nincs megfigyelőpont beállítva",
   "No vessels found": "Nem található hajó",
   "No events found": "Nem található esemény",
   "No alerts found": "Nem található riasztás",
@@ -548,5 +549,14 @@
   "Logbook": "Hajónapló",
   "Configuration": "Konfiguráció",
   "Project X could not start because an unexpected error occurred.": "A Project X nem indítható el váratlan hiba miatt.",
-  "Project X could not start because the main window failed to initialize.": "A Project X nem indítható el, mert a főablak inicializálása sikertelen."
+  "Project X could not start because the main window failed to initialize.": "A Project X nem indítható el, mert a főablak inicializálása sikertelen.",
+  "Reference Observation Point": "Referencia megfigyelőpont",
+  "Multiple observation points are active. Choose which one to use for distance and bearing calculations.": "Több megfigyelőpont aktív. Válassza ki, melyik legyen a távolság- és irányszámítások referenciája.",
+  "Reference point": "Referenciapont",
+  "Create observation point": "Megfigyelőpont létrehozása",
+  "Move observation point": "Megfigyelőpont áthelyezése",
+  "Click the map to place the observation point at a new location.": "Kattintson a térképre az új hely kiválasztásához.",
+  "Open camera": "Kamera megnyitása",
+  "No camera is assigned to this observation point.": "Ehhez a megfigyelőponthoz nincs kamera rendelve.",
+  "Camera playback opens from the map sidebar for now. A dedicated resizable camera window arrives in a later phase.": "A kamerakép egyelőre a térkép oldalsó paneljén érhető el. Az átméretezhető kameraablak egy későbbi fázisban érkezik."
 }

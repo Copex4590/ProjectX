@@ -1,6 +1,6 @@
 import logging
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
@@ -17,6 +17,7 @@ from gui.statuspanel import StatusPanel
 from gui.menubar import MenuBar
 
 from gui.dashboardpage import DashboardPage
+from gui.mapcontroller import MapController
 from gui.mappage import MapPage
 from gui.vesselspage import VesselsPage
 from gui.camerapage import CameraPage
@@ -127,8 +128,20 @@ class MainWindow(QMainWindow):
             connection,
         )
 
-        if self._should_show_first_run_wizard():
-            QTimer.singleShot(0, self._show_first_run_wizard)
+    def run_first_run_wizard(self) -> None:
+
+        if not self._should_show_first_run_wizard():
+            return
+
+        wizard = FirstRunWizard(self)
+
+        if wizard.exec() != FirstRunWizard.DialogCode.Accepted:
+            return
+
+        if wizard.open_camera_page:
+            self.pages.setCurrentIndex(3)
+        else:
+            self.pages.setCurrentIndex(0)
 
     def _connect_cameras(self) -> None:
 
@@ -152,21 +165,6 @@ class MainWindow(QMainWindow):
         preferences = preferences_manager.get()
         return not preferences.first_run_completed
 
-    def _show_first_run_wizard(self) -> None:
-
-        if not self._should_show_first_run_wizard():
-            return
-
-        wizard = FirstRunWizard(self)
-
-        if wizard.exec() != FirstRunWizard.DialogCode.Accepted:
-            return
-
-        if wizard.open_camera_page:
-            self.pages.setCurrentIndex(3)
-        else:
-            self.pages.setCurrentIndex(0)
-
     def build_ui(self):
 
         self.menu_bar = MenuBar()
@@ -184,6 +182,7 @@ class MainWindow(QMainWindow):
 
         self.dashboard_page = DashboardPage()
         self.map_page = MapPage()
+        MapController.instance().set_dialog_parent(self)
         self.vessels_page = VesselsPage()
         self.camera_page = CameraPage()
         self.vessel_database_page = VesselDatabasePage()
@@ -209,7 +208,8 @@ class MainWindow(QMainWindow):
         self.system_health_page.attach_hybrid_engine(self.hybrid_engine)
 
         self.sidebar = Sidebar()
-        self.sidebar.pageSelected.connect(self.pages.setCurrentIndex)
+        self.sidebar.pageSelected.connect(self._on_page_selected)
+        self.pages.currentChanged.connect(self.sidebar.set_active_page)
 
         self.settings_page.personalization_changed.connect(
             self._apply_personalization
@@ -241,6 +241,12 @@ class MainWindow(QMainWindow):
         self.setStatusBar(StatusPanel())
 
         self._apply_personalization()
+
+        MapController.instance().maybe_prompt_reference_selection()
+
+    def _on_page_selected(self, index: int) -> None:
+
+        self.pages.setCurrentIndex(index)
 
     def _apply_personalization(self) -> None:
 
