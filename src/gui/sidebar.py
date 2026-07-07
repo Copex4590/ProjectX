@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QLabel, QPushButton, QFrame, QVBoxLayout
+from PySide6.QtWidgets import QLabel, QPushButton, QFrame, QVBoxLayout, QButtonGroup
 
 from branding.assets import logo_pixmap
 from i18n import language_manager, tr
@@ -20,8 +20,7 @@ class Sidebar(QFrame):
         ("Statistics", 6),
         ("Alert Center", 7),
         ("Alert Rules", 8),
-        ("Settings", 9),
-        ("System Health", 10),
+        ("System Health", 9),
     )
 
     _PAGE_ICONS = (
@@ -34,7 +33,6 @@ class Sidebar(QFrame):
         "📊",
         "🔔",
         "⚙",
-        "🔧",
         "🩺",
     )
 
@@ -42,24 +40,31 @@ class Sidebar(QFrame):
         super().__init__()
 
         self.setFixedWidth(260)
+        self._active_page = 0
 
         self.setStyleSheet("""
-            QFrame{
-                background:#1d2127;
-                border-right:1px solid #40444b;
+            QFrame {
+                background: #1d2127;
+                border-right: 1px solid #40444b;
             }
 
-            QPushButton{
-                color:white;
-                background:transparent;
-                border:none;
-                text-align:left;
-                padding:10px;
-                font-size:12pt;
+            QPushButton {
+                color: white;
+                background: transparent;
+                border: none;
+                text-align: left;
+                padding: 10px;
+                font-size: 12pt;
+                border-radius: 6px;
             }
 
-            QPushButton:hover{
-                background:#3b434d;
+            QPushButton:hover {
+                background: #3b434d;
+            }
+
+            QPushButton:checked {
+                background: #1976d2;
+                font-weight: 600;
             }
         """)
 
@@ -79,13 +84,17 @@ class Sidebar(QFrame):
         self._layout.addWidget(self._title_label)
 
         self._buttons: list[QPushButton] = []
+        self._button_group = QButtonGroup(self)
+        self._button_group.setExclusive(True)
 
         for index, (label_key, page_index) in enumerate(self._PAGE_KEYS):
             button = QPushButton()
+            button.setCheckable(True)
             button.clicked.connect(
                 lambda checked=False, i=page_index:
                 self.pageSelected.emit(i)
             )
+            self._button_group.addButton(button)
             self._buttons.append(button)
             self._layout.addWidget(button)
 
@@ -95,6 +104,14 @@ class Sidebar(QFrame):
             lambda _code: self.refresh_translations()
         )
         self.refresh_translations()
+        self.set_active_page(0)
+
+    def set_active_page(self, page_index: int) -> None:
+
+        self._active_page = page_index
+
+        for index, (_label_key, mapped_index) in enumerate(self._PAGE_KEYS):
+            self._buttons[index].setChecked(mapped_index == page_index)
 
     def refresh_translations(self) -> None:
 
@@ -112,3 +129,5 @@ class Sidebar(QFrame):
             self._buttons[index].setText(
                 f"{icon} {tr(label_key)}"
             )
+
+        self.set_active_page(self._active_page)

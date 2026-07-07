@@ -558,5 +558,7 @@
   "Click the map to place the observation point at a new location.": "Click the map to place the observation point at a new location.",
   "Open camera": "Open camera",
   "No camera is assigned to this observation point.": "No camera is assigned to this observation point.",
-  "Camera playback opens from the map sidebar for now. A dedicated resizable camera window arrives in a later phase.": "Camera playback opens from the map sidebar for now. A dedicated resizable camera window arrives in a later phase."
+  "Camera playback opens from the map sidebar for now. A dedicated resizable camera window arrives in a later phase.": "Camera playback opens from the map sidebar for now. A dedicated resizable camera window arrives in a later phase.",
+  "Operational control center": "Operational control center",
+  "Geographic editing is available on the Live Map.": "Geographic editing is available on the Live Map."
 }

@@ -26,7 +26,6 @@ from gui.vesseltimelinepage import VesselTimelinePage
 from gui.statisticspage import StatisticsPage
 from gui.alertcenterpage import AlertCenterPage
 from gui.rulespage import RulesPage
-from gui.settingspage import SettingsPage
 from gui.systemhealthpage import SystemHealthPage
 from gui.eventbridge import EventBridge
 from camera import camera_manager
@@ -190,7 +189,6 @@ class MainWindow(QMainWindow):
         self.statistics_page = StatisticsPage()
         self.alert_center_page = AlertCenterPage()
         self.rules_page = RulesPage()
-        self.settings_page = SettingsPage()
         self.system_health_page = SystemHealthPage()
 
         self.pages.addWidget(self.dashboard_page)        # 0
@@ -202,8 +200,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self.statistics_page)       # 6
         self.pages.addWidget(self.alert_center_page)     # 7
         self.pages.addWidget(self.rules_page)            # 8
-        self.pages.addWidget(self.settings_page)         # 9
-        self.pages.addWidget(self.system_health_page)    # 10
+        self.pages.addWidget(self.system_health_page)    # 9
 
         self.system_health_page.attach_hybrid_engine(self.hybrid_engine)
 
@@ -211,7 +208,7 @@ class MainWindow(QMainWindow):
         self.sidebar.pageSelected.connect(self._on_page_selected)
         self.pages.currentChanged.connect(self.sidebar.set_active_page)
 
-        self.settings_page.personalization_changed.connect(
+        self.dashboard_page.personalization_changed.connect(
             self._apply_personalization
         )
         language_manager.language_changed.connect(
@@ -261,7 +258,6 @@ class MainWindow(QMainWindow):
             self.statistics_page,
             self.alert_center_page,
             self.rules_page,
-            self.settings_page,
             self.system_health_page,
         ):
             refresh = getattr(page, "refresh_translations", None)
@@ -300,10 +296,15 @@ class MainWindow(QMainWindow):
         page.testAisRequested.connect(self._test_ais_from_health)
         page.rtlSetupRequested.connect(self._open_rtl_setup)
         page.rtlDiagnosticsRequested.connect(self._open_rtl_diagnostics)
-        page.openSettingsRequested.connect(lambda: self.pages.setCurrentIndex(9))
+        page.openSettingsRequested.connect(self._open_dashboard_configuration)
         page.openDashboardRequested.connect(lambda: self.pages.setCurrentIndex(0))
         page.openMapRequested.connect(lambda: self.pages.setCurrentIndex(1))
         page.cameraDiagnosticsRequested.connect(self._open_camera_diagnostics)
+
+    def _open_dashboard_configuration(self) -> None:
+
+        self.pages.setCurrentIndex(0)
+        self.dashboard_page.open_configuration_section()
 
     def _open_ais_configure(self) -> None:
 
@@ -355,8 +356,8 @@ class MainWindow(QMainWindow):
 
     def _open_camera_diagnostics(self) -> None:
 
-        self.pages.setCurrentIndex(9)
-        self.settings_page.camera_diagnostics.refresh()
+        self.pages.setCurrentIndex(0)
+        self.dashboard_page.open_configuration_section(focus_diagnostics=True)
 
     def focus_ship(self, mmsi):
 

@@ -1,9 +1,11 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QShowEvent
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
+    QFormLayout,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -17,7 +19,6 @@ from PySide6.QtWidgets import (
 )
 
 from database import registry
-from engines.rtl.hybrid_engine import CAMERA_LAT, CAMERA_LON
 from ais import ais_manager
 from camera import camera_manager
 from gui.aiswizard import AISWizard
@@ -27,11 +28,53 @@ from gui.wizardhelp import show_wizard_help
 from gui.camerawizard import CameraWizard
 from gui.i18n_support import bind_language_refresh
 from gui.observationwizard import ObservationWizard
-from gui.widgets.observationmapwidget import ObservationMapWidget
-from i18n import tr
+from gui.settings.cameradiagnosticspanel import CameraDiagnosticsPanel
+from gui.settings.playbacksettings import PlaybackSettingsPage
+from i18n import language_manager, tr
 from logbook import logbook_manager
 from observation import observation_manager
+from preferences import (
+    SUPPORTED_LANGUAGES,
+    SUPPORTED_VESSEL_CARD_LAYOUTS,
+    preferences_manager,
+)
 from rtl import rtl_manager
+
+_CARD_STYLE = """
+    QFrame {
+        background: #252a31;
+        border: 1px solid #3d4a5c;
+        border-radius: 10px;
+    }
+"""
+
+_BUTTON_STYLE = """
+    QPushButton {
+        background: #243651;
+        color: white;
+        border: 1px solid #2d5a8e;
+        border-radius: 6px;
+        padding: 6px 12px;
+    }
+    QPushButton:hover {
+        background: #2d4a6f;
+    }
+    QPushButton:disabled {
+        color: #7a8494;
+    }
+"""
+
+_LANGUAGE_LABELS = {
+    "en": "English",
+    "hu": "Magyar",
+}
+
+_LAYOUT_LABELS = {
+    "compact": "Compact",
+    "standard": "Standard",
+    "detailed": "Detailed",
+    "media": "Media",
+}
 
 
 class InfoCard(QFrame):
@@ -45,7 +88,7 @@ class InfoCard(QFrame):
         self.setStyleSheet("""
             QFrame{
                 background:#252a31;
-                border:1px solid #40444b;
+                border:1px solid #3d4a5c;
                 border-radius:10px;
             }
         """)
@@ -119,17 +162,19 @@ class _RenameDialog(QDialog):
 
 class DashboardPage(QWidget):
 
+    personalization_changed = Signal()
+
     def __init__(self):
         super().__init__()
 
-        self._move_mode = False
-        self._move_lat = CAMERA_LAT
-        self._move_lon = CAMERA_LON
-
         root_layout = QVBoxLayout(self)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._scroll.setStyleSheet(
+            "QScrollArea { background: transparent; border: none; }"
+        )
 
         content = QWidget()
         layout = QVBoxLayout(content)
@@ -145,14 +190,37 @@ class DashboardPage(QWidget):
         """)
         layout.addWidget(self._title_label)
 
+        self._subtitle_label = QLabel()
+        self._subtitle_label.setAlignment(Qt.AlignCenter)
+        self._subtitle_label.setStyleSheet(
+            "color: #9aa4af; font-size: 11pt; padding-bottom: 4px;"
+        )
+        layout.addWidget(self._subtitle_label)
+
+        summary_grid = QGridLayout()
+        summary_grid.setSpacing(12)
+
+        self.ships = InfoCard("Ships")
+        self.ais = InfoCard("AIS")
+        self.last = InfoCard("Last Ship")
+
+        self.ais.value.setText(tr("Disconnected"))
+
+        summary_grid.addWidget(self.ships, 0, 0)
+        summary_grid.addWidget(self.ais, 0, 1)
+        summary_grid.addWidget(self.last, 0, 2)
+        layout.addLayout(summary_grid)
+
+        columns = QHBoxLayout()
+        columns.setSpacing(12)
+
+        left_column = QVBoxLayout()
+        left_column.setSpacing(12)
+        right_column = QVBoxLayout()
+        right_column.setSpacing(12)
+
         self._observation_card = QFrame()
-        self._observation_card.setStyleSheet("""
-            QFrame {
-                background: #252a31;
-                border: 1px solid #40444b;
-                border-radius: 10px;
-            }
-        """)
+        self._observation_card.setStyleSheet(_CARD_STYLE)
         observation_layout = QVBoxLayout(self._observation_card)
         observation_layout.setContentsMargins(16, 16, 16, 16)
         observation_layout.setSpacing(10)
@@ -162,6 +230,11 @@ class DashboardPage(QWidget):
             "font-size: 16pt; font-weight: bold; color: white;"
         )
         observation_layout.addWidget(self._observation_title)
+
+        self._observation_map_hint = QLabel()
+        self._observation_map_hint.setWordWrap(True)
+        self._observation_map_hint.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        observation_layout.addWidget(self._observation_map_hint)
 
         info_grid = QGridLayout()
         info_grid.setColumnStretch(1, 1)
@@ -196,16 +269,6 @@ class DashboardPage(QWidget):
         info_grid.addWidget(self._status_value, 2, 1)
         observation_layout.addLayout(info_grid)
 
-        self._map_widget = ObservationMapWidget()
-        self._map_widget.setMinimumHeight(220)
-        observation_layout.addWidget(self._map_widget)
-
-        self._move_hint = QLabel()
-        self._move_hint.setWordWrap(True)
-        self._move_hint.setStyleSheet("color: #9aa4af; font-size: 10pt;")
-        self._move_hint.setVisible(False)
-        observation_layout.addWidget(self._move_hint)
-
         selector_row = QHBoxLayout()
         self._point_selector_label = QLabel()
         self._point_selector = QComboBox()
@@ -219,62 +282,28 @@ class DashboardPage(QWidget):
         button_row = QHBoxLayout()
         button_row.setSpacing(8)
 
-        self._move_button = QPushButton()
         self._rename_button = QPushButton()
         self._create_button = QPushButton()
         self._delete_button = QPushButton()
         self._set_active_button = QPushButton()
-        self._save_move_button = QPushButton()
-        self._cancel_move_button = QPushButton()
 
         for button in (
-            self._move_button,
             self._rename_button,
             self._create_button,
             self._delete_button,
             self._set_active_button,
-            self._save_move_button,
-            self._cancel_move_button,
         ):
-            button.setStyleSheet("""
-                QPushButton {
-                    background: #343a42;
-                    color: white;
-                    border: 1px solid #4a5159;
-                    border-radius: 6px;
-                    padding: 6px 12px;
-                }
-                QPushButton:hover {
-                    background: #3f464f;
-                }
-                QPushButton:disabled {
-                    color: #7a8494;
-                }
-            """)
+            button.setStyleSheet(_BUTTON_STYLE)
 
-        button_row.addWidget(self._move_button)
         button_row.addWidget(self._rename_button)
         button_row.addWidget(self._create_button)
         button_row.addWidget(self._delete_button)
         button_row.addWidget(self._set_active_button)
-        button_row.addWidget(self._save_move_button)
-        button_row.addWidget(self._cancel_move_button)
         button_row.addStretch()
         observation_layout.addLayout(button_row)
 
-        self._save_move_button.setVisible(False)
-        self._cancel_move_button.setVisible(False)
-
-        layout.addWidget(self._observation_card)
-
         self._cameras_card = QFrame()
-        self._cameras_card.setStyleSheet("""
-            QFrame {
-                background: #252a31;
-                border: 1px solid #40444b;
-                border-radius: 10px;
-            }
-        """)
+        self._cameras_card.setStyleSheet(_CARD_STYLE)
         cameras_layout = QVBoxLayout(self._cameras_card)
         cameras_layout.setContentsMargins(16, 16, 16, 16)
         cameras_layout.setSpacing(10)
@@ -295,46 +324,16 @@ class DashboardPage(QWidget):
         cameras_layout.addWidget(self._no_cameras_label)
 
         self._cameras_help_button = QPushButton()
-        self._cameras_help_button.setStyleSheet("""
-            QPushButton {
-                background: #343a42;
-                color: white;
-                border: 1px solid #4a5159;
-                border-radius: 6px;
-                padding: 6px 12px;
-            }
-            QPushButton:hover { background: #3f464f; }
-        """)
+        self._cameras_help_button.setStyleSheet(_BUTTON_STYLE)
         self._cameras_help_button.setVisible(False)
         cameras_layout.addWidget(self._cameras_help_button)
 
         self._add_camera_button = QPushButton()
-        self._add_camera_button.setStyleSheet("""
-            QPushButton {
-                background: #343a42;
-                color: white;
-                border: 1px solid #4a5159;
-                border-radius: 6px;
-                padding: 6px 12px;
-            }
-            QPushButton:hover {
-                background: #3f464f;
-            }
-            QPushButton:disabled {
-                color: #7a8494;
-            }
-        """)
+        self._add_camera_button.setStyleSheet(_BUTTON_STYLE)
         cameras_layout.addWidget(self._add_camera_button)
-        layout.addWidget(self._cameras_card)
 
         self._logbook_card = QFrame()
-        self._logbook_card.setStyleSheet("""
-            QFrame {
-                background: #252a31;
-                border: 1px solid #40444b;
-                border-radius: 10px;
-            }
-        """)
+        self._logbook_card.setStyleSheet(_CARD_STYLE)
         logbook_layout = QVBoxLayout(self._logbook_card)
         logbook_layout.setContentsMargins(16, 16, 16, 16)
         logbook_layout.setSpacing(10)
@@ -346,29 +345,11 @@ class DashboardPage(QWidget):
         logbook_layout.addWidget(self._logbook_title)
 
         self._import_logbook_button = QPushButton()
-        self._import_logbook_button.setStyleSheet("""
-            QPushButton {
-                background: #343a42;
-                color: white;
-                border: 1px solid #4a5159;
-                border-radius: 6px;
-                padding: 6px 12px;
-            }
-            QPushButton:hover {
-                background: #3f464f;
-            }
-        """)
+        self._import_logbook_button.setStyleSheet(_BUTTON_STYLE)
         logbook_layout.addWidget(self._import_logbook_button)
-        layout.addWidget(self._logbook_card)
 
         self._ais_card = QFrame()
-        self._ais_card.setStyleSheet("""
-            QFrame {
-                background: #252a31;
-                border: 1px solid #40444b;
-                border-radius: 10px;
-            }
-        """)
+        self._ais_card.setStyleSheet(_CARD_STYLE)
         ais_layout = QVBoxLayout(self._ais_card)
         ais_layout.setContentsMargins(16, 16, 16, 16)
         ais_layout.setSpacing(10)
@@ -422,34 +403,16 @@ class DashboardPage(QWidget):
             self._ais_test_button,
             self._ais_change_button,
         ):
-            button.setStyleSheet("""
-                QPushButton {
-                    background: #343a42;
-                    color: white;
-                    border: 1px solid #4a5159;
-                    border-radius: 6px;
-                    padding: 6px 12px;
-                }
-                QPushButton:hover {
-                    background: #3f464f;
-                }
-            """)
+            button.setStyleSheet(_BUTTON_STYLE)
 
         ais_button_row.addWidget(self._ais_configure_button)
         ais_button_row.addWidget(self._ais_test_button)
         ais_button_row.addWidget(self._ais_change_button)
         ais_button_row.addStretch()
         ais_layout.addLayout(ais_button_row)
-        layout.addWidget(self._ais_card)
 
         self._rtl_card = QFrame()
-        self._rtl_card.setStyleSheet("""
-            QFrame {
-                background: #252a31;
-                border: 1px solid #40444b;
-                border-radius: 10px;
-            }
-        """)
+        self._rtl_card.setStyleSheet(_CARD_STYLE)
         rtl_layout = QVBoxLayout(self._rtl_card)
         rtl_layout.setContentsMargins(16, 16, 16, 16)
         rtl_layout.setSpacing(10)
@@ -501,47 +464,190 @@ class DashboardPage(QWidget):
             self._rtl_test_button,
             self._rtl_diagnostics_button,
         ):
-            button.setStyleSheet("""
-                QPushButton {
-                    background: #343a42;
-                    color: white;
-                    border: 1px solid #4a5159;
-                    border-radius: 6px;
-                    padding: 6px 12px;
-                }
-                QPushButton:hover {
-                    background: #3f464f;
-                }
-            """)
+            button.setStyleSheet(_BUTTON_STYLE)
 
         rtl_button_row.addWidget(self._rtl_setup_button)
         rtl_button_row.addWidget(self._rtl_test_button)
         rtl_button_row.addWidget(self._rtl_diagnostics_button)
         rtl_button_row.addStretch()
         rtl_layout.addLayout(rtl_button_row)
-        layout.addWidget(self._rtl_card)
 
-        grid = QGridLayout()
+        left_column.addWidget(self._ais_card)
+        left_column.addWidget(self._rtl_card)
+        left_column.addWidget(self._logbook_card)
+        right_column.addWidget(self._observation_card)
+        right_column.addWidget(self._cameras_card)
+        columns.addLayout(left_column, 1)
+        columns.addLayout(right_column, 1)
+        layout.addLayout(columns)
 
-        self.ships = InfoCard("Ships")
-        self.ais = InfoCard("AIS")
-        self.last = InfoCard("Last Ship")
+        self._configuration_card = QFrame()
+        self._configuration_card.setStyleSheet(_CARD_STYLE)
+        configuration_layout = QVBoxLayout(self._configuration_card)
+        configuration_layout.setContentsMargins(16, 16, 16, 16)
+        configuration_layout.setSpacing(16)
 
-        self.ais.value.setText(tr("Disconnected"))
+        self._configuration_title = QLabel()
+        self._configuration_title.setStyleSheet(
+            "font-size: 16pt; font-weight: bold; color: white;"
+        )
+        configuration_layout.addWidget(self._configuration_title)
 
-        grid.addWidget(self.ships, 0, 0)
-        grid.addWidget(self.ais, 0, 1)
-        grid.addWidget(self.last, 0, 2)
+        personalization = QFrame()
+        personalization.setStyleSheet("""
+            QFrame {
+                background: #1d2127;
+                border: 1px solid #3d4a5c;
+                border-radius: 8px;
+            }
+            QLabel[role="section"] {
+                color: #d5dbe3;
+                font-size: 12pt;
+                font-weight: 600;
+            }
+            QLabel[role="field"] {
+                color: #9aa4af;
+                font-size: 10pt;
+                font-weight: 600;
+            }
+            QComboBox {
+                background: #252a31;
+                color: white;
+                border: 1px solid #3d4a5c;
+                border-radius: 6px;
+                padding: 6px 8px;
+            }
+        """)
+        personalization_layout = QVBoxLayout(personalization)
+        personalization_layout.setContentsMargins(16, 16, 16, 16)
+        personalization_layout.setSpacing(12)
 
-        layout.addLayout(grid)
+        self._personalization_title = QLabel()
+        self._personalization_title.setProperty("role", "section")
+        personalization_layout.addWidget(self._personalization_title)
+
+        form = QFormLayout()
+        form.setSpacing(12)
+
+        self._language_label = QLabel()
+        self._language_label.setProperty("role", "field")
+        self._language_combo = QComboBox()
+        for code in SUPPORTED_LANGUAGES:
+            self._language_combo.addItem(
+                _LANGUAGE_LABELS.get(code, code),
+                code,
+            )
+        form.addRow(self._language_label, self._language_combo)
+
+        self._layout_label = QLabel()
+        self._layout_label.setProperty("role", "field")
+        self._layout_combo = QComboBox()
+        for layout_name in SUPPORTED_VESSEL_CARD_LAYOUTS:
+            self._layout_combo.addItem(
+                _LAYOUT_LABELS.get(layout_name, layout_name),
+                layout_name,
+            )
+        form.addRow(self._layout_label, self._layout_combo)
+
+        personalization_layout.addLayout(form)
+        configuration_layout.addWidget(personalization)
+
+        self.playback_settings = PlaybackSettingsPage()
+        self.playback_settings.setStyleSheet("""
+            QFrame {
+                background: #1d2127;
+                border: 1px solid #3d4a5c;
+                border-radius: 8px;
+                padding: 4px;
+            }
+            QLabel[role="section"] {
+                color: #d5dbe3;
+                font-size: 12pt;
+                font-weight: 600;
+            }
+            QLabel[role="field"] {
+                color: #9aa4af;
+                font-size: 10pt;
+                font-weight: 600;
+            }
+            QLabel[role="caption"] {
+                color: #7d8794;
+                font-size: 9pt;
+            }
+            QComboBox, QLineEdit {
+                background: #252a31;
+                color: white;
+                border: 1px solid #3d4a5c;
+                border-radius: 6px;
+                padding: 6px 8px;
+            }
+            QPushButton {
+                background: #1976d2;
+                color: white;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 6px;
+            }
+        """)
+        configuration_layout.addWidget(self.playback_settings)
+
+        self.camera_diagnostics = CameraDiagnosticsPanel()
+        self.camera_diagnostics.setMinimumHeight(320)
+        self.camera_diagnostics.setStyleSheet("""
+            QFrame {
+                background: #1d2127;
+                border: 1px solid #3d4a5c;
+                border-radius: 8px;
+                padding: 4px;
+            }
+            QLabel[role="section"] {
+                color: #d5dbe3;
+                font-size: 12pt;
+                font-weight: 600;
+            }
+            QLabel[role="summary-title"] {
+                color: #9aa4af;
+                font-size: 9pt;
+                font-weight: 600;
+            }
+            QLabel[role="summary-value"] {
+                color: white;
+                font-size: 16pt;
+                font-weight: bold;
+            }
+            QComboBox, QPushButton {
+                background: #252a31;
+                color: white;
+                border: 1px solid #3d4a5c;
+                border-radius: 6px;
+                padding: 6px 8px;
+            }
+            QPushButton {
+                background: #1976d2;
+                border: none;
+                padding: 8px 12px;
+            }
+            QTableWidget {
+                background: #252a31;
+                color: white;
+                border: 1px solid #3d4a5c;
+                gridline-color: #3d4a5c;
+            }
+            QHeaderView::section {
+                background: #2a3548;
+                color: #d5dbe3;
+                border: 1px solid #3d4a5c;
+                padding: 6px;
+            }
+        """)
+        configuration_layout.addWidget(self.camera_diagnostics)
+        layout.addWidget(self._configuration_card)
+
         layout.addStretch()
 
-        root_layout.addWidget(scroll)
-        scroll.setWidget(content)
+        self._scroll.setWidget(content)
+        root_layout.addWidget(self._scroll)
 
-        self._move_button.clicked.connect(self._start_move_mode)
-        self._save_move_button.clicked.connect(self._save_move)
-        self._cancel_move_button.clicked.connect(self._cancel_move_mode)
         self._rename_button.clicked.connect(self._rename_active)
         self._create_button.clicked.connect(self._create_new)
         self._delete_button.clicked.connect(self._delete_active)
@@ -549,7 +655,15 @@ class DashboardPage(QWidget):
         self._point_selector.currentIndexChanged.connect(
             self._on_selector_changed
         )
-        self._map_widget.locationSelected.connect(self._on_map_location)
+        self._language_combo.currentIndexChanged.connect(
+            self._on_language_changed
+        )
+        self._layout_combo.currentIndexChanged.connect(
+            self._on_layout_changed
+        )
+        language_manager.language_changed.connect(
+            lambda _code: self._refresh_configuration_labels()
+        )
         self._add_camera_button.clicked.connect(self._add_camera)
         self._import_logbook_button.clicked.connect(self._import_legacy_logbook)
         self._cameras_help_button.clicked.connect(
@@ -569,34 +683,54 @@ class DashboardPage(QWidget):
         bind_language_refresh(self.refresh_translations)
 
         self.refresh_translations()
+        self.refresh_configuration()
         self.update_dashboard()
         self.refresh_observation()
         self.refresh_cameras()
 
+    def showEvent(self, event: QShowEvent) -> None:
+
+        super().showEvent(event)
+        self.camera_diagnostics.refresh()
+
+    def open_configuration_section(self, *, focus_diagnostics: bool = False) -> None:
+
+        self.refresh_configuration()
+
+        if focus_diagnostics:
+            self._scroll.ensureWidgetVisible(self.camera_diagnostics)
+
+    def refresh_configuration(self) -> None:
+
+        preferences = preferences_manager.get()
+
+        self._sync_language_combo(preferences.language)
+        self._sync_layout_combo(preferences.vessel_card_layout)
+        self.playback_settings.load_settings()
+        self.camera_diagnostics.refresh()
+        self._refresh_configuration_labels()
+
     def refresh_translations(self) -> None:
 
         self._title_label.setText(tr("Dashboard"))
+        self._subtitle_label.setText(tr("Operational control center"))
         self.ships.title.setText(tr("Ships"))
         self.ais.title.setText(tr("AIS"))
         self.last.title.setText(tr("Last Ship"))
-        self.ais.value.setText(tr("Disconnected"))
 
         self._observation_title.setText(tr("Observation Point"))
+        self._observation_map_hint.setText(
+            tr("Geographic editing is available on the Live Map.")
+        )
         self._name_caption.setText(tr("Name"))
         self._coords_caption.setText(tr("Coordinates"))
         self._status_caption.setText(tr("Status"))
         self._point_selector_label.setText(tr("Observation Point"))
-        self._move_hint.setText(
-            tr("Click the map once. A red marker appears. Confirm to save.")
-        )
 
-        self._move_button.setText(tr("Move on map"))
         self._rename_button.setText(tr("Rename"))
         self._create_button.setText(tr("Create new"))
         self._delete_button.setText(tr("Delete"))
         self._set_active_button.setText(tr("Set active"))
-        self._save_move_button.setText(tr("Confirm"))
-        self._cancel_move_button.setText(tr("Cancel"))
         self._cameras_title.setText(tr("Attached Cameras"))
         self._no_cameras_label.setText(tr("No cameras"))
         self._cameras_help_button.setText(tr("Help"))
@@ -617,24 +751,25 @@ class DashboardPage(QWidget):
         self._rtl_setup_button.setText(tr("Setup"))
         self._rtl_test_button.setText(tr("Test"))
         self._rtl_diagnostics_button.setText(tr("Diagnostics"))
+        self._configuration_title.setText(tr("Configuration"))
 
         self._create_button.setToolTip(tr("Create a new observation point"))
-        self._add_camera_button.setToolTip(tr("Add a camera to the active observation point"))
+        self._add_camera_button.setToolTip(
+            tr("Add a camera to the active observation point")
+        )
         self._ais_configure_button.setToolTip(tr("Configure AIS data source"))
         self._ais_test_button.setToolTip(tr("Test AIS connection"))
         self._rtl_setup_button.setToolTip(tr("Open RTL-SDR setup wizard"))
         self._rtl_test_button.setToolTip(tr("Run a short RTL reception test"))
         self._rtl_diagnostics_button.setToolTip(tr("View RTL-SDR diagnostics"))
 
+        self._refresh_configuration_labels()
         self.refresh_observation()
         self.refresh_cameras()
         self.refresh_ais()
         self.refresh_rtl()
 
     def refresh_observation(self) -> None:
-
-        if self._move_mode:
-            return
 
         points = observation_manager.all()
         active = observation_manager.active()
@@ -648,35 +783,14 @@ class DashboardPage(QWidget):
             )
             self._status_value.setText(tr("Active"))
             self._status_value.setStyleSheet("color: #66bb6a; font-weight: 600;")
-            self._map_widget.set_observation_point(
-                active.latitude,
-                active.longitude,
-            )
-            self._move_lat = active.latitude
-            self._move_lon = active.longitude
             has_point = True
-        elif not points:
+        else:
             self._name_value.setText(tr("No observation point"))
             self._coords_value.setText(tr("Not available"))
             self._status_value.setText(tr("Not configured"))
             self._status_value.setStyleSheet("color: #9aa4af; font-weight: 600;")
-            self._map_widget.set_observation_point(CAMERA_LAT, CAMERA_LON)
-            self._move_lat = CAMERA_LAT
-            self._move_lon = CAMERA_LON
-            has_point = False
-        else:
-            self._name_value.setText(tr("Camera fallback"))
-            self._coords_value.setText(
-                f"{CAMERA_LAT:.5f}, {CAMERA_LON:.5f}"
-            )
-            self._status_value.setText(tr("Using CAMERA_LAT / CAMERA_LON"))
-            self._status_value.setStyleSheet("color: white; font-weight: 600;")
-            self._map_widget.set_observation_point(CAMERA_LAT, CAMERA_LON)
-            self._move_lat = CAMERA_LAT
-            self._move_lon = CAMERA_LON
             has_point = False
 
-        self._move_button.setEnabled(has_point)
         self._rename_button.setEnabled(has_point)
         self._delete_button.setEnabled(has_point)
         self._set_active_button.setEnabled(
@@ -728,14 +842,14 @@ class DashboardPage(QWidget):
             for button in (edit_button, delete_button):
                 button.setStyleSheet("""
                     QPushButton {
-                        background: #343a42;
+                        background: #243651;
                         color: white;
-                        border: 1px solid #4a5159;
+                        border: 1px solid #2d5a8e;
                         border-radius: 6px;
                         padding: 4px 10px;
                     }
                     QPushButton:hover {
-                        background: #3f464f;
+                        background: #2d4a6f;
                     }
                 """)
 
@@ -965,75 +1079,6 @@ class DashboardPage(QWidget):
         active = observation_manager.active()
         return active.id if active else None
 
-    def _start_move_mode(self) -> None:
-
-        point_id = self._active_point_id()
-
-        if point_id is None:
-            return
-
-        active = observation_manager.active()
-
-        if active is None:
-            return
-
-        self._move_mode = True
-        self._move_lat = active.latitude
-        self._move_lon = active.longitude
-
-        self._move_hint.setVisible(True)
-        self._save_move_button.setVisible(True)
-        self._cancel_move_button.setVisible(True)
-        self._move_button.setVisible(False)
-        self._rename_button.setEnabled(False)
-        self._create_button.setEnabled(False)
-        self._delete_button.setEnabled(False)
-        self._set_active_button.setEnabled(False)
-        self._point_selector.setEnabled(False)
-
-        self._map_widget.enable_pick_mode(True)
-        self._map_widget.set_observation_point(
-            self._move_lat,
-            self._move_lon,
-        )
-
-    def _on_map_location(self, latitude: float, longitude: float) -> None:
-
-        if not self._move_mode:
-            return
-
-        self._move_lat = latitude
-        self._move_lon = longitude
-
-    def _save_move(self) -> None:
-
-        point_id = self._active_point_id()
-
-        if point_id is None:
-            self._cancel_move_mode()
-            return
-
-        observation_manager.move(point_id, self._move_lat, self._move_lon)
-        self._exit_move_mode()
-        self.refresh_observation()
-
-    def _cancel_move_mode(self) -> None:
-
-        self._exit_move_mode()
-        self.refresh_observation()
-
-    def _exit_move_mode(self) -> None:
-
-        self._move_mode = False
-        self._move_hint.setVisible(False)
-        self._save_move_button.setVisible(False)
-        self._cancel_move_button.setVisible(False)
-        self._move_button.setVisible(True)
-        self._rename_button.setEnabled(True)
-        self._create_button.setEnabled(True)
-        self._map_widget.enable_pick_mode(False)
-        self._point_selector.setEnabled(True)
-
     def _rename_active(self) -> None:
 
         active = observation_manager.active()
@@ -1093,9 +1138,6 @@ class DashboardPage(QWidget):
 
     def _on_selector_changed(self, _index: int) -> None:
 
-        if self._move_mode:
-            return
-
         point_id = self._point_selector.currentData()
 
         if not point_id:
@@ -1107,6 +1149,95 @@ class DashboardPage(QWidget):
             return
 
         observation_manager.set_active(str(point_id))
+
+    def _refresh_configuration_labels(self) -> None:
+
+        self._personalization_title.setText(tr("Personalization"))
+        self._language_label.setText(tr("Language"))
+        self._layout_label.setText(tr("Vessel Card"))
+
+        playback_refresh = getattr(
+            self.playback_settings,
+            "refresh_translations",
+            None,
+        )
+
+        if callable(playback_refresh):
+            playback_refresh()
+
+        diagnostics_refresh = getattr(
+            self.camera_diagnostics,
+            "refresh_translations",
+            None,
+        )
+
+        if callable(diagnostics_refresh):
+            diagnostics_refresh()
+
+        current_language = self._language_combo.currentData()
+        current_layout = self._layout_combo.currentData()
+
+        self._language_combo.blockSignals(True)
+        for index in range(self._language_combo.count()):
+            code = self._language_combo.itemData(index)
+            label_key = _LANGUAGE_LABELS.get(code, code)
+            self._language_combo.setItemText(index, tr(label_key))
+        self._sync_language_combo(current_language)
+        self._language_combo.blockSignals(False)
+
+        self._layout_combo.blockSignals(True)
+        for index in range(self._layout_combo.count()):
+            layout_name = self._layout_combo.itemData(index)
+            label_key = _LAYOUT_LABELS.get(layout_name, layout_name)
+            self._layout_combo.setItemText(index, tr(label_key))
+        self._sync_layout_combo(current_layout)
+        self._layout_combo.blockSignals(False)
+
+    def _sync_language_combo(self, language: str) -> None:
+
+        index = self._language_combo.findData(language)
+
+        if index < 0:
+            index = 0
+
+        self._language_combo.setCurrentIndex(index)
+
+    def _sync_layout_combo(self, layout_name: str) -> None:
+
+        index = self._layout_combo.findData(layout_name)
+
+        if index < 0:
+            index = 0
+
+        self._layout_combo.setCurrentIndex(index)
+
+    def _on_language_changed(self, _index: int) -> None:
+
+        code = self._language_combo.currentData()
+
+        if not code:
+            return
+
+        if code == language_manager.current_language:
+            return
+
+        language_manager.set_language(code)
+        self.personalization_changed.emit()
+
+    def _on_layout_changed(self, _index: int) -> None:
+
+        layout_name = self._layout_combo.currentData()
+
+        if not layout_name:
+            return
+
+        preferences = preferences_manager.get()
+
+        if layout_name == preferences.vessel_card_layout:
+            return
+
+        preferences_manager.set_vessel_card_layout(layout_name)
+        self.personalization_changed.emit()
 
     def update_dashboard(self):
 

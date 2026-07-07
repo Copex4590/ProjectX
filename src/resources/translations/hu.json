@@ -558,5 +558,7 @@
   "Click the map to place the observation point at a new location.": "Kattintson a térképre az új hely kiválasztásához.",
   "Open camera": "Kamera megnyitása",
   "No camera is assigned to this observation point.": "Ehhez a megfigyelőponthoz nincs kamera rendelve.",
-  "Camera playback opens from the map sidebar for now. A dedicated resizable camera window arrives in a later phase.": "A kamerakép egyelőre a térkép oldalsó paneljén érhető el. Az átméretezhető kameraablak egy későbbi fázisban érkezik."
+  "Camera playback opens from the map sidebar for now. A dedicated resizable camera window arrives in a later phase.": "A kamerakép egyelőre a térkép oldalsó paneljén érhető el. Az átméretezhető kameraablak egy későbbi fázisban érkezik.",
+  "Operational control center": "Operatív irányítóközpont",
+  "Geographic editing is available on the Live Map.": "A földrajzi szerkesztés az Élő térképen érhető el."
 }
