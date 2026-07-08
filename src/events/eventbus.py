@@ -8,6 +8,8 @@ from collections import defaultdict
 from threading import Lock
 from typing import Callable
 
+from debug.obs_freeze_trace import trace_block, trace_enter, trace_exit
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,18 +36,27 @@ class EventBus:
 
     def publish(self, event_name: str, *args, **kwargs):
 
-        with self._lock:
-            listeners = tuple(self._listeners.get(event_name, ()))
+        with trace_block(f"EventBus.publish event={event_name}"):
+            with self._lock:
+                listeners = tuple(self._listeners.get(event_name, ()))
 
-        for callback in listeners:
-            try:
-                callback(*args, **kwargs)
-            except Exception:
-                logger.exception(
-                    "EventBus handler failed for '%s' -> %s",
-                    event_name,
-                    callback.__qualname__,
+            for callback in listeners:
+                label = (
+                    f"EventBus.publish.{event_name}"
+                    f"->{getattr(callback, '__qualname__', repr(callback))}"
                 )
+                trace_enter(label)
+
+                try:
+                    callback(*args, **kwargs)
+                except Exception:
+                    logger.exception(
+                        "EventBus handler failed for '%s' -> %s",
+                        event_name,
+                        callback.__qualname__,
+                    )
+                finally:
+                    trace_exit(label)
 
     def listener_count(self, event_name: str):
 

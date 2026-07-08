@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
 
+from debug.obs_freeze_trace import trace_enter, trace_exit
 from PySide6.QtCore import QObject, Signal
 
 from camera.camera import Camera, _normalize_camera_type
@@ -68,8 +69,19 @@ class CameraManager(QObject):
 
     def by_observation(self, observation_point_id: str) -> list[Camera]:
 
-        with self._lock:
-            return self._registry.by_observation(observation_point_id)
+        trace_enter(
+            "CameraManager.by_observation "
+            f"observation_point_id={observation_point_id}"
+        )
+
+        try:
+            with self._lock:
+                return self._registry.by_observation(observation_point_id)
+        finally:
+            trace_exit(
+                "CameraManager.by_observation "
+                f"observation_point_id={observation_point_id}"
+            )
 
     def add(
         self,

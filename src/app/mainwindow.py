@@ -31,6 +31,7 @@ from gui.rulespage import RulesPage
 from gui.systemhealthpage import SystemHealthPage
 from gui.eventbridge import EventBridge
 from camera import camera_manager
+from debug.obs_freeze_trace import trace_slot
 from gui.firstrunwizard import FirstRunWizard
 
 from i18n import language_manager, tr
@@ -88,11 +89,17 @@ class MainWindow(QMainWindow):
         connection = Qt.ConnectionType.QueuedConnection
 
         self.event_bridge.ship_updated.connect(
-            self.vessels_page.refresh,
+            trace_slot(
+                "MainWindow->VesselsPage.refresh",
+                self.vessels_page.refresh,
+            ),
             connection,
         )
         self.event_bridge.ship_updated.connect(
-            self.dashboard_page.on_ship_updated,
+            trace_slot(
+                "MainWindow->DashboardPage.on_ship_updated",
+                self.dashboard_page.on_ship_updated,
+            ),
             connection,
         )
         self.event_bridge.ais_status.connect(
@@ -100,7 +107,10 @@ class MainWindow(QMainWindow):
             connection,
         )
         self.event_bridge.ais_status.connect(
-            self.dashboard_page.refresh_ais,
+            trace_slot(
+                "MainWindow->DashboardPage.refresh_ais",
+                self.dashboard_page.refresh_ais,
+            ),
             connection,
         )
         self.event_bridge.rtl_status.connect(
@@ -108,11 +118,17 @@ class MainWindow(QMainWindow):
             connection,
         )
         self.event_bridge.rtl_status.connect(
-            self.dashboard_page.refresh_ais,
+            trace_slot(
+                "MainWindow->DashboardPage.refresh_ais(rtl)",
+                self.dashboard_page.refresh_ais,
+            ),
             connection,
         )
         self.event_bridge.rtl_status.connect(
-            self.dashboard_page.refresh_rtl,
+            trace_slot(
+                "MainWindow->DashboardPage.refresh_rtl",
+                self.dashboard_page.refresh_rtl,
+            ),
             connection,
         )
 
@@ -121,15 +137,17 @@ class MainWindow(QMainWindow):
         connection = Qt.ConnectionType.QueuedConnection
 
         observation_manager.changed.connect(
-            self.dashboard_page.refresh_observation,
+            trace_slot(
+                "MainWindow->DashboardPage.refresh_observation",
+                self.dashboard_page.refresh_observation,
+            ),
             connection,
         )
         observation_manager.changed.connect(
-            self.dashboard_page.refresh_cameras,
-            connection,
-        )
-        observation_manager.changed.connect(
-            self.map_page.on_observation_changed,
+            trace_slot(
+                "MainWindow->MapPage.on_observation_changed",
+                self.map_page.on_observation_changed,
+            ),
             connection,
         )
 
@@ -160,7 +178,10 @@ class MainWindow(QMainWindow):
         connection = Qt.ConnectionType.QueuedConnection
 
         camera_manager.changed.connect(
-            self.dashboard_page.refresh_cameras,
+            trace_slot(
+                "MainWindow->DashboardPage.refresh_cameras",
+                self.dashboard_page.refresh_cameras,
+            ),
             connection,
         )
 

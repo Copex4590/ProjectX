@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from app.paths import resource_path
+from debug.obs_freeze_trace import trace_block, trace_enter, trace_exit, trace_event
 
 from PySide6.QtCore import QObject, Qt, QUrl, Signal, Slot
 from PySide6.QtGui import QKeyEvent, QMouseEvent
@@ -72,14 +73,20 @@ class MapWidget(QWebEngineView):
 
     def set_observation_points(self, points: list[dict]) -> None:
 
-        self._pending_points = list(points)
-        self._apply_observation_points()
+        with trace_block(
+            f"MapWidget.set_observation_points count={len(points)}"
+        ):
+            self._pending_points = list(points)
+            self._apply_observation_points()
 
     def clear_observation_points(self, message: str = "") -> None:
 
-        self._pending_points = []
-        self._empty_message = message
-        self._apply_empty_state()
+        with trace_block("MapWidget.clear_observation_points"):
+            self._pending_points = []
+            self._empty_message = message
+            self._pick_overlay_message = ""
+            self._pick_enabled = False
+            self._apply_empty_state()
 
     def set_observation_point(self, latitude: float, longitude: float) -> None:
 
@@ -199,26 +206,39 @@ class MapWidget(QWebEngineView):
 
     def _apply_observation_points(self) -> None:
 
-        if not self._page_ready:
-            return
+        with trace_block("MapWidget._apply_observation_points"):
+            if not self._page_ready:
+                return
 
-        if not self._pending_points:
-            self._apply_empty_state()
-            return
+            if not self._pending_points:
+                self._apply_empty_state()
+                return
 
-        payload = json.dumps(self._pending_points)
-        self._run_js(f"updateObservationPoints({payload});")
+            trace_enter("MapWidget._apply_observation_points.json.dumps")
+            payload = json.dumps(self._pending_points)
+            trace_exit("MapWidget._apply_observation_points.json.dumps")
+
+            trace_enter("MapWidget._apply_observation_points.runJavaScript")
+            self._run_js(f"updateObservationPoints({payload});")
+            trace_exit("MapWidget._apply_observation_points.runJavaScript")
 
     def _apply_empty_state(self) -> None:
 
-        if not self._page_ready:
-            return
+        with trace_block("MapWidget._apply_empty_state"):
+            if not self._page_ready:
+                return
 
-        if self._pick_overlay_message:
-            return
+            if self._pick_overlay_message:
+                trace_event("MapWidget._apply_empty_state skipped pick_overlay")
+                return
 
-        message = json.dumps(self._empty_message)
-        self._run_js(f"clearObservationPoints({message});")
+            trace_enter("MapWidget._apply_empty_state.json.dumps")
+            message = json.dumps(self._empty_message)
+            trace_exit("MapWidget._apply_empty_state.json.dumps")
+
+            trace_enter("MapWidget._apply_empty_state.runJavaScript")
+            self._run_js(f"clearObservationPoints({message});")
+            trace_exit("MapWidget._apply_empty_state.runJavaScript")
 
     def _apply_pick_overlay(self) -> None:
 
@@ -234,11 +254,16 @@ class MapWidget(QWebEngineView):
 
     def update_ships(self, payload: str):
 
-        if not self._page_ready:
-            return
+        with trace_block(f"MapWidget.update_ships bytes={len(payload)}"):
+            if not self._page_ready:
+                return
 
-        self._run_js(f"updateShips({payload});")
+            trace_enter("MapWidget.update_ships.runJavaScript")
+            self._run_js(f"updateShips({payload});")
+            trace_exit("MapWidget.update_ships.runJavaScript")
 
     def _run_js(self, script: str) -> None:
 
+        trace_enter(f"MapWidget._run_js len={len(script)}")
         self.page().runJavaScript(script)
+        trace_exit(f"MapWidget._run_js len={len(script)}")

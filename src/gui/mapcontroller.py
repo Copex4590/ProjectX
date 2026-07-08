@@ -4,6 +4,7 @@ from collections.abc import Callable
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal
 
+from debug.obs_freeze_trace import trace_block, trace_enter, trace_exit, trace_timer_callback
 from gui.map_core import MAP_PAGE_INDEX, PickMode
 from gui.observationreferencedialog import ObservationReferenceDialog
 from gui.widgets.mapwidget import MapWidget
@@ -82,7 +83,13 @@ class MapController(QObject):
         self._pending_pick_host = host
         self._widget.clear_pick_marker()
         self.request_show_map()
-        QTimer.singleShot(0, self._start_pick_session)
+        QTimer.singleShot(
+            0,
+            trace_timer_callback(
+                "MapController.begin_location_pick->QTimer._start_pick_session",
+                self._start_pick_session,
+            ),
+        )
 
     def _start_pick_session(self) -> None:
 
@@ -109,17 +116,27 @@ class MapController(QObject):
 
     def on_map_page_visible(self) -> None:
 
-        if self._pick_mode != PickMode.LOCATION:
-            return
+        with trace_block("MapController.on_map_page_visible"):
+            if self._pick_mode != PickMode.LOCATION:
+                return
 
-        self.activate_location_pick()
+            self.activate_location_pick()
 
-        for delay_ms in (50, 150):
-            QTimer.singleShot(
-                delay_ms,
-                self._widget.refresh_location_pick_view,
-            )
-            QTimer.singleShot(delay_ms, self._focus_map_for_pick)
+            for delay_ms in (50, 150):
+                QTimer.singleShot(
+                    delay_ms,
+                    trace_timer_callback(
+                        f"MapController.on_map_page_visible->refresh({delay_ms}ms)",
+                        self._widget.refresh_location_pick_view,
+                    ),
+                )
+                QTimer.singleShot(
+                    delay_ms,
+                    trace_timer_callback(
+                        f"MapController.on_map_page_visible->focus({delay_ms}ms)",
+                        self._focus_map_for_pick,
+                    ),
+                )
 
     def _focus_map_for_pick(self) -> None:
 
@@ -137,19 +154,22 @@ class MapController(QObject):
 
     def cancel_pick_mode(self, *, restore_host: bool = True) -> None:
 
-        self._pending_pick_host = None
-        self._pending_pick_message = None
-        self._location_pick_callback = None
-        self._set_pick_mode(PickMode.NONE)
-        self._widget.end_location_pick()
-        self._widget.clear_pick_marker()
-        self.release_application_modality()
+        with trace_block(
+            f"MapController.cancel_pick_mode restore_host={restore_host}"
+        ):
+            self._pending_pick_host = None
+            self._pending_pick_message = None
+            self._location_pick_callback = None
+            self._set_pick_mode(PickMode.NONE)
+            self._widget.end_location_pick()
+            self._widget.clear_pick_marker()
+            self.release_application_modality()
 
-        if restore_host:
-            self._restore_pick_host()
-        else:
-            self._pick_host = None
-            self._pick_host_was_modal = False
+            if restore_host:
+                self._restore_pick_host()
+            else:
+                self._pick_host = None
+                self._pick_host_was_modal = False
 
     def pick_mode(self) -> PickMode:
 
@@ -157,29 +177,42 @@ class MapController(QObject):
 
     def refresh_observation_points(self) -> None:
 
-        points = observation_manager.all()
+        with trace_block("MapController.refresh_observation_points"):
+            trace_enter("MapController.refresh_observation_points.observation_manager.all")
+            points = observation_manager.all()
+            trace_exit("MapController.refresh_observation_points.observation_manager.all")
 
-        if not points:
-            self._widget.clear_observation_points(
-                tr("No observation point configured")
-            )
-            return
+            if not points:
+                trace_enter("MapController.refresh_observation_points.clear_observation_points")
+                self._widget.clear_observation_points(
+                    tr("No observation point configured")
+                )
+                trace_exit("MapController.refresh_observation_points.clear_observation_points")
+                return
 
-        payload = [
-            {
-                "id": point.id,
-                "name": point.name,
-                "lat": point.latitude,
-                "lon": point.longitude,
-                "active": point.active,
-            }
-            for point in points
-        ]
-        self._widget.set_observation_points(payload)
+            trace_enter("MapController.refresh_observation_points.build_payload")
+            payload = [
+                {
+                    "id": point.id,
+                    "name": point.name,
+                    "lat": point.latitude,
+                    "lon": point.longitude,
+                    "active": point.active,
+                }
+                for point in points
+            ]
+            trace_exit("MapController.refresh_observation_points.build_payload")
+
+            trace_enter("MapController.refresh_observation_points.set_observation_points")
+            self._widget.set_observation_points(payload)
+            trace_exit("MapController.refresh_observation_points.set_observation_points")
 
     def update_ships(self, payload: str) -> None:
 
-        self._widget.update_ships(payload)
+        with trace_block(
+            f"MapController.update_ships bytes={len(payload)}"
+        ):
+            self._widget.update_ships(payload)
 
     def focus_ship(self, mmsi: int) -> None:
 
@@ -187,32 +220,47 @@ class MapController(QObject):
 
     def maybe_prompt_reference_selection(self) -> None:
 
-        if self._reference_prompt_open:
-            return
-
-        if not observation_manager.needs_reference_selection():
-            return
-
-        active_points = observation_manager.active_points()
-
-        if len(active_points) <= 1:
-            return
-
-        parent = self._dialog_parent
-        self._reference_prompt_open = True
-
-        try:
-            dialog = ObservationReferenceDialog(active_points, parent)
-
-            if dialog.exec() != QDialog.DialogCode.Accepted:
+        with trace_block("MapController.maybe_prompt_reference_selection"):
+            if self._reference_prompt_open:
                 return
 
-            point_id = dialog.selected_point_id()
+            trace_enter("MapController.maybe_prompt_reference_selection.needs_reference_selection")
+            needs_reference = observation_manager.needs_reference_selection()
+            trace_exit("MapController.maybe_prompt_reference_selection.needs_reference_selection")
 
-            if point_id:
-                observation_manager.set_reference(point_id)
-        finally:
-            self._reference_prompt_open = False
+            if not needs_reference:
+                return
+
+            trace_enter("MapController.maybe_prompt_reference_selection.active_points")
+            active_points = observation_manager.active_points()
+            trace_exit("MapController.maybe_prompt_reference_selection.active_points")
+
+            if len(active_points) <= 1:
+                return
+
+            parent = self._dialog_parent
+            self._reference_prompt_open = True
+
+            try:
+                trace_enter("MapController.maybe_prompt_reference_selection.create_dialog")
+                dialog = ObservationReferenceDialog(active_points, parent)
+                trace_exit("MapController.maybe_prompt_reference_selection.create_dialog")
+
+                trace_enter("MapController.maybe_prompt_reference_selection.dialog.exec")
+                accepted = dialog.exec() == QDialog.DialogCode.Accepted
+                trace_exit("MapController.maybe_prompt_reference_selection.dialog.exec")
+
+                if not accepted:
+                    return
+
+                point_id = dialog.selected_point_id()
+
+                if point_id:
+                    trace_enter("MapController.maybe_prompt_reference_selection.set_reference")
+                    observation_manager.set_reference(point_id)
+                    trace_exit("MapController.maybe_prompt_reference_selection.set_reference")
+            finally:
+                self._reference_prompt_open = False
 
     def _on_location_selected(self, latitude: float, longitude: float) -> None:
 
@@ -237,8 +285,10 @@ class MapController(QObject):
         if self._pick_mode == mode:
             return
 
+        trace_enter(f"MapController._set_pick_mode {self._pick_mode}->{mode}")
         self._pick_mode = mode
         self.pick_mode_changed.emit(mode)
+        trace_exit(f"MapController._set_pick_mode {self._pick_mode}")
 
     @staticmethod
     def _resolve_pick_dialog(host: QWidget | None) -> QDialog | None:

@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QRadioButton,
     QStackedWidget,
@@ -15,11 +16,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from debug.obs_freeze_trace import trace_block, trace_enter, trace_exit
 from gui.i18n_support import bind_language_refresh
 from gui.mapcontroller import MapController
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button
 from i18n import tr
 from observation import observation_manager
+from observation.coords import max_observation_radius_km
 
 
 class ObservationSetupWidget(QWidget):
@@ -45,6 +48,8 @@ class ObservationSetupWidget(QWidget):
             )
         )
         self._step2_title.setText(tr("Step 2 — Choose location"))
+        self._step3_title.setText(tr("Step 3 — Observation Radius"))
+        self._coverage_radius_label.setText(tr("Observation radius (km)"))
         self._map_option.setText(tr("Click on map"))
         self._coords_option.setText(tr("Enter coordinates"))
         self._latitude_label.setText(tr("Latitude"))
@@ -71,50 +76,95 @@ class ObservationSetupWidget(QWidget):
 
     def on_leave(self) -> None:
 
-        MapController.instance().cancel_pick_mode()
+        with trace_block("ObservationSetupWidget.on_leave"):
+            MapController.instance().cancel_pick_mode()
 
     def handle_next(self) -> bool:
 
-        if self.substep_index() != 0:
+        substep = self.substep_index()
+
+        if substep == 0:
+            if not self._name_input.text().strip():
+                return False
+
+            self._picked_lat = None
+            self._picked_lon = None
+            self._stack.setCurrentIndex(1)
+            self._sync_location_mode()
+            if self._map_option.isChecked():
+                self._start_map_pick()
             return False
 
-        if not self._name_input.text().strip():
+        if substep == 1:
+            if self._picked_lat is None or self._picked_lon is None:
+                return False
+
+            MapController.instance().cancel_pick_mode()
+            self._stack.setCurrentIndex(2)
+            self._sync_radius_limits()
             return False
 
-        self._picked_lat = None
-        self._picked_lon = None
-        self._stack.setCurrentIndex(1)
-        self._sync_location_mode()
-        if self._map_option.isChecked():
-            self._start_map_pick()
         return False
 
     def handle_back(self) -> bool:
 
-        if self.substep_index() != 1:
-            return True
+        substep = self.substep_index()
 
-        MapController.instance().cancel_pick_mode()
-        self._stack.setCurrentIndex(0)
-        return False
+        if substep == 2:
+            self._stack.setCurrentIndex(1)
+            self._sync_location_mode()
+            if self._map_option.isChecked():
+                self._start_map_pick()
+            return False
+
+        if substep == 1:
+            MapController.instance().cancel_pick_mode()
+            self._stack.setCurrentIndex(0)
+            return False
+
+        return True
 
     def handle_confirm(self) -> bool:
 
-        name = self._name_input.text().strip()
+        with trace_block("ObservationSetupWidget.handle_confirm"):
+            name = self._name_input.text().strip()
 
-        if not name:
-            return False
+            if not name:
+                return False
 
-        if self._picked_lat is None or self._picked_lon is None:
-            return False
+            if self._picked_lat is None or self._picked_lon is None:
+                return False
 
-        observation_manager.create(
-            name,
-            self._picked_lat,
-            self._picked_lon,
-            set_active=True,
-        )
-        return True
+            coverage_radius_km = self._coverage_radius_input.value()
+            max_radius_km = max_observation_radius_km(
+                self._picked_lat,
+                self._picked_lon,
+            )
+
+            if coverage_radius_km <= 0:
+                self._show_radius_validation_error(
+                    tr("Observation radius must be greater than zero.")
+                )
+                return False
+
+            if coverage_radius_km > max_radius_km:
+                self._show_radius_validation_error(
+                    tr(
+                        "Observation radius cannot exceed {max} km at this location."
+                    ).replace("{max}", f"{max_radius_km:.1f}")
+                )
+                return False
+
+            trace_enter("ObservationSetupWidget.handle_confirm.create")
+            observation_manager.create(
+                name,
+                self._picked_lat,
+                self._picked_lon,
+                coverage_radius_km=coverage_radius_km,
+                set_active=True,
+            )
+            trace_exit("ObservationSetupWidget.handle_confirm.create")
+            return True
 
     def update_outer_buttons(
         self,
@@ -123,11 +173,11 @@ class ObservationSetupWidget(QWidget):
         confirm_button,
     ) -> None:
 
-        on_location_step = self.substep_index() == 1
+        substep = self.substep_index()
 
-        back_button.setEnabled(on_location_step)
-        next_button.setVisible(not on_location_step)
-        confirm_button.setVisible(on_location_step)
+        back_button.setEnabled(substep > 0)
+        next_button.setVisible(substep < 2)
+        confirm_button.setVisible(substep == 2)
 
     def _build_ui(self) -> None:
 
@@ -225,6 +275,27 @@ class ObservationSetupWidget(QWidget):
         step2_layout.addStretch()
         self._stack.addWidget(step2)
 
+        step3 = QWidget()
+        step3_layout = QVBoxLayout(step3)
+        self._step3_title = QLabel()
+        self._step3_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        step3_layout.addWidget(self._step3_title)
+
+        coverage_form = QFormLayout()
+        self._coverage_radius_label = QLabel()
+        self._coverage_radius_input = QDoubleSpinBox()
+        self._coverage_radius_input.setMinimum(0.1)
+        self._coverage_radius_input.setDecimals(1)
+        self._coverage_radius_input.setSuffix(" km")
+        self._coverage_radius_input.setValue(25.0)
+        coverage_form.addRow(
+            self._coverage_radius_label,
+            self._coverage_radius_input,
+        )
+        step3_layout.addLayout(coverage_form)
+        step3_layout.addStretch()
+        self._stack.addWidget(step3)
+
         self._sync_location_mode()
 
     def _connect_signals(self) -> None:
@@ -295,6 +366,29 @@ class ObservationSetupWidget(QWidget):
             self._picked_lat = self._latitude_input.value()
             self._picked_lon = self._longitude_input.value()
             self._update_picked_coords_label()
+
+    def _sync_radius_limits(self) -> None:
+
+        if self._picked_lat is None or self._picked_lon is None:
+            return
+
+        max_radius_km = max_observation_radius_km(
+            self._picked_lat,
+            self._picked_lon,
+        )
+        max_spinbox_value = max(0.1, max_radius_km)
+        self._coverage_radius_input.setMaximum(max_spinbox_value)
+
+        if self._coverage_radius_input.value() > max_spinbox_value:
+            self._coverage_radius_input.setValue(max_spinbox_value)
+
+    def _show_radius_validation_error(self, message: str) -> None:
+
+        QMessageBox.warning(
+            self.window(),
+            tr("Observation Point Setup"),
+            message,
+        )
 
     def _update_picked_coords_label(self) -> None:
 
@@ -421,15 +515,18 @@ class ObservationWizard(QDialog):
 
     def _on_accept(self) -> None:
 
-        if self._setup.handle_confirm():
-            self.accept()
+        with trace_block("ObservationWizard._on_accept"):
+            if self._setup.handle_confirm():
+                self.accept()
 
     def reject(self) -> None:
 
-        self._setup.on_leave()
-        super().reject()
+        with trace_block("ObservationWizard.reject"):
+            self._setup.on_leave()
+            super().reject()
 
     def accept(self) -> None:
 
-        self._setup.on_leave()
-        super().accept()
+        with trace_block("ObservationWizard.accept"):
+            self._setup.on_leave()
+            super().accept()

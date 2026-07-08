@@ -9,7 +9,9 @@ from datetime import datetime
 import websocket
 
 from database import registry
+from debug.obs_freeze_trace import trace_block
 from engines.ais import AISNmeaDecoder, AISRtlClient
+from engines.ais.ais_protocol import AISProtocol
 from engines.base_engine import BaseEngine
 from events import eventbus
 from models.ship import Ship
@@ -380,7 +382,8 @@ class HybridEngine(BaseEngine):
         )
 
         registry.add(ship)
-        eventbus.publish("ship.updated", ship=ship)
+        with trace_block(f"HybridEngine.eventbus.publish ship.updated mmsi={ship.mmsi}"):
+            eventbus.publish("ship.updated", ship=ship)
 
         if should_print:
             print()
@@ -417,15 +420,8 @@ class HybridEngine(BaseEngine):
                     f"wss://stream.aisstream.io/v0/stream?apiKey={api_key}"
                 )
 
-                subscribe_message = {
-                    "APIKey": api_key,
-                    "BoundingBoxes": [[[45.00, 17.50], [48.50, 22.50]]],
-                    "FilterMessageTypes": [
-                        "PositionReport",
-                        "ShipStaticData",
-                        "StaticDataReport"
-                    ]
-                }
+                with trace_block("HybridEngine.aisstream_worker.subscribe_message"):
+                    subscribe_message = AISProtocol.subscribe_message(api_key)
 
                 self._ws.send(json.dumps(subscribe_message))
                 print("✅ AISStream kapcsolódva")

@@ -2,7 +2,7 @@ import json
 from collections import Counter
 
 from PySide6.QtCore import Qt, QTimer, QUrl
-from PySide6.QtGui import QKeyEvent, QShowEvent
+from PySide6.QtGui import QKeyEvent, QHideEvent, QShowEvent
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 
 from cameras import camera_manager
@@ -12,6 +12,14 @@ from observation.coords import (
     bearing_deg_from_origin,
     distance_km_from_origin,
     fallback_coordinates,
+)
+from debug.obs_freeze_trace import (
+    schedule_traced_single_shot,
+    trace_block,
+    trace_enter,
+    trace_event,
+    trace_exit,
+    trace_timer_callback,
 )
 from gui.vesselcard import vessel_card_layout_manager
 from gui.mapcontroller import MapController
@@ -44,7 +52,9 @@ def _serialize_ship_marker(ship) -> dict:
 
 def _timeline_fields(mmsi: int) -> tuple[list[dict], str]:
 
+    trace_enter(f"MapPage._timeline_fields mmsi={mmsi}")
     records = timeline_manager.history(mmsi)
+    trace_exit(f"MapPage._timeline_fields mmsi={mmsi}")
 
     if not records:
         return [], "—"
@@ -245,43 +255,50 @@ def _enrich_statistics_fields(mmsi: int, payload: dict) -> None:
 
 def _serialize_ship(ship) -> dict:
 
-    payload = {
-        "mmsi": ship.mmsi,
-        "name": ship.name,
-        "lat": ship.lat,
-        "lon": ship.lon,
-        "heading": ship.heading or 0,
-        "course": ship.course,
-        "speed": ship.speed,
-        "callsign": ship.callsign,
-        "ship_type": ship.ship_type,
-        "destination": ship.destination,
-        "eta": ship.eta,
-        "distance_km": ship.distance_km,
-        "direction": ship.direction,
-        "text_heading": ship.text_heading,
-        "source": ship.source,
-        "last_seen": ship.last_seen.isoformat() if ship.last_seen else None,
-        "ais_visible": ship.ais_visible,
-        "rtl_visible": ship.rtl_visible,
-        "camera_visible": ship.camera_visible,
-    }
+    trace_enter(f"MapPage._serialize_ship mmsi={ship.mmsi}")
 
-    for field_name in ("imo", "length", "width", "draft", "flag"):
-        if hasattr(ship, field_name):
-            payload[field_name] = getattr(ship, field_name)
+    try:
+        payload = {
+            "mmsi": ship.mmsi,
+            "name": ship.name,
+            "lat": ship.lat,
+            "lon": ship.lon,
+            "heading": ship.heading or 0,
+            "course": ship.course,
+            "speed": ship.speed,
+            "callsign": ship.callsign,
+            "ship_type": ship.ship_type,
+            "destination": ship.destination,
+            "eta": ship.eta,
+            "distance_km": ship.distance_km,
+            "direction": ship.direction,
+            "text_heading": ship.text_heading,
+            "source": ship.source,
+            "last_seen": ship.last_seen.isoformat() if ship.last_seen else None,
+            "ais_visible": ship.ais_visible,
+            "rtl_visible": ship.rtl_visible,
+            "camera_visible": ship.camera_visible,
+        }
 
-    payload.update(_serialize_flag(payload.get("flag", "")))
-    payload.update(_serialize_photo(ship.mmsi))
-    _enrich_camera_fields(ship, payload)
-    _enrich_statistics_fields(ship.mmsi, payload)
-    payload["timeline_events"] = _timeline_events(ship.mmsi)
-    payload["timeline_summary"] = _timeline_summary(ship.mmsi)
-    payload["statistics_summary"] = _statistics_summary(ship.mmsi)
-    payload["has_logbook"] = logbook_manager.has_logbook(ship)
-    payload["popup_html"] = vessel_card_layout_manager.render(payload)
+        for field_name in ("imo", "length", "width", "draft", "flag"):
+            if hasattr(ship, field_name):
+                payload[field_name] = getattr(ship, field_name)
 
-    return payload
+        payload.update(_serialize_flag(payload.get("flag", "")))
+        payload.update(_serialize_photo(ship.mmsi))
+        _enrich_camera_fields(ship, payload)
+        _enrich_statistics_fields(ship.mmsi, payload)
+        payload["timeline_events"] = _timeline_events(ship.mmsi)
+        payload["timeline_summary"] = _timeline_summary(ship.mmsi)
+        payload["statistics_summary"] = _statistics_summary(ship.mmsi)
+        payload["has_logbook"] = logbook_manager.has_logbook(ship)
+        trace_enter(f"MapPage._serialize_ship.render mmsi={ship.mmsi}")
+        payload["popup_html"] = vessel_card_layout_manager.render(payload)
+        trace_exit(f"MapPage._serialize_ship.render mmsi={ship.mmsi}")
+
+        return payload
+    finally:
+        trace_exit(f"MapPage._serialize_ship mmsi={ship.mmsi}")
 
 
 class MapPage(QWidget):
@@ -308,6 +325,7 @@ class MapPage(QWidget):
 
         self._selected_mmsi = None
         self._ships_update_busy = False
+        self._ship_refresh_generation = 0
 
         language_manager.language_changed.connect(
             lambda _code: self.apply_personalization()
@@ -323,27 +341,117 @@ class MapPage(QWidget):
         self._map_controller.refresh_observation_points()
 
         self._marker_timer = QTimer(self)
-        self._marker_timer.timeout.connect(self._update_ship_markers)
+        self._marker_timer.timeout.connect(
+            trace_timer_callback(
+                "MapPage._marker_timer",
+                self._update_ship_markers,
+            )
+        )
 
         self._popup_timer = QTimer(self)
-        self._popup_timer.timeout.connect(self._update_ships_full)
+        self._popup_timer.timeout.connect(
+            trace_timer_callback(
+                "MapPage._popup_timer",
+                self._update_ships_full,
+            )
+        )
 
-        self._start_ship_timers()
+    def _map_page_is_current(self) -> bool:
+
+        window = self.window()
+        pages = getattr(window, "pages", None)
+
+        if pages is not None:
+            return pages.currentWidget() is self
+
+        return self.isVisible()
+
+    def _map_updates_enabled(self) -> bool:
+
+        with trace_block("MapPage._map_updates_enabled"):
+            trace_enter("MapPage._map_updates_enabled._map_page_is_current")
+            page_current = self._map_page_is_current()
+            trace_exit(
+                f"MapPage._map_updates_enabled._map_page_is_current "
+                f"result={page_current}"
+            )
+
+            trace_enter("MapPage._map_updates_enabled.isVisible")
+            visible = self.isVisible()
+            trace_exit(f"MapPage._map_updates_enabled.isVisible result={visible}")
+
+            trace_enter("MapPage._map_updates_enabled.pick_mode")
+            pick_mode = self._map_controller.pick_mode()
+            trace_exit(f"MapPage._map_updates_enabled.pick_mode result={pick_mode}")
+
+            return (
+                page_current
+                and visible
+                and pick_mode == PickMode.NONE
+            )
+
+    def _schedule_ships_full(self, label: str) -> None:
+
+        trace_enter(f"MapPage._schedule_ships_full label={label}")
+        generation = self._ship_refresh_generation
+
+        def _run() -> None:
+
+            trace_enter(
+                f"MapPage._schedule_ships_full.callback label={label} "
+                f"generation={generation}"
+            )
+
+            try:
+                if generation != self._ship_refresh_generation:
+                    trace_event(
+                        f"MapPage._schedule_ships_full skipped stale "
+                        f"generation={generation} label={label}"
+                    )
+                    return
+
+                self._update_ships_full()
+            finally:
+                trace_exit(
+                    f"MapPage._schedule_ships_full.callback label={label} "
+                    f"generation={generation}"
+                )
+
+        schedule_traced_single_shot(0, label, _run)
+        trace_exit(f"MapPage._schedule_ships_full label={label}")
 
     def _on_map_ready(self) -> None:
 
-        self.apply_personalization()
-        self._map_controller.refresh_observation_points()
+        with trace_block("MapPage._on_map_ready"):
+            self.apply_personalization()
+            self._map_controller.refresh_observation_points()
 
     def refresh_observation_point(self) -> None:
 
-        self._map_controller.refresh_observation_points()
+        with trace_block("MapPage.refresh_observation_point"):
+            self._map_controller.refresh_observation_points()
 
     def on_observation_changed(self) -> None:
 
-        self.refresh_observation_point()
-        self._map_controller.maybe_prompt_reference_selection()
-        self._update_ships_full()
+        with trace_block("MapPage.on_observation_changed"):
+            with trace_block("MapPage.on_observation_changed.refresh_observation_point"):
+                self.refresh_observation_point()
+
+            with trace_block("MapPage.on_observation_changed.maybe_prompt_reference_selection"):
+                self._map_controller.maybe_prompt_reference_selection()
+
+            updates_enabled = self._map_updates_enabled()
+
+            if updates_enabled:
+                self._schedule_ships_full(
+                    "MapPage.on_observation_changed->_update_ships_full"
+                )
+            else:
+                trace_event(
+                    "MapPage.on_observation_changed skip _update_ships_full "
+                    f"(visible={self.isVisible()} "
+                    f"pick={self._map_controller.pick_mode()})"
+                )
 
     def apply_personalization(self, layout: str | None = None) -> None:
 
@@ -359,31 +467,38 @@ class MapPage(QWidget):
             self.camera_preview.setMinimumWidth(300)
             self.camera_preview.setMaximumWidth(360)
 
-        self._update_ships_full()
+        if self._map_updates_enabled():
+            self._schedule_ships_full(
+                "MapPage.apply_personalization->_update_ships_full"
+            )
 
     def _start_ship_timers(self) -> None:
 
-        if self._map_controller.pick_mode() == PickMode.LOCATION:
-            return
+        with trace_block("MapPage._start_ship_timers"):
+            if not self._map_updates_enabled():
+                trace_event("MapPage._start_ship_timers skipped")
+                return
 
-        if not self._marker_timer.isActive():
-            self._marker_timer.start(_MAP_SHIPS_INTERVAL_MS)
+            if not self._marker_timer.isActive():
+                self._marker_timer.start(_MAP_SHIPS_INTERVAL_MS)
 
-        if not self._popup_timer.isActive():
-            self._popup_timer.start(_MAP_POPUP_REFRESH_INTERVAL_MS)
+            if not self._popup_timer.isActive():
+                self._popup_timer.start(_MAP_POPUP_REFRESH_INTERVAL_MS)
 
     def _stop_ship_timers(self) -> None:
 
-        self._marker_timer.stop()
-        self._popup_timer.stop()
+        with trace_block("MapPage._stop_ship_timers"):
+            self._marker_timer.stop()
+            self._popup_timer.stop()
 
     def _on_pick_mode_changed(self, mode: PickMode) -> None:
 
-        if mode == PickMode.LOCATION:
-            self._stop_ship_timers()
-            return
+        with trace_block(f"MapPage._on_pick_mode_changed mode={mode}"):
+            if mode == PickMode.LOCATION:
+                self._stop_ship_timers()
+                return
 
-        self._start_ship_timers()
+            self._start_ship_timers()
 
     def select_vessel(self, mmsi: int):
 
@@ -405,45 +520,85 @@ class MapPage(QWidget):
 
     def update_ships(self) -> None:
 
-        self._update_ships_full()
+        with trace_block("MapPage.update_ships"):
+            self._update_ships_full()
 
     def _update_ship_markers(self) -> None:
 
-        if self._map_controller.pick_mode() == PickMode.LOCATION:
-            return
+        with trace_block("MapPage._update_ship_markers"):
+            if not self._map_updates_enabled():
+                trace_event("MapPage._update_ship_markers skipped")
+                return
 
-        self._publish_ships(_serialize_ship_marker)
+            self._publish_ships(_serialize_ship_marker)
 
     def _update_ships_full(self) -> None:
 
-        if self._map_controller.pick_mode() == PickMode.LOCATION:
-            return
+        with trace_block("MapPage._update_ships_full"):
+            if not self._map_updates_enabled():
+                trace_event("MapPage._update_ships_full skipped")
+                return
 
-        self._publish_ships(_serialize_ship)
+            self._publish_ships(_serialize_ship)
 
     def _publish_ships(self, serializer) -> None:
 
         if self._ships_update_busy:
+            trace_event(
+                f"MapPage._publish_ships skipped busy "
+                f"serializer={getattr(serializer, '__name__', serializer)}"
+            )
             return
 
         self._ships_update_busy = True
 
         try:
-            payload = json.dumps([
-                serializer(ship)
-                for ship in registry.all()
-            ])
-            self._map_controller.update_ships(payload)
+            with trace_block(
+                f"MapPage._publish_ships serializer="
+                f"{getattr(serializer, '__name__', serializer)}"
+            ):
+                trace_enter("MapPage._publish_ships.registry.all")
+                ships = list(registry.all())
+                trace_exit(
+                    f"MapPage._publish_ships.registry.all count={len(ships)}"
+                )
 
-            if self._selected_mmsi is not None:
-                self._refresh_camera_preview()
+                trace_enter("MapPage._publish_ships.serialize_loop")
+                serialized = [serializer(ship) for ship in ships]
+                trace_exit("MapPage._publish_ships.serialize_loop")
+
+                trace_enter("MapPage._publish_ships.json_dumps")
+                payload = json.dumps(serialized)
+                trace_exit(
+                    f"MapPage._publish_ships.json_dumps bytes={len(payload)}"
+                )
+
+                trace_enter("MapPage._publish_ships.update_ships")
+                self._map_controller.update_ships(payload)
+                trace_exit("MapPage._publish_ships.update_ships")
+
+                if self._selected_mmsi is not None:
+                    trace_enter("MapPage._publish_ships._refresh_camera_preview")
+                    self._refresh_camera_preview()
+                    trace_exit("MapPage._publish_ships._refresh_camera_preview")
         finally:
             self._ships_update_busy = False
 
     def showEvent(self, event: QShowEvent) -> None:
 
-        super().showEvent(event)
-        self._map_controller.on_map_page_visible()
+        with trace_block("MapPage.showEvent"):
+            super().showEvent(event)
+            self._map_controller.on_map_page_visible()
+        self._start_ship_timers()
+        self._update_ship_markers()
+        self._schedule_ships_full("MapPage.showEvent->_update_ships_full")
+
+    def hideEvent(self, event: QHideEvent) -> None:
+
+        with trace_block("MapPage.hideEvent"):
+            self._ship_refresh_generation += 1
+            self._stop_ship_timers()
+            super().hideEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
 

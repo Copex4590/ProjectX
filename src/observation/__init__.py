@@ -3,7 +3,12 @@
 # Observation Package
 # ============================================================================
 
-from observation.coords import fallback_coordinates, observation_coordinates
+from observation.coords import (
+    coverage_bounding_box,
+    fallback_coordinates,
+    max_observation_radius_km,
+    observation_coordinates,
+)
 from observation.observation_manager import (
     OBSERVATION_POINTS_FILE,
     ObservationManager,
@@ -15,7 +20,9 @@ __all__ = [
     "OBSERVATION_POINTS_FILE",
     "ObservationManager",
     "ObservationPoint",
+    "coverage_bounding_box",
     "fallback_coordinates",
+    "max_observation_radius_km",
     "observation_coordinates",
     "observation_manager",
 ]

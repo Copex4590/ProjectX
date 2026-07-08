@@ -21,6 +21,13 @@ from PySide6.QtWidgets import (
 from database import registry
 from ais import ais_manager
 from camera import camera_manager
+from debug.obs_freeze_trace import (
+    begin_delete_trace_session,
+    schedule_traced_single_shot,
+    trace_block,
+    trace_enter,
+    trace_exit,
+)
 from gui.aiswizard import AISWizard
 from gui.rtlsdrdiagnosticsdialog import RTLSdrDiagnosticsDialog
 from gui.rtlsdrwizard import RTLSdrWizard
@@ -771,102 +778,122 @@ class DashboardPage(QWidget):
         self.refresh_ais()
         self.refresh_rtl()
 
-    def refresh_observation(self) -> None:
+    def refresh_observation(self, *_) -> None:
 
-        points = observation_manager.all()
-        active = observation_manager.active()
+        with trace_block("DashboardPage.refresh_observation"):
+            trace_enter("DashboardPage.refresh_observation.observation_manager.all")
+            points = observation_manager.all()
+            trace_exit("DashboardPage.refresh_observation.observation_manager.all")
 
-        self._populate_selector(points, active)
+            trace_enter("DashboardPage.refresh_observation.observation_manager.active")
+            active = observation_manager.active()
+            trace_exit("DashboardPage.refresh_observation.observation_manager.active")
 
-        if active is not None:
-            self._name_value.setText(active.name)
-            self._coords_value.setText(
-                f"{active.latitude:.5f}, {active.longitude:.5f}"
+            with trace_block("DashboardPage.refresh_observation._populate_selector"):
+                self._populate_selector(points, active)
+
+            trace_enter("DashboardPage.refresh_observation.update_labels")
+            if active is not None:
+                self._name_value.setText(active.name)
+                self._coords_value.setText(
+                    f"{active.latitude:.5f}, {active.longitude:.5f}"
+                )
+                self._status_value.setText(tr("Active"))
+                self._status_value.setStyleSheet("color: #66bb6a; font-weight: 600;")
+                has_point = True
+            else:
+                self._name_value.setText(tr("No observation point"))
+                self._coords_value.setText(tr("Not available"))
+                self._status_value.setText(tr("Not configured"))
+                self._status_value.setStyleSheet("color: #9aa4af; font-weight: 600;")
+                has_point = False
+
+            self._rename_button.setEnabled(has_point)
+            self._delete_button.setEnabled(has_point)
+            self._set_active_button.setEnabled(
+                has_point and len(points) > 1
             )
-            self._status_value.setText(tr("Active"))
-            self._status_value.setStyleSheet("color: #66bb6a; font-weight: 600;")
-            has_point = True
-        else:
-            self._name_value.setText(tr("No observation point"))
-            self._coords_value.setText(tr("Not available"))
-            self._status_value.setText(tr("Not configured"))
-            self._status_value.setStyleSheet("color: #9aa4af; font-weight: 600;")
-            has_point = False
+            self._selector_panel.setVisible(len(points) > 1)
+            trace_exit("DashboardPage.refresh_observation.update_labels")
 
-        self._rename_button.setEnabled(has_point)
-        self._delete_button.setEnabled(has_point)
-        self._set_active_button.setEnabled(
-            has_point and len(points) > 1
-        )
-        self._selector_panel.setVisible(len(points) > 1)
-        self.refresh_cameras()
+            with trace_block("DashboardPage.refresh_observation.refresh_cameras"):
+                self.refresh_cameras()
 
-    def refresh_cameras(self) -> None:
+    def refresh_cameras(self, *_) -> None:
 
-        while self._cameras_list.count():
-            item = self._cameras_list.takeAt(0)
+        with trace_block("DashboardPage.refresh_cameras"):
+            trace_enter("DashboardPage.refresh_cameras.clear_list")
+            while self._cameras_list.count():
+                item = self._cameras_list.takeAt(0)
 
-            if item.widget():
-                item.widget().deleteLater()
+                if item.widget():
+                    item.widget().deleteLater()
+            trace_exit("DashboardPage.refresh_cameras.clear_list")
 
-        active = observation_manager.active()
-        has_point = active is not None
-        self._add_camera_button.setEnabled(has_point)
+            trace_enter("DashboardPage.refresh_cameras.observation_manager.active")
+            active = observation_manager.active()
+            trace_exit("DashboardPage.refresh_cameras.observation_manager.active")
+            has_point = active is not None
+            self._add_camera_button.setEnabled(has_point)
 
-        if not has_point:
-            self._no_cameras_label.setVisible(True)
-            self._cameras_help_button.setVisible(True)
-            return
+            if not has_point:
+                self._no_cameras_label.setVisible(True)
+                self._cameras_help_button.setVisible(True)
+                return
 
-        cameras = camera_manager.by_observation(active.id)
-        self._no_cameras_label.setVisible(not cameras)
-        self._cameras_help_button.setVisible(not cameras)
+            trace_enter("DashboardPage.refresh_cameras.camera_manager.by_observation")
+            cameras = camera_manager.by_observation(active.id)
+            trace_exit("DashboardPage.refresh_cameras.camera_manager.by_observation")
+            self._no_cameras_label.setVisible(not cameras)
+            self._cameras_help_button.setVisible(not cameras)
 
-        for camera in cameras:
-            row = QHBoxLayout()
-            row_widget = QWidget()
-            row_widget.setLayout(row)
+            trace_enter("DashboardPage.refresh_cameras.build_rows")
+            for camera in cameras:
+                row = QHBoxLayout()
+                row_widget = QWidget()
+                row_widget.setLayout(row)
 
-            name_label = QLabel(camera.name)
-            name_label.setStyleSheet("color: white; font-weight: 600;")
-            row.addWidget(name_label, 1)
+                name_label = QLabel(camera.name)
+                name_label.setStyleSheet("color: white; font-weight: 600;")
+                row.addWidget(name_label, 1)
 
-            status_text = tr("Enabled") if camera.enabled else tr("Disabled")
-            status_label = QLabel(status_text)
-            status_label.setStyleSheet(
-                "color: #66bb6a;" if camera.enabled else "color: #9aa4af;"
-            )
-            row.addWidget(status_label)
+                status_text = tr("Enabled") if camera.enabled else tr("Disabled")
+                status_label = QLabel(status_text)
+                status_label.setStyleSheet(
+                    "color: #66bb6a;" if camera.enabled else "color: #9aa4af;"
+                )
+                row.addWidget(status_label)
 
-            edit_button = QPushButton(tr("Edit"))
-            delete_button = QPushButton(tr("Delete"))
+                edit_button = QPushButton(tr("Edit"))
+                delete_button = QPushButton(tr("Delete"))
 
-            for button in (edit_button, delete_button):
-                button.setStyleSheet("""
-                    QPushButton {
-                        background: #243651;
-                        color: white;
-                        border: 1px solid #2d5a8e;
-                        border-radius: 6px;
-                        padding: 4px 10px;
-                    }
-                    QPushButton:hover {
-                        background: #2d4a6f;
-                    }
-                """)
+                for button in (edit_button, delete_button):
+                    button.setStyleSheet("""
+                        QPushButton {
+                            background: #243651;
+                            color: white;
+                            border: 1px solid #2d5a8e;
+                            border-radius: 6px;
+                            padding: 4px 10px;
+                        }
+                        QPushButton:hover {
+                            background: #2d4a6f;
+                        }
+                    """)
 
-            edit_button.clicked.connect(
-                lambda _checked=False, item=camera: self._edit_camera(item)
-            )
-            delete_button.clicked.connect(
-                lambda _checked=False, item=camera: self._delete_camera(item)
-            )
+                edit_button.clicked.connect(
+                    lambda _checked=False, item=camera: self._edit_camera(item)
+                )
+                delete_button.clicked.connect(
+                    lambda _checked=False, item=camera: self._delete_camera(item)
+                )
 
-            row.addWidget(edit_button)
-            row.addWidget(delete_button)
-            self._cameras_list.addWidget(row_widget)
+                row.addWidget(edit_button)
+                row.addWidget(delete_button)
+                self._cameras_list.addWidget(row_widget)
+            trace_exit("DashboardPage.refresh_cameras.build_rows")
 
-    def refresh_ais(self) -> None:
+    def refresh_ais(self, *_) -> None:
 
         self._ais_provider_value.setText(ais_manager.provider_name())
 
@@ -924,7 +951,7 @@ class DashboardPage(QWidget):
             tr(result.message),
         )
 
-    def refresh_rtl(self) -> None:
+    def refresh_rtl(self, *_) -> None:
 
         status = rtl_manager.status_label()
 
@@ -1057,24 +1084,36 @@ class DashboardPage(QWidget):
 
     def _populate_selector(self, points, active) -> None:
 
-        self._point_selector.blockSignals(True)
-        self._point_selector.clear()
+        with trace_block("DashboardPage._populate_selector"):
+            trace_enter("DashboardPage._populate_selector.blockSignals")
+            self._point_selector.blockSignals(True)
+            trace_exit("DashboardPage._populate_selector.blockSignals")
 
-        for point in points:
-            label = point.name
+            trace_enter("DashboardPage._populate_selector.clear")
+            self._point_selector.clear()
+            trace_exit("DashboardPage._populate_selector.clear")
 
-            if point.active:
-                label = f"{label} ({tr('Active')})"
+            trace_enter("DashboardPage._populate_selector.add_items")
+            for point in points:
+                label = point.name
 
-            self._point_selector.addItem(label, point.id)
+                if point.active:
+                    label = f"{label} ({tr('Active')})"
 
-        if active is not None:
-            for index in range(self._point_selector.count()):
-                if self._point_selector.itemData(index) == active.id:
-                    self._point_selector.setCurrentIndex(index)
-                    break
+                self._point_selector.addItem(label, point.id)
+            trace_exit("DashboardPage._populate_selector.add_items")
 
-        self._point_selector.blockSignals(False)
+            if active is not None:
+                trace_enter("DashboardPage._populate_selector.setCurrentIndex")
+                for index in range(self._point_selector.count()):
+                    if self._point_selector.itemData(index) == active.id:
+                        self._point_selector.setCurrentIndex(index)
+                        break
+                trace_exit("DashboardPage._populate_selector.setCurrentIndex")
+
+            trace_enter("DashboardPage._populate_selector.unblockSignals")
+            self._point_selector.blockSignals(False)
+            trace_exit("DashboardPage._populate_selector.unblockSignals")
 
     def _active_point_id(self) -> str | None:
 
@@ -1118,32 +1157,75 @@ class DashboardPage(QWidget):
 
     def _on_observation_wizard_finished(self, result: int) -> None:
 
-        self._observation_wizard = None
+        with trace_block("DashboardPage._on_observation_wizard_finished"):
+            self._observation_wizard = None
 
-        if result == QDialog.DialogCode.Accepted:
-            self.refresh_observation()
+            if result == QDialog.DialogCode.Accepted:
+                self.refresh_observation()
 
     def _delete_active(self) -> None:
 
-        active = observation_manager.active()
+        trace_enter("DashboardPage._delete_active ENTER step 1")
 
-        if active is None:
-            return
+        try:
+            trace_enter("DashboardPage._delete_active ENTER step 2")
+            active = observation_manager.active()
+            trace_exit("DashboardPage._delete_active EXIT step 2")
 
-        answer = QMessageBox.question(
-            self,
-            tr("Delete"),
-            tr("Delete observation point '{name}'?").format(
+            trace_enter("DashboardPage._delete_active ENTER step 3")
+            if active is None:
+                trace_exit("DashboardPage._delete_active EXIT step 3 early return")
+                return
+            trace_exit("DashboardPage._delete_active EXIT step 3")
+
+            trace_enter("DashboardPage._delete_active ENTER step 4")
+            parent = self.window()
+            trace_exit("DashboardPage._delete_active EXIT step 4")
+
+            trace_enter("DashboardPage._delete_active ENTER step 5")
+            title = tr("Delete")
+            trace_exit("DashboardPage._delete_active EXIT step 5")
+
+            trace_enter("DashboardPage._delete_active ENTER step 6")
+            message = tr("Delete observation point '{name}'?").format(
                 name=active.name
-            ),
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
+            )
+            trace_exit("DashboardPage._delete_active EXIT step 6")
 
-        if answer != QMessageBox.StandardButton.Yes:
-            return
+            trace_enter("DashboardPage._delete_active ENTER step 7")
+            answer = QMessageBox.question(
+                parent,
+                title,
+                message,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            trace_exit("DashboardPage._delete_active EXIT step 7")
 
-        observation_manager.delete(active.id)
+            trace_enter("DashboardPage._delete_active ENTER step 8")
+            if answer != QMessageBox.StandardButton.Yes:
+                trace_exit("DashboardPage._delete_active EXIT step 8 early return")
+                return
+            trace_exit("DashboardPage._delete_active EXIT step 8")
+
+            trace_enter("DashboardPage._delete_active ENTER step 9")
+            point_id = active.id
+            trace_exit("DashboardPage._delete_active EXIT step 9")
+
+            trace_enter("DashboardPage._delete_active ENTER step 10")
+            begin_delete_trace_session(point_id)
+            trace_exit("DashboardPage._delete_active EXIT step 10")
+
+            trace_enter("DashboardPage._delete_active ENTER step 11")
+            schedule_traced_single_shot(
+                0,
+                f"DashboardPage._delete_active->ObservationManager.delete_observation "
+                f"point_id={point_id}",
+                lambda: observation_manager.delete(point_id),
+            )
+            trace_exit("DashboardPage._delete_active EXIT step 11")
+        finally:
+            trace_exit("DashboardPage._delete_active EXIT step 1")
 
     def _set_selected_active(self) -> None:
 
@@ -1156,17 +1238,30 @@ class DashboardPage(QWidget):
 
     def _on_selector_changed(self, _index: int) -> None:
 
-        point_id = self._point_selector.currentData()
+        with trace_block("DashboardPage._on_selector_changed"):
+            trace_enter("DashboardPage._on_selector_changed.currentData")
+            point_id = self._point_selector.currentData()
+            trace_exit("DashboardPage._on_selector_changed.currentData")
 
-        if not point_id:
-            return
+            if not point_id:
+                return
 
-        active = observation_manager.active()
+            trace_enter("DashboardPage._on_selector_changed.observation_manager.active")
+            active = observation_manager.active()
+            trace_exit("DashboardPage._on_selector_changed.observation_manager.active")
 
-        if active is not None and active.id == point_id:
-            return
+            if active is not None and active.id == point_id:
+                return
 
-        observation_manager.set_active(str(point_id))
+            trace_enter(
+                "DashboardPage._on_selector_changed.observation_manager._set_active "
+                f"point_id={point_id}"
+            )
+            observation_manager.set_active(str(point_id))
+            trace_exit(
+                "DashboardPage._on_selector_changed.observation_manager._set_active "
+                f"point_id={point_id}"
+            )
 
     def _refresh_configuration_labels(self) -> None:
 
@@ -1270,14 +1365,19 @@ class DashboardPage(QWidget):
 
     def on_ship_updated(self):
 
-        ships = registry.all()
+        with trace_block("DashboardPage.on_ship_updated"):
+            ships = registry.all()
 
-        self.ships.value.setText(str(len(ships)))
+            self.ships.value.setText(str(len(ships)))
 
-        if ships:
-            self.last.value.setText(ships[-1].name)
-        else:
-            self.last.value.setText(tr("Not available"))
+            if ships:
+                self.last.value.setText(ships[-1].name)
+            else:
+                self.last.value.setText(tr("Not available"))
 
-        self.refresh_ais()
-        self.refresh_rtl()
+            trace_enter("DashboardPage.on_ship_updated.refresh_ais")
+            self.refresh_ais()
+            trace_exit("DashboardPage.on_ship_updated.refresh_ais")
+            trace_enter("DashboardPage.on_ship_updated.refresh_rtl")
+            self.refresh_rtl()
+            trace_exit("DashboardPage.on_ship_updated.refresh_rtl")

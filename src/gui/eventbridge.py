@@ -5,6 +5,7 @@
 
 from PySide6.QtCore import QObject, Signal
 
+from debug.obs_freeze_trace import trace_block
 from events import eventbus
 
 
@@ -24,12 +25,15 @@ class EventBridge(QObject):
 
     def _on_ship_updated(self, ship=None, **kwargs):
 
-        self.ship_updated.emit()
+        with trace_block("EventBridge._on_ship_updated"):
+            self.ship_updated.emit()
 
     def _on_ais_status(self, status):
 
-        self.ais_status.emit(status)
+        with trace_block("EventBridge._on_ais_status"):
+            self.ais_status.emit(status)
 
     def _on_rtl_status(self, status):
 
-        self.rtl_status.emit(status)
+        with trace_block("EventBridge._on_rtl_status"):
+            self.rtl_status.emit(status)

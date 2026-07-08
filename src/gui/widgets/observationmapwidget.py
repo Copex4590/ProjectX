@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import json
+
 from app.paths import resource_path
 
 from PySide6.QtCore import QObject, QUrl, Signal, Slot
@@ -51,13 +55,22 @@ class ObservationMapWidget(QWebEngineView):
 
         self._pending_lat: float | None = None
         self._pending_lon: float | None = None
+        self._empty_message = ""
         self._pick_enabled = False
+        self._page_ready = False
 
     def set_observation_point(self, latitude: float, longitude: float) -> None:
 
         self._pending_lat = latitude
         self._pending_lon = longitude
         self._apply_observation_point()
+
+    def clear_observation_point(self, message: str = "") -> None:
+
+        self._pending_lat = None
+        self._pending_lon = None
+        self._empty_message = message
+        self._apply_empty_state()
 
     def enable_pick_mode(self, enabled: bool) -> None:
 
@@ -71,10 +84,18 @@ class ObservationMapWidget(QWebEngineView):
         if not ok:
             return
 
+        self._page_ready = True
         self.enable_pick_mode(self._pick_enabled)
-        self._apply_observation_point()
+
+        if self._pending_lat is None or self._pending_lon is None:
+            self._apply_empty_state()
+        else:
+            self._apply_observation_point()
 
     def _apply_observation_point(self) -> None:
+
+        if not self._page_ready:
+            return
 
         if self._pending_lat is None or self._pending_lon is None:
             return
@@ -83,4 +104,14 @@ class ObservationMapWidget(QWebEngineView):
         lon = self._pending_lon
         self.page().runJavaScript(
             f"setObservationPoint({lat}, {lon});"
+        )
+
+    def _apply_empty_state(self) -> None:
+
+        if not self._page_ready:
+            return
+
+        message = json.dumps(self._empty_message)
+        self.page().runJavaScript(
+            f"clearObservationPoint({message});"
         )
