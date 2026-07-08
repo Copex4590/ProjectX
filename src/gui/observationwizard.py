@@ -1,8 +1,3 @@
-# ============================================================================
-# Project X
-# Observation Point Setup Wizard
-# ============================================================================
-
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QButtonGroup,
@@ -13,15 +8,15 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPushButton,
     QRadioButton,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
 
-from engines.rtl.hybrid_engine import CAMERA_LAT, CAMERA_LON
 from gui.i18n_support import bind_language_refresh
-from gui.widgets.observationmapwidget import ObservationMapWidget
+from gui.mapcontroller import MapController
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button
 from i18n import tr
 from observation import observation_manager
@@ -32,8 +27,8 @@ class ObservationSetupWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self._picked_lat = CAMERA_LAT
-        self._picked_lon = CAMERA_LON
+        self._picked_lat: float | None = None
+        self._picked_lon: float | None = None
 
         self._build_ui()
         self._connect_signals()
@@ -54,9 +49,11 @@ class ObservationSetupWidget(QWidget):
         self._coords_option.setText(tr("Enter coordinates"))
         self._latitude_label.setText(tr("Latitude"))
         self._longitude_label.setText(tr("Longitude"))
-        self._confirm_label.setText(
-            tr("Click the map once. A red marker appears. Confirm to save.")
+        self._pick_map_button.setText(tr("Select location on Map"))
+        self._map_help_label.setText(
+            tr("Use the central Map to choose a location.")
         )
+        self._update_picked_coords_label()
 
     def substep_index(self) -> int:
 
@@ -64,12 +61,17 @@ class ObservationSetupWidget(QWidget):
 
     def on_enter(self) -> None:
 
-        if self.substep_index() == 1:
-            self._sync_location_mode()
+        if self.substep_index() != 1:
+            return
+
+        self._sync_location_mode()
+
+        if self._map_option.isChecked():
+            self._start_map_pick()
 
     def on_leave(self) -> None:
 
-        self._map_widget.enable_pick_mode(False)
+        MapController.instance().cancel_pick_mode()
 
     def handle_next(self) -> bool:
 
@@ -79,8 +81,12 @@ class ObservationSetupWidget(QWidget):
         if not self._name_input.text().strip():
             return False
 
+        self._picked_lat = None
+        self._picked_lon = None
         self._stack.setCurrentIndex(1)
         self._sync_location_mode()
+        if self._map_option.isChecked():
+            self._start_map_pick()
         return False
 
     def handle_back(self) -> bool:
@@ -88,8 +94,8 @@ class ObservationSetupWidget(QWidget):
         if self.substep_index() != 1:
             return True
 
+        MapController.instance().cancel_pick_mode()
         self._stack.setCurrentIndex(0)
-        self._map_widget.enable_pick_mode(False)
         return False
 
     def handle_confirm(self) -> bool:
@@ -97,6 +103,9 @@ class ObservationSetupWidget(QWidget):
         name = self._name_input.text().strip()
 
         if not name:
+            return False
+
+        if self._picked_lat is None or self._picked_lon is None:
             return False
 
         observation_manager.create(
@@ -167,9 +176,34 @@ class ObservationSetupWidget(QWidget):
         self._mode_group.addButton(self._map_option, 0)
         self._mode_group.addButton(self._coords_option, 1)
 
-        self._map_widget = ObservationMapWidget()
-        self._map_widget.setMinimumHeight(260)
-        step2_layout.addWidget(self._map_widget)
+        self._map_panel = QWidget()
+        map_panel_layout = QVBoxLayout(self._map_panel)
+        map_panel_layout.setContentsMargins(0, 0, 0, 0)
+        map_panel_layout.setSpacing(8)
+
+        self._map_help_label = QLabel()
+        self._map_help_label.setWordWrap(True)
+        self._map_help_label.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        map_panel_layout.addWidget(self._map_help_label)
+
+        self._pick_map_button = QPushButton()
+        self._pick_map_button.setStyleSheet("""
+            QPushButton {
+                background: #243651;
+                color: white;
+                border: 1px solid #2d5a8e;
+                border-radius: 6px;
+                padding: 8px 12px;
+            }
+            QPushButton:hover { background: #2d4a6f; }
+        """)
+        map_panel_layout.addWidget(self._pick_map_button)
+
+        self._picked_coords_label = QLabel()
+        self._picked_coords_label.setWordWrap(True)
+        self._picked_coords_label.setStyleSheet("color: white; font-weight: 600;")
+        map_panel_layout.addWidget(self._picked_coords_label)
+        step2_layout.addWidget(self._map_panel)
 
         coords_form = QFormLayout()
         self._latitude_label = QLabel()
@@ -177,54 +211,75 @@ class ObservationSetupWidget(QWidget):
         self._latitude_input = QDoubleSpinBox()
         self._latitude_input.setRange(-90.0, 90.0)
         self._latitude_input.setDecimals(5)
-        self._latitude_input.setValue(CAMERA_LAT)
+        self._latitude_input.setValue(0.0)
         self._longitude_input = QDoubleSpinBox()
         self._longitude_input.setRange(-180.0, 180.0)
         self._longitude_input.setDecimals(5)
-        self._longitude_input.setValue(CAMERA_LON)
+        self._longitude_input.setValue(0.0)
         coords_form.addRow(self._latitude_label, self._latitude_input)
         coords_form.addRow(self._longitude_label, self._longitude_input)
         self._coords_panel = QWidget()
         self._coords_panel.setLayout(coords_form)
         self._coords_panel.setVisible(False)
         step2_layout.addWidget(self._coords_panel)
-
-        self._confirm_label = QLabel()
-        self._confirm_label.setWordWrap(True)
-        self._confirm_label.setStyleSheet("color: #9aa4af; font-size: 10pt;")
-        step2_layout.addWidget(self._confirm_label)
-
+        step2_layout.addStretch()
         self._stack.addWidget(step2)
 
-        self._map_widget.set_observation_point(self._picked_lat, self._picked_lon)
         self._sync_location_mode()
 
     def _connect_signals(self) -> None:
 
         self._mode_group.idClicked.connect(self._on_mode_changed)
-        self._map_widget.locationSelected.connect(self._on_map_location)
+        self._pick_map_button.clicked.connect(self._start_map_pick)
         self._latitude_input.valueChanged.connect(self._on_coords_changed)
         self._longitude_input.valueChanged.connect(self._on_coords_changed)
+
+    def _start_map_pick(self) -> None:
+
+        host = self._pick_host_dialog()
+        MapController.instance().begin_location_pick(
+            self._on_map_location,
+            host=host,
+        )
+
+    def _pick_host_dialog(self) -> QDialog | None:
+
+        widget: QWidget | None = self
+
+        while widget is not None:
+            if isinstance(widget, QDialog):
+                return widget
+
+            widget = widget.parentWidget()
+
+        top = self.window()
+
+        if isinstance(top, QDialog):
+            return top
+
+        return None
 
     def _on_mode_changed(self, _button_id: int) -> None:
 
         self._sync_location_mode()
 
+        if self._map_option.isChecked() and self.substep_index() == 1:
+            self._start_map_pick()
+
     def _sync_location_mode(self) -> None:
 
         use_map = self._map_option.isChecked()
-        self._map_widget.setVisible(use_map)
+        self._map_panel.setVisible(use_map)
         self._coords_panel.setVisible(not use_map)
-        self._map_widget.enable_pick_mode(use_map)
 
-        if use_map:
-            self._map_widget.set_observation_point(
-                self._picked_lat,
-                self._picked_lon,
-            )
-        else:
+        if not use_map:
+            MapController.instance().cancel_pick_mode()
             self._picked_lat = self._latitude_input.value()
             self._picked_lon = self._longitude_input.value()
+            self._update_picked_coords_label()
+            return
+
+        self._update_picked_coords_label()
 
     def _on_map_location(self, latitude: float, longitude: float) -> None:
 
@@ -232,16 +287,24 @@ class ObservationSetupWidget(QWidget):
         self._picked_lon = longitude
         self._latitude_input.setValue(latitude)
         self._longitude_input.setValue(longitude)
+        self._update_picked_coords_label()
 
     def _on_coords_changed(self) -> None:
 
         if self._coords_option.isChecked():
             self._picked_lat = self._latitude_input.value()
             self._picked_lon = self._longitude_input.value()
-            self._map_widget.set_observation_point(
-                self._picked_lat,
-                self._picked_lon,
-            )
+            self._update_picked_coords_label()
+
+    def _update_picked_coords_label(self) -> None:
+
+        if self._picked_lat is None or self._picked_lon is None:
+            self._picked_coords_label.setText(tr("No location selected"))
+            return
+
+        self._picked_coords_label.setText(
+            f"{self._picked_lat:.5f}, {self._picked_lon:.5f}"
+        )
 
 
 class ObservationWizard(QDialog):
@@ -249,9 +312,10 @@ class ObservationWizard(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setModal(True)
+        self.setModal(False)
+        self.setWindowModality(Qt.WindowModality.NonModal)
         self.setMinimumWidth(560)
-        self.setMinimumHeight(520)
+        self.setMinimumHeight(420)
 
         self._build_ui()
         self._connect_signals()
@@ -290,7 +354,7 @@ class ObservationWizard(QDialog):
             QLineEdit, QDoubleSpinBox {
                 background: #252a31;
                 color: white;
-                border: 1px solid #40444b;
+                border: 1px solid #3d4a5c;
                 border-radius: 6px;
                 padding: 6px 8px;
             }
@@ -359,3 +423,13 @@ class ObservationWizard(QDialog):
 
         if self._setup.handle_confirm():
             self.accept()
+
+    def reject(self) -> None:
+
+        self._setup.on_leave()
+        super().reject()
+
+    def accept(self) -> None:
+
+        self._setup.on_leave()
+        super().accept()

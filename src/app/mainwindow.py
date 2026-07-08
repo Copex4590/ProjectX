@@ -1,6 +1,7 @@
 import logging
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QEventLoop
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
@@ -18,6 +19,7 @@ from gui.menubar import MenuBar
 
 from gui.dashboardpage import DashboardPage
 from gui.mapcontroller import MapController
+from gui.map_core import MAP_PAGE_INDEX, PickMode
 from gui.mappage import MapPage
 from gui.vesselspage import VesselsPage
 from gui.camerapage import CameraPage
@@ -63,6 +65,10 @@ class MainWindow(QMainWindow):
         rtl_manager.start()
 
         self.build_ui()
+
+        self._cancel_pick_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
+        self._cancel_pick_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        self._cancel_pick_shortcut.activated.connect(self._cancel_active_location_pick)
 
         self.event_bridge = EventBridge()
         self._connect_event_bridge()
@@ -133,8 +139,15 @@ class MainWindow(QMainWindow):
             return
 
         wizard = FirstRunWizard(self)
+        wizard.setModal(False)
+        wizard.setWindowModality(Qt.WindowModality.NonModal)
 
-        if wizard.exec() != FirstRunWizard.DialogCode.Accepted:
+        loop = QEventLoop(self)
+        wizard.finished.connect(loop.quit)
+        wizard.show()
+        loop.exec()
+
+        if wizard.result() != FirstRunWizard.DialogCode.Accepted:
             return
 
         if wizard.open_camera_page:
@@ -169,6 +182,13 @@ class MainWindow(QMainWindow):
         self.menu_bar = MenuBar()
         self.setMenuBar(self.menu_bar)
         self.menu_bar.about_requested.connect(self._show_about)
+        self.menu_bar._dashboard_action.triggered.connect(
+            lambda: self.pages.setCurrentIndex(0)
+        )
+        self.menu_bar._map_action.triggered.connect(self.navigate_to_map)
+        self.menu_bar._settings_action.triggered.connect(
+            self._open_dashboard_configuration
+        )
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -182,6 +202,10 @@ class MainWindow(QMainWindow):
         self.dashboard_page = DashboardPage()
         self.map_page = MapPage()
         MapController.instance().set_dialog_parent(self)
+        MapController.instance().navigation_requested.connect(
+            lambda _page_index: self.navigate_to_map(),
+            Qt.ConnectionType.QueuedConnection,
+        )
         self.vessels_page = VesselsPage()
         self.camera_page = CameraPage()
         self.vessel_database_page = VesselDatabasePage()
@@ -298,7 +322,7 @@ class MainWindow(QMainWindow):
         page.rtlDiagnosticsRequested.connect(self._open_rtl_diagnostics)
         page.openSettingsRequested.connect(self._open_dashboard_configuration)
         page.openDashboardRequested.connect(lambda: self.pages.setCurrentIndex(0))
-        page.openMapRequested.connect(lambda: self.pages.setCurrentIndex(1))
+        page.openMapRequested.connect(self.navigate_to_map)
         page.cameraDiagnosticsRequested.connect(self._open_camera_diagnostics)
 
     def _open_dashboard_configuration(self) -> None:
@@ -359,19 +383,39 @@ class MainWindow(QMainWindow):
         self.pages.setCurrentIndex(0)
         self.dashboard_page.open_configuration_section(focus_diagnostics=True)
 
+    def navigate_to_map(self, *, focus_mmsi: int | None = None) -> None:
+
+        if not self.isVisible():
+            self.show()
+
+        self.raise_()
+        self.activateWindow()
+        self.pages.setCurrentIndex(MAP_PAGE_INDEX)
+
+        if focus_mmsi is not None:
+            self.map_page.select_vessel(int(focus_mmsi))
+            MapController.instance().focus_ship(int(focus_mmsi))
+
     def focus_ship(self, mmsi):
 
-        self.pages.setCurrentIndex(1)
-
-        self.map_page.select_vessel(mmsi)
-        self.map_page.map.focus_ship(mmsi)
+        self.navigate_to_map(focus_mmsi=int(mmsi))
 
     def _show_about(self) -> None:
 
         dialog = AboutDialog(self)
         dialog.exec()
 
+    def _cancel_active_location_pick(self) -> None:
+
+        if MapController.instance().pick_mode() != PickMode.NONE:
+            MapController.instance().cancel_pick_mode()
+
     def closeEvent(self, event):
+
+        if MapController.instance().pick_mode() != PickMode.NONE:
+            MapController.instance().cancel_pick_mode(restore_host=False)
+
+        MapController.release_application_modality()
 
         logger.info("Stopping Hybrid Engine")
         self.hybrid_engine.stop()

@@ -1,5 +1,4 @@
 # ============================================================================
-# Project X
 # First Run Wizard
 # ============================================================================
 
@@ -29,8 +28,8 @@ _LANGUAGE_LABELS = {
     "hu": "Magyar",
 }
 
-_STEP_WELCOME = 0
-_STEP_LANGUAGE = 1
+_STEP_LANGUAGE = 0
+_STEP_WELCOME = 1
 _STEP_OBSERVATION = 2
 _STEP_AIS = 3
 _STEP_CAMERA = 4
@@ -42,7 +41,8 @@ class FirstRunWizard(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setModal(True)
+        self.setModal(False)
+        self.setWindowModality(Qt.WindowModality.NonModal)
         self.setMinimumWidth(560)
         self.setMinimumHeight(520)
 
@@ -52,6 +52,7 @@ class FirstRunWizard(QDialog):
         self._connect_signals()
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
+        self._stack.setCurrentIndex(_STEP_LANGUAGE)
         self._sync_buttons()
 
     @property
@@ -117,7 +118,7 @@ class FirstRunWizard(QDialog):
             QLineEdit, QDoubleSpinBox {
                 background: #252a31;
                 color: white;
-                border: 1px solid #40444b;
+                border: 1px solid #3d4a5c;
                 border-radius: 6px;
                 padding: 6px 8px;
             }
@@ -127,15 +128,15 @@ class FirstRunWizard(QDialog):
             }
 
             QPushButton {
-                background: #343a42;
+                background: #243651;
                 color: white;
-                border: 1px solid #4a5159;
+                border: 1px solid #2d5a8e;
                 border-radius: 6px;
                 padding: 6px 12px;
             }
 
             QPushButton:hover {
-                background: #3f464f;
+                background: #2d4a6f;
             }
         """)
 
@@ -145,6 +146,25 @@ class FirstRunWizard(QDialog):
 
         self._stack = QStackedWidget()
         layout.addWidget(self._stack)
+
+        language = QWidget()
+        language_layout = QVBoxLayout(language)
+        self._language_title = QLabel()
+        self._language_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        language_layout.addWidget(self._language_title)
+
+        self._english_option = QRadioButton()
+        self._hungarian_option = QRadioButton()
+        self._english_option.setChecked(True)
+
+        language_layout.addWidget(self._english_option)
+        language_layout.addWidget(self._hungarian_option)
+        language_layout.addStretch()
+        self._stack.addWidget(language)
+
+        self._language_group = QButtonGroup(self)
+        self._language_group.addButton(self._english_option, 0)
+        self._language_group.addButton(self._hungarian_option, 1)
 
         welcome = QWidget()
         welcome_layout = QVBoxLayout(welcome)
@@ -170,25 +190,6 @@ class FirstRunWizard(QDialog):
         self._continue_button = QPushButton()
         welcome_layout.addWidget(self._continue_button, alignment=Qt.AlignCenter)
         self._stack.addWidget(welcome)
-
-        language = QWidget()
-        language_layout = QVBoxLayout(language)
-        self._language_title = QLabel()
-        self._language_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        language_layout.addWidget(self._language_title)
-
-        self._english_option = QRadioButton()
-        self._hungarian_option = QRadioButton()
-        self._english_option.setChecked(True)
-
-        language_layout.addWidget(self._english_option)
-        language_layout.addWidget(self._hungarian_option)
-        language_layout.addStretch()
-        self._stack.addWidget(language)
-
-        self._language_group = QButtonGroup(self)
-        self._language_group.addButton(self._english_option, 0)
-        self._language_group.addButton(self._hungarian_option, 1)
 
         self._observation_setup = ObservationSetupWidget()
         self._stack.addWidget(self._observation_setup)
@@ -287,7 +288,7 @@ class FirstRunWizard(QDialog):
         self._open_dashboard_button.setVisible(step == _STEP_FINISH)
 
         back_button.setVisible(
-            step not in (_STEP_WELCOME, _STEP_FINISH)
+            step not in (_STEP_LANGUAGE, _STEP_FINISH)
         )
         cancel_button.setVisible(
             step not in (_STEP_WELCOME, _STEP_FINISH)
@@ -309,9 +310,9 @@ class FirstRunWizard(QDialog):
             confirm_button.setVisible(False)
             next_button.setVisible(step in (_STEP_LANGUAGE, _STEP_CAMERA))
 
-        if step == _STEP_WELCOME:
+        if step == _STEP_LANGUAGE:
             back_button.setEnabled(False)
-        elif step == _STEP_LANGUAGE:
+        elif step == _STEP_WELCOME:
             back_button.setEnabled(True)
         elif step == _STEP_CAMERA:
             back_button.setEnabled(True)
@@ -320,8 +321,19 @@ class FirstRunWizard(QDialog):
 
     def _on_continue(self) -> None:
 
-        self._stack.setCurrentIndex(_STEP_LANGUAGE)
+        self._stack.setCurrentIndex(_STEP_OBSERVATION)
+        self._observation_setup.on_enter()
         self._sync_buttons()
+
+    def _persist_language_selection(self) -> None:
+
+        button_id = self._language_group.checkedId()
+
+        if button_id < 0:
+            button_id = 0
+
+        code = SUPPORTED_LANGUAGES[button_id]
+        language_manager.set_language(code)
 
     def _on_language_selected(self, button_id: int) -> None:
 
@@ -337,8 +349,8 @@ class FirstRunWizard(QDialog):
         step = self._stack.currentIndex()
 
         if step == _STEP_LANGUAGE:
-            self._stack.setCurrentIndex(_STEP_OBSERVATION)
-            self._observation_setup.on_enter()
+            self._persist_language_selection()
+            self._stack.setCurrentIndex(_STEP_WELCOME)
         elif step == _STEP_OBSERVATION:
             self._observation_setup.handle_next()
         elif step == _STEP_AIS:
@@ -354,12 +366,12 @@ class FirstRunWizard(QDialog):
 
         step = self._stack.currentIndex()
 
-        if step == _STEP_LANGUAGE:
-            self._stack.setCurrentIndex(_STEP_WELCOME)
+        if step == _STEP_WELCOME:
+            self._stack.setCurrentIndex(_STEP_LANGUAGE)
         elif step == _STEP_OBSERVATION:
             if self._observation_setup.handle_back():
                 self._observation_setup.on_leave()
-                self._stack.setCurrentIndex(_STEP_LANGUAGE)
+                self._stack.setCurrentIndex(_STEP_WELCOME)
         elif step == _STEP_AIS:
             if self._ais_setup.handle_back():
                 self._ais_setup.on_leave()

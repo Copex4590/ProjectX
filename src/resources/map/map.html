@@ -87,40 +87,16 @@
         }
 
         .map-context-menu {
-            position: absolute;
-            z-index: 2000;
-            min-width: 180px;
-            padding: 4px 0;
-            border-radius: 8px;
-            background: rgba(29, 33, 39, 0.96);
-            border: 1px solid #3d4a5c;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-            font-size: 13px;
-            color: #d5dbe3;
-        }
-
-        .map-context-menu[hidden] {
             display: none;
         }
 
-        .map-context-menu__item {
-            display: block;
-            width: 100%;
-            padding: 8px 14px;
-            border: none;
-            background: transparent;
-            color: inherit;
-            text-align: left;
-            cursor: pointer;
-        }
-
-        .map-context-menu__item:hover {
-            background: rgba(25, 118, 210, 0.22);
-        }
-
-        .map-context-menu__item--danger:hover {
-            background: rgba(229, 57, 53, 0.22);
+        .pick-marker {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #1976d2;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 8px rgba(25, 118, 210, 0.75);
         }
 
         .map-empty-state {
@@ -421,7 +397,6 @@
 
 <div id="map"></div>
 <div id="empty-state" class="map-empty-state" hidden></div>
-<div id="context-menu" class="map-context-menu" hidden></div>
 
 <script>
 
@@ -429,6 +404,8 @@ const WORLD_BOUNDS = L.latLngBounds(
     L.latLng(-60, -180),
     L.latLng(75, 180)
 );
+const WORLD_VIEW_CENTER = [20, 0];
+const WORLD_VIEW_ZOOM = 2;
 
 const map = L.map("map", {
     worldCopyJump: true,
@@ -449,6 +426,22 @@ const ships = {};
 const trails = {};
 let openPopupMmsi = null;
 let bridge = null;
+let pendingPickLocation = null;
+
+function reportPickLocation(latitude, longitude)
+{
+    if (bridge && bridge.reportLocation)
+    {
+        bridge.reportLocation(latitude, longitude);
+        pendingPickLocation = null;
+        return;
+    }
+
+    pendingPickLocation = {
+        lat: latitude,
+        lon: longitude
+    };
+}
 
 function initBridge()
 {
@@ -458,6 +451,15 @@ function initBridge()
     new QWebChannel(qt.webChannelTransport, function(channel)
     {
         bridge = channel.objects.bridge;
+
+        if (pendingPickLocation && bridge && bridge.reportLocation)
+        {
+            bridge.reportLocation(
+                pendingPickLocation.lat,
+                pendingPickLocation.lon
+            );
+            pendingPickLocation = null;
+        }
     });
 }
 
@@ -480,10 +482,8 @@ function attachLogbookHandlers(popupElement)
 
 initBridge();
 const observationMarkers = {};
-let observationRecords = {};
 let pickEnabled = false;
-let movePointId = null;
-let contextLatLng = null;
+let pickMarker = null;
 
 function observationIcon(active)
 {
@@ -501,51 +501,54 @@ function observationIcon(active)
 
 function hideContextMenu()
 {
-    const menu = document.getElementById("context-menu");
-
-    if (menu)
-        menu.hidden = true;
 }
 
 function showContextMenu(clientX, clientY, items)
 {
-    const menu = document.getElementById("context-menu");
-
-    if (!menu)
-        return;
-
-    menu.innerHTML = "";
-
-    for (const item of items)
-    {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "map-context-menu__item";
-
-        if (item.danger)
-            button.classList.add("map-context-menu__item--danger");
-
-        button.textContent = item.label;
-        button.onclick = function()
-        {
-            hideContextMenu();
-            item.action();
-        };
-        menu.appendChild(button);
-    }
-
-    const mapElement = document.getElementById("map");
-    const rect = mapElement.getBoundingClientRect();
-    menu.style.left = Math.min(clientX - rect.left, rect.width - 200) + "px";
-    menu.style.top = Math.min(clientY - rect.top, rect.height - (items.length * 36)) + "px";
-    menu.hidden = false;
 }
 
 document.addEventListener("click", hideContextMenu);
 
 function fitWorldMap()
 {
-    map.fitBounds(WORLD_BOUNDS, { padding: [20, 20] });
+    const size = map.getSize();
+
+    if (size.x < 100 || size.y < 100)
+    {
+        map.setView(WORLD_VIEW_CENTER, WORLD_VIEW_ZOOM, { animate: false });
+        return;
+    }
+
+    map.fitBounds(WORLD_BOUNDS, {
+        padding: [20, 20],
+        maxZoom: 4,
+        animate: false
+    });
+}
+
+function resetMapToWorldView()
+{
+    map.setView(WORLD_VIEW_CENTER, WORLD_VIEW_ZOOM, { animate: false });
+    map.invalidateSize();
+    fitWorldMap();
+
+    requestAnimationFrame(function()
+    {
+        map.invalidateSize();
+        fitWorldMap();
+    });
+
+    window.setTimeout(function()
+    {
+        map.invalidateSize();
+        fitWorldMap();
+    }, 50);
+
+    window.setTimeout(function()
+    {
+        map.invalidateSize();
+        fitWorldMap();
+    }, 200);
 }
 
 function showEmptyOverlay(message)
@@ -575,17 +578,17 @@ function clearObservationPoints(message)
         delete observationMarkers[pointId];
     }
 
-    observationRecords = {};
-    movePointId = null;
-    fitWorldMap();
+    resetMapToWorldView();
     showEmptyOverlay(message || "");
 }
 
 function updateObservationPoints(points)
 {
     const activeIds = new Set();
+    const preservePickOverlay = pickEnabled;
 
-    showEmptyOverlay("");
+    if (!preservePickOverlay)
+        showEmptyOverlay("");
 
     for (const point of points)
     {
@@ -593,26 +596,12 @@ function updateObservationPoints(points)
         activeIds.add(pointId);
 
         const position = [point.lat, point.lon];
-        observationRecords[pointId] = point;
 
         if (!observationMarkers[pointId])
         {
-            const marker = L.marker(position, {
+            observationMarkers[pointId] = L.marker(position, {
                 icon: observationIcon(!!point.active)
             }).addTo(map);
-
-            marker.on("contextmenu", function(event)
-            {
-                L.DomEvent.stopPropagation(event);
-                event.originalEvent.preventDefault();
-                showObservationContextMenu(
-                    pointId,
-                    event.originalEvent.clientX,
-                    event.originalEvent.clientY
-                );
-            });
-
-            observationMarkers[pointId] = marker;
         }
         else
         {
@@ -629,9 +618,11 @@ function updateObservationPoints(points)
         {
             map.removeLayer(observationMarkers[pointId]);
             delete observationMarkers[pointId];
-            delete observationRecords[pointId];
         }
     }
+
+    if (preservePickOverlay)
+        return;
 
     if (points.length === 0)
     {
@@ -643,107 +634,69 @@ function updateObservationPoints(points)
     {
         map.setView(
             [points[0].lat, points[0].lon],
-            Math.max(map.getZoom(), 11)
+            Math.max(map.getZoom(), 11),
+            { animate: false }
         );
     }
-}
-
-function showObservationContextMenu(pointId, clientX, clientY)
-{
-    const point = observationRecords[pointId];
-
-    if (!point || !bridge || !bridge.observationAction)
-        return;
-
-    const items = [
-        {
-            label: "Rename",
-            action: function()
-            {
-                bridge.observationAction(pointId, "rename");
-            }
-        },
-        {
-            label: "Move",
-            action: function()
-            {
-                bridge.observationAction(pointId, "move");
-            }
-        },
-        {
-            label: "Activate",
-            action: function()
-            {
-                bridge.observationAction(pointId, "activate");
-            }
-        },
-        {
-            label: "Deactivate",
-            action: function()
-            {
-                bridge.observationAction(pointId, "deactivate");
-            }
-        },
-        {
-            label: "Assign camera",
-            action: function()
-            {
-                bridge.observationAction(pointId, "assign_camera");
-            }
-        },
-        {
-            label: "Open camera",
-            action: function()
-            {
-                bridge.observationAction(pointId, "open_camera");
-            }
-        },
-        {
-            label: "Delete",
-            danger: true,
-            action: function()
-            {
-                bridge.observationAction(pointId, "delete");
-            }
-        }
-    ];
-
-    showContextMenu(clientX, clientY, items);
-}
-
-function showEmptyMapContextMenu(latlng, clientX, clientY)
-{
-    if (!bridge || !bridge.mapEmptyAction)
-        return;
-
-    contextLatLng = latlng;
-
-    showContextMenu(clientX, clientY, [
-        {
-            label: "Create observation point",
-            action: function()
-            {
-                if (!contextLatLng)
-                    return;
-
-                bridge.mapEmptyAction(
-                    "create",
-                    contextLatLng.lat,
-                    contextLatLng.lng
-                );
-            }
-        }
-    ]);
 }
 
 function enablePickMode(enabled)
 {
     pickEnabled = !!enabled;
+
+    if (!pickEnabled)
+        clearPickMarker();
 }
 
-function enableMoveMode(pointId)
+function beginLocationPick(message)
 {
-    movePointId = pointId ? String(pointId) : null;
+    pickEnabled = true;
+    clearPickMarker();
+    showEmptyOverlay(message || "");
+    resetMapToWorldView();
+}
+
+function refreshLocationPickView(message)
+{
+    pickEnabled = true;
+    showEmptyOverlay(message || "");
+    resetMapToWorldView();
+}
+
+function endLocationPick()
+{
+    pickEnabled = false;
+    pendingPickLocation = null;
+    clearPickMarker();
+    showEmptyOverlay("");
+}
+
+function setPickOverlay(message)
+{
+    showEmptyOverlay(message || "");
+}
+
+function clearPickMarker()
+{
+    if (pickMarker)
+    {
+        map.removeLayer(pickMarker);
+        pickMarker = null;
+    }
+}
+
+function setPickMarker(lat, lon)
+{
+    clearPickMarker();
+
+    const icon = L.divIcon({
+        className: "",
+        html: "<div class='pick-marker'></div>",
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+    });
+
+    pickMarker = L.marker([lat, lon], { icon: icon }).addTo(map);
 }
 
 function clearObservationPoint(message)
@@ -764,34 +717,22 @@ function setObservationPoint(lat, lon)
     ]);
 }
 
-map.on("contextmenu", function(event)
-{
-    event.originalEvent.preventDefault();
-    hideContextMenu();
-    showEmptyMapContextMenu(
-        event.latlng,
-        event.originalEvent.clientX,
-        event.originalEvent.clientY
-    );
-});
-
 map.on("click", function(event)
 {
-    if (pickEnabled && bridge && bridge.reportLocation)
-    {
-        bridge.reportLocation(event.latlng.lat, event.latlng.lng);
+    if (!pickEnabled)
         return;
-    }
 
-    if (movePointId && bridge && bridge.observationMoved)
-    {
-        bridge.observationMoved(
-            movePointId,
-            event.latlng.lat,
-            event.latlng.lng
-        );
-        movePointId = null;
-    }
+    const latitude = event.latlng.lat;
+    const longitude = event.latlng.lng;
+
+    setPickMarker(latitude, longitude);
+    reportPickLocation(latitude, longitude);
+});
+
+map.on("resize", function()
+{
+    if (pickEnabled)
+        fitWorldMap();
 });
 
 fitWorldMap();

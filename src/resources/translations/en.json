@@ -560,5 +560,10 @@
   "No camera is assigned to this observation point.": "No camera is assigned to this observation point.",
   "Camera playback opens from the map sidebar for now. A dedicated resizable camera window arrives in a later phase.": "Camera playback opens from the map sidebar for now. A dedicated resizable camera window arrives in a later phase.",
   "Operational control center": "Operational control center",
-  "Geographic editing is available on the Live Map.": "Geographic editing is available on the Live Map."
+  "Geographic editing is available on the Map.": "Geographic editing is available on the Map.",
+  "Select location on Map": "Select location on Map",
+  "Use the central Map to choose a location.": "Use the central Map to choose a location.",
+  "No location selected": "No location selected",
+  "Click the map to set the location.": "Click the map to set the location.",
+  "Click the map to set the location. Press Esc to cancel.": "Click the map to set the location. Press Esc to cancel."
 }

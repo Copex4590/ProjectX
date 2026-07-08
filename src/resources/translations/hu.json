@@ -560,5 +560,10 @@
   "No camera is assigned to this observation point.": "Ehhez a megfigyelőponthoz nincs kamera rendelve.",
   "Camera playback opens from the map sidebar for now. A dedicated resizable camera window arrives in a later phase.": "A kamerakép egyelőre a térkép oldalsó paneljén érhető el. Az átméretezhető kameraablak egy későbbi fázisban érkezik.",
   "Operational control center": "Operatív irányítóközpont",
-  "Geographic editing is available on the Live Map.": "A földrajzi szerkesztés az Élő térképen érhető el."
+  "Geographic editing is available on the Map.": "A földrajzi szerkesztés a Térképen érhető el.",
+  "Select location on Map": "Hely kiválasztása a Térképen",
+  "Use the central Map to choose a location.": "A hely kiválasztásához használja a központi Térképet.",
+  "No location selected": "Nincs kiválasztott hely",
+  "Click the map to set the location.": "Kattintson a térképre a hely beállításához.",
+  "Click the map to set the location. Press Esc to cancel.": "Kattintson a térképre a hely beállításához. A kilépéshez nyomja meg az Esc billentyűt."
 }

@@ -176,6 +176,8 @@ class DashboardPage(QWidget):
             "QScrollArea { background: transparent; border: none; }"
         )
 
+        self._observation_wizard: ObservationWizard | None = None
+
         content = QWidget()
         layout = QVBoxLayout(content)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -720,7 +722,7 @@ class DashboardPage(QWidget):
 
         self._observation_title.setText(tr("Observation Point"))
         self._observation_map_hint.setText(
-            tr("Geographic editing is available on the Live Map.")
+            tr("Geographic editing is available on the Map.")
         )
         self._name_caption.setText(tr("Name"))
         self._coords_caption.setText(tr("Coordinates"))
@@ -1100,9 +1102,25 @@ class DashboardPage(QWidget):
 
     def _create_new(self) -> None:
 
-        wizard = ObservationWizard(self)
+        if (
+            self._observation_wizard is not None
+            and self._observation_wizard.isVisible()
+        ):
+            self._observation_wizard.raise_()
+            self._observation_wizard.activateWindow()
+            return
 
-        if wizard.exec() == QDialog.DialogCode.Accepted:
+        wizard = ObservationWizard(self)
+        wizard.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        wizard.finished.connect(self._on_observation_wizard_finished)
+        self._observation_wizard = wizard
+        wizard.show()
+
+    def _on_observation_wizard_finished(self, result: int) -> None:
+
+        self._observation_wizard = None
+
+        if result == QDialog.DialogCode.Accepted:
             self.refresh_observation()
 
     def _delete_active(self) -> None:
