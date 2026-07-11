@@ -3,7 +3,6 @@
 # AISStream Engine
 # ============================================================================
 
-from pathlib import Path
 from threading import Thread
 
 from database import registry
@@ -11,6 +10,7 @@ from engines.ais.ais_client import AISClient
 from engines.ais.ais_parser import AISParser
 from engines.base_engine import BaseEngine
 from events import eventbus
+from preferences import preferences_manager
 
 
 class AISStreamEngine(BaseEngine):
@@ -26,9 +26,16 @@ class AISStreamEngine(BaseEngine):
 
     def on_start(self):
 
-        api_file = Path.home() / "duna-monitor" / "api_key.txt"
+        preferences = preferences_manager.get()
 
-        api_key = api_file.read_text().strip()
+        api_key = preferences.aisstream_api_key.strip()
+
+        if not api_key:
+            eventbus.publish(
+                "ais.status",
+                status="offline"
+            )
+            return
 
         self.client.connect(api_key)
 
