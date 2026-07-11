@@ -4,6 +4,7 @@
 # ============================================================================
 
 from threading import Thread
+import traceback
 
 from database import registry
 from engines.ais.ais_client import AISClient
@@ -26,50 +27,87 @@ class AISStreamEngine(BaseEngine):
 
     def on_start(self):
 
-        preferences = preferences_manager.get()
+        print("[AIS] Engine starting...")
 
-        api_key = preferences.aisstream_api_key.strip()
+        try:
+            preferences = preferences_manager.get()
+            print("[AIS] Preferences loaded.")
 
-        if not api_key:
+            api_key = preferences.aisstream_api_key.strip()
+            print(f"[AIS] API key length: {len(api_key)}")
+
+            if not api_key:
+                print("[AIS] No API key.")
+
+                eventbus.publish(
+                    "ais.status",
+                    status="offline"
+                )
+                return
+
+            print("[AIS] Connecting...")
+
+            self.client.connect(api_key)
+
+            print("[AIS] Connected.")
+
+            eventbus.publish(
+                "ais.status",
+                status="connected"
+            )
+
+            self.thread = Thread(
+                target=self.worker,
+                daemon=True
+            )
+
+            self.thread.start()
+
+            print("[AIS] Worker thread started.")
+
+        except Exception as error:
+
+            print("[AIS] START FAILED")
+            print(error)
+            traceback.print_exc()
+
             eventbus.publish(
                 "ais.status",
                 status="offline"
             )
-            return
-
-        self.client.connect(api_key)
-
-        eventbus.publish(
-            "ais.status",
-            status="connected"
-        )
-
-        self.thread = Thread(
-            target=self.worker,
-            daemon=True
-        )
-
-        self.thread.start()
 
     def worker(self):
 
+        print("[AIS] Worker running.")
+
         while self.running:
 
-            message = self.client.receive()
+            try:
 
-            ship = self.parser.parse(message)
+                message = self.client.receive()
 
-            if ship is None:
-                continue
+                ship = self.parser.parse(message)
 
-            registry.add(ship)
+                if ship is None:
+                    continue
 
-            eventbus.publish(
-                "ship.updated",
-                ship=ship
-            )
+                registry.add(ship)
+
+                eventbus.publish(
+                    "ship.updated",
+                    ship=ship
+                )
+
+            except Exception as error:
+
+                print("[AIS] WORKER FAILED")
+                print(error)
+                traceback.print_exc()
+                break
 
     def on_stop(self):
+
+        print("[AIS] Engine stopping.")
 
         self.client.disconnect()
 
