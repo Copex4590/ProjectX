@@ -49,13 +49,28 @@ class AISStreamProvider(AISProvider):
                 f"wss://stream.aisstream.io/v0/stream?apiKey={key}",
                 timeout=10,
             )
-            client.ws.send(json.dumps(AISProtocol.subscribe_message(key)))
-            client.ws.settimeout(8)
-            client.receive()
-            return AISTestResult(
-                success=True,
-                message="Connection successful",
+
+            client.ws.send(
+                json.dumps(
+                    AISProtocol.subscribe_message(key)
+                )
             )
+
+            client.ws.settimeout(8)
+
+            response = client.receive()
+
+            if isinstance(response, dict):
+                return AISTestResult(
+                    success=True,
+                    message="Connection successful",
+                )
+
+            return AISTestResult(
+                success=False,
+                message="Unexpected AISStream response.",
+            )
+
         except websocket.WebSocketBadStatusException as error:
             if getattr(error, "status_code", None) in (401, 403):
                 return AISTestResult(
@@ -67,6 +82,7 @@ class AISStreamProvider(AISProvider):
                 success=False,
                 message="AISStream unavailable.",
             )
+
         except (TimeoutError, socket.timeout, OSError):
             if not self._has_internet():
                 return AISTestResult(
@@ -78,11 +94,13 @@ class AISStreamProvider(AISProvider):
                 success=False,
                 message="AISStream unavailable.",
             )
-        except Exception:
+
+        except Exception as e:
             return AISTestResult(
                 success=False,
-                message="AISStream unavailable.",
+                message=f"{type(e).__name__}: {e}",
             )
+
         finally:
             client.disconnect()
 
