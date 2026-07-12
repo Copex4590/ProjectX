@@ -16,11 +16,27 @@ from app.logging_config import configure_logging
 from app.mainwindow import MainWindow
 from app.paths import ensure_runtime_data_dirs
 from branding.assets import app_icon
+from gui.languagewelcome_dialog import run_language_welcome_if_needed
 from gui.splashscreen import create_splash_screen
 from i18n import tr
 from version import PROJECT_NAME, PROJECT_VERSION
 
 logger = logging.getLogger(__name__)
+
+_STARTUP_T0: float | None = None
+
+
+def _startup_elapsed_ms() -> int:
+
+    if _STARTUP_T0 is None:
+        return 0
+
+    return int((time.monotonic() - _STARTUP_T0) * 1000)
+
+
+def _log_startup_phase(phase: str) -> None:
+
+    logger.info("Startup timing: %s at %d ms", phase, _startup_elapsed_ms())
 
 
 def _is_first_run_pending() -> bool:
@@ -74,15 +90,25 @@ class Application:
 
     def __init__(self):
 
+        global _STARTUP_T0
+        _STARTUP_T0 = time.monotonic()
+
         configure_logging()
         _install_exception_hook()
         ensure_runtime_data_dirs()
+        _log_startup_phase("logging and runtime directories ready")
 
         self.qt = QApplication(sys.argv)
         self.qt.setApplicationName(PROJECT_NAME)
         self.qt.setApplicationVersion(PROJECT_VERSION)
         self.qt.setOrganizationName("Project X")
         self.qt.setWindowIcon(app_icon())
+        _log_startup_phase("QApplication created")
+
+        if not run_language_welcome_if_needed():
+            raise SystemExit(0)
+
+        _log_startup_phase("language welcome complete")
 
         self._first_run_pending = _is_first_run_pending()
         self._splash = None
@@ -91,6 +117,7 @@ class Application:
             self._splash = create_splash_screen()
             self._splash.show()
             self.qt.processEvents()
+            _log_startup_phase("splash screen visible")
 
         self._startup_started = time.monotonic()
 
@@ -108,11 +135,16 @@ class Application:
             )
             raise
 
+        _log_startup_phase("MainWindow constructed")
+
     def run(self):
 
         if self._first_run_pending:
+            _log_startup_phase("first-run wizard opening")
             self.window.run_first_run_wizard()
+            _log_startup_phase("first-run wizard complete")
             self.window.show()
+            _log_startup_phase("main window visible")
             return self.qt.exec()
 
         elapsed_ms = int((time.monotonic() - self._startup_started) * 1000)
@@ -127,3 +159,4 @@ class Application:
         if self._splash is not None:
             self._splash.finish(self.window)
         self.window.show()
+        _log_startup_phase("main window visible")

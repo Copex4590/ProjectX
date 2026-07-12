@@ -4,7 +4,6 @@
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
-    QButtonGroup,
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
@@ -13,7 +12,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
-    QRadioButton,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -23,20 +21,15 @@ from debug.obs_freeze_trace import trace_block
 from gui.i18n_support import bind_language_refresh
 from gui.mapcontroller import MapController
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button
-from i18n import language_manager, tr
+from i18n import tr
 from observation import observation_manager
 from observation.coords import max_observation_radius_km
-from preferences import SUPPORTED_LANGUAGES, preferences_manager
+from preferences import preferences_manager
 
 _DEFAULT_COVERAGE_RADIUS_KM = 25.0
 
-_STEP_LANGUAGE = 0
-_STEP_NAME = 1
-_STEP_METHOD = 2
-_STEP_COORDS = 3
-
-_METHOD_MAP = 0
-_METHOD_COORDS = 1
+_STEP_NAME = 0
+_STEP_RADIUS = 1
 
 _NAME_INPUT_STYLE = """
     background: #252a31;
@@ -156,35 +149,27 @@ class FirstRunWizard(QDialog):
         self._connect_signals()
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
-        self._stack.setCurrentIndex(_STEP_LANGUAGE)
+        self._stack.setCurrentIndex(_STEP_NAME)
         self._sync_buttons()
+        QTimer.singleShot(0, self._focus_name_input)
 
     def showEvent(self, event) -> None:
 
         super().showEvent(event)
-        step = self._stack.currentIndex()
 
-        if step == _STEP_NAME:
+        if self._stack.currentIndex() == _STEP_NAME:
             QTimer.singleShot(0, self._focus_name_input)
 
     def refresh_translations(self) -> None:
 
         self.setWindowTitle(tr("Project X Setup"))
-        self._language_title.setText(tr("Choose your language"))
-        self._english_option.setText(tr("English"))
-        self._hungarian_option.setText(tr("Magyar"))
         self._name_title.setText(tr("Observation Point Name"))
         self._name_input.setPlaceholderText(tr("e.g. Home"))
         self._name_error.setText(
             tr("Enter the observation point name first.")
         )
-        self._method_title.setText(
-            tr("How would you like to choose the observation point location?")
-        )
-        self._map_option.setText(tr("Select on Map"))
-        self._coords_option.setText(tr("Enter Coordinates"))
-        self._latitude_label.setText(tr("Latitude"))
-        self._longitude_label.setText(tr("Longitude"))
+        self._radius_title.setText(tr("Observation radius (km)"))
+        self._coverage_radius_label.setText(tr("Observation radius (km)"))
         self._continue_button.setText(tr("Continue"))
         self._back_button.setText(tr("Back"))
         self._button_box.button(QDialogButtonBox.StandardButton.Cancel).setText(
@@ -211,10 +196,6 @@ class FirstRunWizard(QDialog):
                 padding: 6px 8px;
             }
 
-            QRadioButton {
-                color: #d5dbe3;
-            }
-
             QPushButton {
                 background: #243651;
                 color: white;
@@ -235,23 +216,6 @@ class FirstRunWizard(QDialog):
         self._stack = QStackedWidget()
         layout.addWidget(self._stack)
 
-        language_page = QWidget()
-        language_layout = QVBoxLayout(language_page)
-        self._language_title = QLabel()
-        self._language_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        language_layout.addWidget(self._language_title)
-        self._english_option = QRadioButton()
-        self._hungarian_option = QRadioButton()
-        self._english_option.setChecked(True)
-        language_layout.addWidget(self._english_option)
-        language_layout.addWidget(self._hungarian_option)
-        language_layout.addStretch()
-        self._stack.addWidget(language_page)
-
-        self._language_group = QButtonGroup(self)
-        self._language_group.addButton(self._english_option, 0)
-        self._language_group.addButton(self._hungarian_option, 1)
-
         name_page = QWidget()
         name_layout = QVBoxLayout(name_page)
         self._name_title = QLabel()
@@ -269,43 +233,30 @@ class FirstRunWizard(QDialog):
         name_layout.addStretch()
         self._stack.addWidget(name_page)
 
-        method_page = QWidget()
-        method_layout = QVBoxLayout(method_page)
-        self._method_title = QLabel()
-        self._method_title.setWordWrap(True)
-        self._method_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        method_layout.addWidget(self._method_title)
-
-        self._map_option = QRadioButton()
-        self._coords_option = QRadioButton()
-        self._map_option.setChecked(True)
-        method_layout.addWidget(self._map_option)
-        method_layout.addWidget(self._coords_option)
-        method_layout.addStretch()
-        self._stack.addWidget(method_page)
-
-        self._method_group = QButtonGroup(self)
-        self._method_group.addButton(self._map_option, _METHOD_MAP)
-        self._method_group.addButton(self._coords_option, _METHOD_COORDS)
-
-        coords_page = QWidget()
-        coords_layout = QVBoxLayout(coords_page)
-        coords_form = QFormLayout()
-        self._latitude_label = QLabel()
-        self._longitude_label = QLabel()
-        self._latitude_input = QDoubleSpinBox()
-        self._latitude_input.setRange(-90.0, 90.0)
-        self._latitude_input.setDecimals(5)
-        self._latitude_input.setValue(0.0)
-        self._longitude_input = QDoubleSpinBox()
-        self._longitude_input.setRange(-180.0, 180.0)
-        self._longitude_input.setDecimals(5)
-        self._longitude_input.setValue(0.0)
-        coords_form.addRow(self._latitude_label, self._latitude_input)
-        coords_form.addRow(self._longitude_label, self._longitude_input)
-        coords_layout.addLayout(coords_form)
-        coords_layout.addStretch()
-        self._stack.addWidget(coords_page)
+        radius_page = QWidget()
+        radius_layout = QVBoxLayout(radius_page)
+        self._radius_title = QLabel()
+        self._radius_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        radius_layout.addWidget(self._radius_title)
+        radius_form = QFormLayout()
+        self._coverage_radius_label = QLabel()
+        self._coverage_radius_input = QDoubleSpinBox()
+        self._coverage_radius_input.setMinimum(0.1)
+        self._coverage_radius_input.setDecimals(1)
+        self._coverage_radius_input.setSuffix(" km")
+        self._coverage_radius_input.setValue(_DEFAULT_COVERAGE_RADIUS_KM)
+        radius_form.addRow(
+            self._coverage_radius_label,
+            self._coverage_radius_input,
+        )
+        radius_layout.addLayout(radius_form)
+        self._radius_error = QLabel()
+        self._radius_error.setWordWrap(True)
+        self._radius_error.setStyleSheet("color: #e53935; font-size: 10pt;")
+        self._radius_error.hide()
+        radius_layout.addWidget(self._radius_error)
+        radius_layout.addStretch()
+        self._stack.addWidget(radius_page)
 
         button_row = QHBoxLayout()
         self._button_box = QDialogButtonBox()
@@ -321,6 +272,7 @@ class FirstRunWizard(QDialog):
         self._back_button.clicked.connect(self._on_back)
         self._button_box.rejected.connect(self._on_cancel)
         self._name_input.textChanged.connect(self._clear_name_error)
+        self._coverage_radius_input.valueChanged.connect(self._clear_radius_error)
 
     def _focus_name_input(self) -> None:
 
@@ -338,37 +290,41 @@ class FirstRunWizard(QDialog):
         self._name_input.setStyleSheet(_NAME_INPUT_ERROR_STYLE)
         self._name_input.setFocus(Qt.FocusReason.OtherFocusReason)
 
-    def _selected_language(self) -> str:
+    def _clear_radius_error(self) -> None:
 
-        button_id = self._language_group.checkedId()
+        self._radius_error.hide()
 
-        if button_id < 0:
-            button_id = 0
+    def _show_radius_error(self, message: str) -> None:
 
-        return SUPPORTED_LANGUAGES[button_id]
+        self._radius_error.setText(message)
+        self._radius_error.show()
+        self._coverage_radius_input.setFocus(Qt.FocusReason.OtherFocusReason)
 
-    def _apply_language_selection(self) -> None:
+    def _sync_radius_limits(self) -> None:
 
-        language_manager.set_language(self._selected_language())
+        if self._picked_lat is None or self._picked_lon is None:
+            return
+
+        max_radius_km = max_observation_radius_km(
+            self._picked_lat,
+            self._picked_lon,
+        )
+        max_spinbox_value = max(0.1, max_radius_km)
+        self._coverage_radius_input.setMaximum(max_spinbox_value)
+
+        if self._coverage_radius_input.value() > max_spinbox_value:
+            self._coverage_radius_input.setValue(max_spinbox_value)
 
     def _sync_buttons(self) -> None:
 
         step = self._stack.currentIndex()
-        self._back_button.setEnabled(step > _STEP_LANGUAGE)
-        self._back_button.setVisible(step > _STEP_LANGUAGE)
+        self._back_button.setEnabled(step > _STEP_NAME)
+        self._back_button.setVisible(step > _STEP_NAME)
         self._continue_button.setVisible(True)
 
     def _on_continue(self) -> None:
 
         step = self._stack.currentIndex()
-
-        if step == _STEP_LANGUAGE:
-            self._apply_language_selection()
-            self.refresh_translations()
-            self._stack.setCurrentIndex(_STEP_NAME)
-            self._sync_buttons()
-            QTimer.singleShot(0, self._focus_name_input)
-            return
 
         if step == _STEP_NAME:
             if not self._name_input.text().strip():
@@ -378,43 +334,23 @@ class FirstRunWizard(QDialog):
             self._clear_name_error()
             self._picked_lat = None
             self._picked_lon = None
-            self._stack.setCurrentIndex(_STEP_METHOD)
-            self._sync_buttons()
+            self._start_map_pick()
             return
 
-        if step == _STEP_METHOD:
-            if self._method_group.checkedId() == _METHOD_MAP:
-                self._start_map_pick()
-            else:
-                self._stack.setCurrentIndex(_STEP_COORDS)
-                self._latitude_input.setFocus(Qt.FocusReason.OtherFocusReason)
-                self._sync_buttons()
-            return
-
-        if step == _STEP_COORDS:
-            self._picked_lat = self._latitude_input.value()
-            self._picked_lon = self._longitude_input.value()
+        if step == _STEP_RADIUS:
             self._complete_observation_setup()
 
     def _on_back(self) -> None:
 
         step = self._stack.currentIndex()
 
-        if step == _STEP_COORDS:
+        if step == _STEP_RADIUS:
             MapController.instance().cancel_pick_mode()
-            self._stack.setCurrentIndex(_STEP_METHOD)
-            self._sync_buttons()
-            return
-
-        if step == _STEP_METHOD:
+            self._picked_lat = None
+            self._picked_lon = None
             self._stack.setCurrentIndex(_STEP_NAME)
             self._sync_buttons()
             QTimer.singleShot(0, self._focus_name_input)
-            return
-
-        if step == _STEP_NAME:
-            self._stack.setCurrentIndex(_STEP_LANGUAGE)
-            self._sync_buttons()
 
     def _on_cancel(self) -> None:
 
@@ -433,7 +369,13 @@ class FirstRunWizard(QDialog):
 
         self._picked_lat = latitude
         self._picked_lon = longitude
-        self._complete_observation_setup()
+        self._stack.setCurrentIndex(_STEP_RADIUS)
+        self._sync_radius_limits()
+        self._sync_buttons()
+        self.show()
+        self.raise_()
+        self.activateWindow()
+        self._coverage_radius_input.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def _complete_observation_setup(self) -> None:
 
@@ -442,14 +384,25 @@ class FirstRunWizard(QDialog):
         if not name or self._picked_lat is None or self._picked_lon is None:
             return
 
-        coverage_radius_km = _DEFAULT_COVERAGE_RADIUS_KM
+        coverage_radius_km = self._coverage_radius_input.value()
         max_radius_km = max_observation_radius_km(
             self._picked_lat,
             self._picked_lon,
         )
 
+        if coverage_radius_km <= 0:
+            self._show_radius_error(
+                tr("Observation radius must be greater than zero.")
+            )
+            return
+
         if coverage_radius_km > max_radius_km:
-            coverage_radius_km = max_radius_km
+            self._show_radius_error(
+                tr(
+                    "Observation radius cannot exceed {max} km at this location."
+                ).replace("{max}", f"{max_radius_km:.1f}")
+            )
+            return
 
         with trace_block("FirstRunWizard._complete_observation_setup.create"):
             observation_manager.create(
