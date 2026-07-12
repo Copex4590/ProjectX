@@ -1,16 +1,12 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QButtonGroup,
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
     QFormLayout,
-    QHBoxLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
-    QPushButton,
-    QRadioButton,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -23,6 +19,28 @@ from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button
 from i18n import tr
 from observation import observation_manager
 from observation.coords import max_observation_radius_km
+
+_SUBSTEP_MAP = 0
+_SUBSTEP_NAME = 1
+_SUBSTEP_RADIUS = 2
+
+_DEFAULT_COVERAGE_RADIUS_KM = 25.0
+
+_NAME_INPUT_STYLE = """
+    background: #252a31;
+    color: white;
+    border: 1px solid #3d4a5c;
+    border-radius: 6px;
+    padding: 6px 8px;
+"""
+
+_NAME_INPUT_ERROR_STYLE = """
+    background: #252a31;
+    color: white;
+    border: 1px solid #e53935;
+    border-radius: 6px;
+    padding: 6px 8px;
+"""
 
 
 class ObservationSetupWidget(QWidget):
@@ -38,7 +56,11 @@ class ObservationSetupWidget(QWidget):
 
     def refresh_translations(self) -> None:
 
-        self._step1_title.setText(tr("Step 1 — Observation Point name"))
+        self._map_title.setText(tr("Step 1 — Choose location"))
+        self._map_help_label.setText(
+            tr("Use the central Map to choose a location.")
+        )
+        self._name_title.setText(tr("Step 2 — Observation Point name"))
         self._name_label.setText(tr("Observation Point name"))
         self._name_input.setPlaceholderText(tr("Home"))
         self._examples_label.setText(
@@ -47,31 +69,26 @@ class ObservationSetupWidget(QWidget):
                 "River Bank, Observation Deck"
             )
         )
-        self._step2_title.setText(tr("Step 2 — Choose location"))
-        self._step3_title.setText(tr("Step 3 — Observation Radius"))
+        self._name_error.setText(tr("Enter the observation point name first."))
+        self._radius_title.setText(tr("Step 3 — Observation Radius"))
         self._coverage_radius_label.setText(tr("Observation radius (km)"))
-        self._map_option.setText(tr("Click on map"))
-        self._coords_option.setText(tr("Enter coordinates"))
-        self._latitude_label.setText(tr("Latitude"))
-        self._longitude_label.setText(tr("Longitude"))
-        self._pick_map_button.setText(tr("Select location on Map"))
-        self._map_help_label.setText(
-            tr("Use the central Map to choose a location.")
-        )
         self._update_picked_coords_label()
 
     def substep_index(self) -> int:
 
         return self._stack.currentIndex()
 
+    def begin_map_selection(self) -> None:
+
+        self._picked_lat = None
+        self._picked_lon = None
+        self._stack.setCurrentIndex(_SUBSTEP_MAP)
+        self._update_picked_coords_label()
+        self._start_map_pick()
+
     def on_enter(self) -> None:
 
-        if self.substep_index() != 1:
-            return
-
-        self._sync_location_mode()
-
-        if self._map_option.isChecked():
+        if self.substep_index() == _SUBSTEP_MAP:
             self._start_map_pick()
 
     def on_leave(self) -> None:
@@ -83,25 +100,24 @@ class ObservationSetupWidget(QWidget):
 
         substep = self.substep_index()
 
-        if substep == 0:
-            if not self._name_input.text().strip():
-                return False
-
-            self._picked_lat = None
-            self._picked_lon = None
-            self._stack.setCurrentIndex(1)
-            self._sync_location_mode()
-            if self._map_option.isChecked():
-                self._start_map_pick()
-            return False
-
-        if substep == 1:
+        if substep == _SUBSTEP_MAP:
             if self._picked_lat is None or self._picked_lon is None:
                 return False
 
-            MapController.instance().cancel_pick_mode()
-            self._stack.setCurrentIndex(2)
+            MapController.instance().cancel_pick_mode(restore_host=False)
+            self._stack.setCurrentIndex(_SUBSTEP_NAME)
+            self._name_input.setFocus(Qt.FocusReason.OtherFocusReason)
+            return False
+
+        if substep == _SUBSTEP_NAME:
+            if not self._name_input.text().strip():
+                self._show_name_error()
+                return False
+
+            self._clear_name_error()
+            self._stack.setCurrentIndex(_SUBSTEP_RADIUS)
             self._sync_radius_limits()
+            self._coverage_radius_input.setFocus(Qt.FocusReason.OtherFocusReason)
             return False
 
         return False
@@ -110,16 +126,13 @@ class ObservationSetupWidget(QWidget):
 
         substep = self.substep_index()
 
-        if substep == 2:
-            self._stack.setCurrentIndex(1)
-            self._sync_location_mode()
-            if self._map_option.isChecked():
-                self._start_map_pick()
+        if substep == _SUBSTEP_RADIUS:
+            self._stack.setCurrentIndex(_SUBSTEP_NAME)
+            self._name_input.setFocus(Qt.FocusReason.OtherFocusReason)
             return False
 
-        if substep == 1:
-            MapController.instance().cancel_pick_mode()
-            self._stack.setCurrentIndex(0)
+        if substep == _SUBSTEP_NAME:
+            self.begin_map_selection()
             return False
 
         return True
@@ -130,6 +143,7 @@ class ObservationSetupWidget(QWidget):
             name = self._name_input.text().strip()
 
             if not name:
+                self._show_name_error()
                 return False
 
             if self._picked_lat is None or self._picked_lon is None:
@@ -175,9 +189,9 @@ class ObservationSetupWidget(QWidget):
 
         substep = self.substep_index()
 
-        back_button.setEnabled(substep > 0)
-        next_button.setVisible(substep < 2)
-        confirm_button.setVisible(substep == 2)
+        back_button.setEnabled(substep > _SUBSTEP_MAP)
+        next_button.setVisible(substep < _SUBSTEP_RADIUS)
+        confirm_button.setVisible(substep == _SUBSTEP_RADIUS)
 
     def _build_ui(self) -> None:
 
@@ -188,128 +202,75 @@ class ObservationSetupWidget(QWidget):
         self._stack = QStackedWidget()
         layout.addWidget(self._stack)
 
-        step1 = QWidget()
-        step1_layout = QVBoxLayout(step1)
-        self._step1_title = QLabel()
-        self._step1_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        step1_layout.addWidget(self._step1_title)
-
-        form = QFormLayout()
-        self._name_label = QLabel()
-        self._name_input = QLineEdit()
-        form.addRow(self._name_label, self._name_input)
-        step1_layout.addLayout(form)
-
-        self._examples_label = QLabel()
-        self._examples_label.setWordWrap(True)
-        self._examples_label.setStyleSheet("color: #9aa4af; font-size: 10pt;")
-        step1_layout.addWidget(self._examples_label)
-        step1_layout.addStretch()
-        self._stack.addWidget(step1)
-
-        step2 = QWidget()
-        step2_layout = QVBoxLayout(step2)
-        self._step2_title = QLabel()
-        self._step2_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        step2_layout.addWidget(self._step2_title)
-
-        mode_row = QHBoxLayout()
-        self._map_option = QRadioButton()
-        self._coords_option = QRadioButton()
-        self._map_option.setChecked(True)
-        mode_row.addWidget(self._map_option)
-        mode_row.addWidget(self._coords_option)
-        mode_row.addStretch()
-        step2_layout.addLayout(mode_row)
-
-        self._mode_group = QButtonGroup(self)
-        self._mode_group.addButton(self._map_option, 0)
-        self._mode_group.addButton(self._coords_option, 1)
-
-        self._map_panel = QWidget()
-        map_panel_layout = QVBoxLayout(self._map_panel)
-        map_panel_layout.setContentsMargins(0, 0, 0, 0)
-        map_panel_layout.setSpacing(8)
-
+        map_page = QWidget()
+        map_layout = QVBoxLayout(map_page)
+        self._map_title = QLabel()
+        self._map_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        map_layout.addWidget(self._map_title)
         self._map_help_label = QLabel()
         self._map_help_label.setWordWrap(True)
         self._map_help_label.setStyleSheet("color: #9aa4af; font-size: 10pt;")
-        map_panel_layout.addWidget(self._map_help_label)
-
-        self._pick_map_button = QPushButton()
-        self._pick_map_button.setStyleSheet("""
-            QPushButton {
-                background: #243651;
-                color: white;
-                border: 1px solid #2d5a8e;
-                border-radius: 6px;
-                padding: 8px 12px;
-            }
-            QPushButton:hover { background: #2d4a6f; }
-        """)
-        map_panel_layout.addWidget(self._pick_map_button)
-
+        map_layout.addWidget(self._map_help_label)
         self._picked_coords_label = QLabel()
         self._picked_coords_label.setWordWrap(True)
         self._picked_coords_label.setStyleSheet("color: white; font-weight: 600;")
-        map_panel_layout.addWidget(self._picked_coords_label)
-        step2_layout.addWidget(self._map_panel)
+        map_layout.addWidget(self._picked_coords_label)
+        map_layout.addStretch()
+        self._stack.addWidget(map_page)
 
-        coords_form = QFormLayout()
-        self._latitude_label = QLabel()
-        self._longitude_label = QLabel()
-        self._latitude_input = QDoubleSpinBox()
-        self._latitude_input.setRange(-90.0, 90.0)
-        self._latitude_input.setDecimals(5)
-        self._latitude_input.setValue(0.0)
-        self._longitude_input = QDoubleSpinBox()
-        self._longitude_input.setRange(-180.0, 180.0)
-        self._longitude_input.setDecimals(5)
-        self._longitude_input.setValue(0.0)
-        coords_form.addRow(self._latitude_label, self._latitude_input)
-        coords_form.addRow(self._longitude_label, self._longitude_input)
-        self._coords_panel = QWidget()
-        self._coords_panel.setLayout(coords_form)
-        self._coords_panel.setVisible(False)
-        step2_layout.addWidget(self._coords_panel)
-        step2_layout.addStretch()
-        self._stack.addWidget(step2)
+        name_page = QWidget()
+        name_layout = QVBoxLayout(name_page)
+        self._name_title = QLabel()
+        self._name_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        name_layout.addWidget(self._name_title)
+        name_form = QFormLayout()
+        self._name_label = QLabel()
+        self._name_input = QLineEdit()
+        self._name_input.setStyleSheet(_NAME_INPUT_STYLE)
+        name_form.addRow(self._name_label, self._name_input)
+        name_layout.addLayout(name_form)
+        self._name_error = QLabel()
+        self._name_error.setWordWrap(True)
+        self._name_error.setStyleSheet("color: #e53935; font-size: 10pt;")
+        self._name_error.hide()
+        name_layout.addWidget(self._name_error)
+        self._examples_label = QLabel()
+        self._examples_label.setWordWrap(True)
+        self._examples_label.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        name_layout.addWidget(self._examples_label)
+        name_layout.addStretch()
+        self._stack.addWidget(name_page)
 
-        step3 = QWidget()
-        step3_layout = QVBoxLayout(step3)
-        self._step3_title = QLabel()
-        self._step3_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        step3_layout.addWidget(self._step3_title)
-
+        radius_page = QWidget()
+        radius_layout = QVBoxLayout(radius_page)
+        self._radius_title = QLabel()
+        self._radius_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        radius_layout.addWidget(self._radius_title)
         coverage_form = QFormLayout()
         self._coverage_radius_label = QLabel()
         self._coverage_radius_input = QDoubleSpinBox()
         self._coverage_radius_input.setMinimum(0.1)
         self._coverage_radius_input.setDecimals(1)
         self._coverage_radius_input.setSuffix(" km")
-        self._coverage_radius_input.setValue(25.0)
+        self._coverage_radius_input.setValue(_DEFAULT_COVERAGE_RADIUS_KM)
         coverage_form.addRow(
             self._coverage_radius_label,
             self._coverage_radius_input,
         )
-        step3_layout.addLayout(coverage_form)
-        step3_layout.addStretch()
-        self._stack.addWidget(step3)
-
-        self._sync_location_mode()
+        radius_layout.addLayout(coverage_form)
+        radius_layout.addStretch()
+        self._stack.addWidget(radius_page)
 
     def _connect_signals(self) -> None:
 
-        self._mode_group.idClicked.connect(self._on_mode_changed)
-        self._pick_map_button.clicked.connect(self._start_map_pick)
-        self._latitude_input.valueChanged.connect(self._on_coords_changed)
-        self._longitude_input.valueChanged.connect(self._on_coords_changed)
+        self._name_input.textChanged.connect(self._clear_name_error)
 
     def _start_map_pick(self) -> None:
 
         host = self._pick_host_dialog()
         MapController.instance().begin_location_pick(
             self._on_map_location,
+            overlay_message=tr("Use the central Map to choose a location."),
             host=host,
         )
 
@@ -330,42 +291,26 @@ class ObservationSetupWidget(QWidget):
 
         return None
 
-    def _on_mode_changed(self, _button_id: int) -> None:
-
-        self._sync_location_mode()
-
-        if self._map_option.isChecked() and self.substep_index() == 1:
-            self._start_map_pick()
-
-    def _sync_location_mode(self) -> None:
-
-        use_map = self._map_option.isChecked()
-        self._map_panel.setVisible(use_map)
-        self._coords_panel.setVisible(not use_map)
-
-        if not use_map:
-            MapController.instance().cancel_pick_mode()
-            self._picked_lat = self._latitude_input.value()
-            self._picked_lon = self._longitude_input.value()
-            self._update_picked_coords_label()
-            return
-
-        self._update_picked_coords_label()
-
     def _on_map_location(self, latitude: float, longitude: float) -> None:
 
         self._picked_lat = latitude
         self._picked_lon = longitude
-        self._latitude_input.setValue(latitude)
-        self._longitude_input.setValue(longitude)
         self._update_picked_coords_label()
 
-    def _on_coords_changed(self) -> None:
+        MapController.instance().cancel_pick_mode(restore_host=False)
+        self._stack.setCurrentIndex(_SUBSTEP_NAME)
 
-        if self._coords_option.isChecked():
-            self._picked_lat = self._latitude_input.value()
-            self._picked_lon = self._longitude_input.value()
-            self._update_picked_coords_label()
+        host = self._pick_host_dialog()
+        if host is not None:
+            host.show()
+            host.raise_()
+            host.activateWindow()
+
+        self._name_input.setFocus(Qt.FocusReason.OtherFocusReason)
+
+        parent = self.window()
+        if hasattr(parent, "_sync_buttons"):
+            parent._sync_buttons()
 
     def _sync_radius_limits(self) -> None:
 
@@ -381,6 +326,17 @@ class ObservationSetupWidget(QWidget):
 
         if self._coverage_radius_input.value() > max_spinbox_value:
             self._coverage_radius_input.setValue(max_spinbox_value)
+
+    def _clear_name_error(self) -> None:
+
+        self._name_error.hide()
+        self._name_input.setStyleSheet(_NAME_INPUT_STYLE)
+
+    def _show_name_error(self) -> None:
+
+        self._name_error.show()
+        self._name_input.setStyleSheet(_NAME_INPUT_ERROR_STYLE)
+        self._name_input.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def _show_radius_validation_error(self, message: str) -> None:
 
@@ -416,16 +372,22 @@ class ObservationWizard(QDialog):
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
 
+    def showEvent(self, event) -> None:
+
+        super().showEvent(event)
+
+        if self._setup.substep_index() > _SUBSTEP_MAP:
+            return
+
+        self.hide()
+        self._setup.begin_map_selection()
+
     def refresh_translations(self) -> None:
 
         self.setWindowTitle(tr("Observation Point Setup"))
         self._setup.refresh_translations()
-        self._back_button.setText(
-            tr("Back")
-        )
-        self._next_button.setText(
-            tr("Next")
-        )
+        self._back_button.setText(tr("Back"))
+        self._next_button.setText(tr("Next"))
         self._button_box.button(QDialogButtonBox.StandardButton.Cancel).setText(
             tr("Cancel")
         )
@@ -452,10 +414,6 @@ class ObservationWizard(QDialog):
                 border-radius: 6px;
                 padding: 6px 8px;
             }
-
-            QRadioButton {
-                color: #d5dbe3;
-            }
         """)
 
         layout = QVBoxLayout(self)
@@ -468,30 +426,18 @@ class ObservationWizard(QDialog):
         self._button_box = QDialogButtonBox()
         self._back_button = add_wizard_back_button(self._button_box)
         self._next_button = add_wizard_next_button(self._button_box)
-        self._button_box.addButton(
-            QDialogButtonBox.StandardButton.Cancel
-        )
-        self._button_box.addButton(
-            QDialogButtonBox.StandardButton.Ok
-        )
-        self._back_button.setEnabled(
-            False
-        )
-        self._button_box.button(QDialogButtonBox.StandardButton.Ok).setVisible(
-            False
-        )
+        self._button_box.addButton(QDialogButtonBox.StandardButton.Cancel)
+        self._button_box.addButton(QDialogButtonBox.StandardButton.Ok)
+        self._back_button.setEnabled(False)
+        self._button_box.button(QDialogButtonBox.StandardButton.Ok).setVisible(False)
         layout.addWidget(self._button_box)
 
     def _connect_signals(self) -> None:
 
         self._button_box.accepted.connect(self._on_accept)
         self._button_box.rejected.connect(self.reject)
-        self._next_button.clicked.connect(
-            self._on_next
-        )
-        self._back_button.clicked.connect(
-            self._on_back
-        )
+        self._next_button.clicked.connect(self._on_next)
+        self._back_button.clicked.connect(self._on_back)
 
     def _sync_buttons(self) -> None:
 
@@ -504,12 +450,18 @@ class ObservationWizard(QDialog):
     def _on_next(self) -> None:
 
         self._setup.handle_next()
+        self.show()
+        self.raise_()
+        self.activateWindow()
         self._sync_buttons()
 
     def _on_back(self) -> None:
 
         if self._setup.handle_back():
             self._back_button.setEnabled(False)
+        else:
+            if self._setup.substep_index() == _SUBSTEP_MAP:
+                self.hide()
 
         self._sync_buttons()
 

@@ -258,6 +258,8 @@
   "Enter coordinates": "Koordináták megadása",
   "Enter the observation point name first.": "Előbb add meg a megfigyelési pont nevét.",
   "First observation point created successfully": "Az első megfigyelési pont sikeresen létrejött",
+  "You successfully created your first observation point.": "Az első megfigyelési pontot sikeresen létrehoztad.",
+  "To create additional observation points, choose Create new on the Dashboard.": "További megfigyelési pontok létrehozásához válaszd az Irányítópult „Új létrehozása” lehetőségét.",
   "How would you like to choose the observation point location?": "Hogyan szeretné kiválasztani a megfigyelési pont helyét?",
   "Click on map": "Kattintás a térképre",
   "Observation Point Name": "Megfigyelési pont neve",
