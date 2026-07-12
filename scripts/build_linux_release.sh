@@ -3,10 +3,11 @@
 # Project X — Linux release package build (SAVE-077)
 # ============================================================================
 #
-# Produces:
-#   release/linux/ProjectX-<version>-x86_64.AppImage   (primary)
-#   release/linux/projectx_<version>_amd64.deb         (secondary)
-#   website/downloads/linux/                             (website copy)
+# Produces (public Linux release — SAVE-085):
+#   release/linux/ProjectX.deb
+#   release/linux/ProjectX.AppImage
+#   release/linux/SHA256SUMS
+#   website/downloads/linux/                             (website mirror)
 #
 # Requires: python3, curl, mksquashfs (squashfs-tools), dpkg-deb (optional)
 
@@ -77,8 +78,8 @@ from version import PROJECT_VERSION
 print(PROJECT_VERSION)
 PY
 )"
-    APPIMAGE_NAME="ProjectX-${VERSION}-x86_64.AppImage"
-    DEB_NAME="projectx_${VERSION}_amd64.deb"
+    APPIMAGE_NAME="ProjectX.AppImage"
+    DEB_NAME="ProjectX.deb"
 }
 
 ensure_build_python() {
@@ -192,6 +193,8 @@ create_appdir() {
 
     cp -a "$ROOT/dist/projectx/." "$APPDIR/usr/lib/projectx/"
     cp "$ROOT/installer/linux/projectx-appimage.desktop" "$APPDIR/projectx.desktop"
+    mkdir -p "$APPDIR/usr/share/metainfo"
+    cp "$ROOT/installer/linux/projectx.appdata.xml" "$APPDIR/usr/share/metainfo/projectx.appdata.xml"
     cp "$ROOT/src/resources/branding/projectx-logo.png" "$APPDIR/projectx.png"
 
     cat > "$APPDIR/AppRun" <<'EOF'
@@ -227,6 +230,35 @@ build_appimage() {
     echo "[OK] AppImage: $output"
 }
 
+install_hicolor_icons() {
+    local staging="$1"
+    local icon_python="$PYTHON"
+    if ! "$icon_python" -c "import PIL" 2>/dev/null; then
+        if python3 -c "import PIL" 2>/dev/null; then
+            icon_python="python3"
+        else
+            echo "[FAIL] Pillow required for Linux icon generation (install python3-pil or pip install pillow)." >&2
+            exit 1
+        fi
+    fi
+    "$icon_python" - <<'PY' "$staging"
+from pathlib import Path
+import sys
+
+from PIL import Image
+
+staging = Path(sys.argv[1])
+source = Path("src/resources/branding/projectx-logo.png")
+image = Image.open(source)
+for size in (16, 22, 24, 32, 48, 64, 128, 256, 512):
+    target_dir = staging / f"usr/share/icons/hicolor/{size}x{size}/apps"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    resized = image.resize((size, size), Image.Resampling.LANCZOS)
+    resized.save(target_dir / "projectx.png", format="PNG")
+print("[OK] Installed hicolor icons: 16–512 px")
+PY
+}
+
 build_deb() {
     if [[ "$SKIP_DEB" == "1" ]]; then
         echo "[SKIP] .deb package (SKIP_DEB=1)."
@@ -244,20 +276,21 @@ build_deb() {
     mkdir -p "$staging/opt/projectx"
     mkdir -p "$staging/usr/bin"
     mkdir -p "$staging/usr/share/applications"
-    mkdir -p "$staging/usr/share/icons/hicolor/256x256/apps"
+    mkdir -p "$staging/usr/share/metainfo"
 
     cp -a "$ROOT/dist/projectx/." "$staging/opt/projectx/"
     chmod +x "$staging/opt/projectx/projectx"
 
     cat > "$staging/usr/bin/projectx" <<'EOF'
 #!/bin/sh
+# Project X — command-line launcher (menu entry uses the same path)
 exec /opt/projectx/projectx "$@"
 EOF
     chmod +x "$staging/usr/bin/projectx"
 
     cp "$ROOT/installer/linux/projectx-deb.desktop" "$staging/usr/share/applications/projectx.desktop"
-    cp "$ROOT/src/resources/branding/projectx-logo.png" \
-        "$staging/usr/share/icons/hicolor/256x256/apps/projectx.png"
+    cp "$ROOT/installer/linux/projectx.appdata.xml" "$staging/usr/share/metainfo/projectx.appdata.xml"
+    install_hicolor_icons "$staging"
 
     cat > "$staging/DEBIAN/control" <<EOF
 Package: projectx
@@ -266,24 +299,22 @@ Section: utils
 Priority: optional
 Architecture: amd64
 Maintainer: Project X <https://github.com/Copex4590/ProjectX>
-Depends: libgl1, libglib2.0-0, libxkbcommon0, libxcb-xinerama0, libegl1, libnss3
-Description: Project X — Danube vessel monitoring platform
- Desktop application for AIS monitoring, maps, cameras, timeline, and alerts.
+Depends: libgl1, libglib2.0-0, libxkbcommon0, libxcb-xinerama0, libegl1, libnss3, debconf (>= 0.5) | debconf-2.0
+Description: Project X
+ Professional Maritime Monitoring Platform.
+ .
+ Project X helps you monitor vessels with live AIS data, interactive maps,
+ camera views, timeline playback, and alerts — designed for everyday use on
+ Linux Mint, Ubuntu, and Debian desktops.
+ .
+ No terminal or command-line experience is required for normal use.
 EOF
 
-    cat > "$staging/DEBIAN/postinst" <<'EOF'
-#!/bin/sh
-set -e
-chmod +x /opt/projectx/projectx /usr/bin/projectx 2>/dev/null || true
-if command -v update-desktop-database >/dev/null 2>&1; then
-    update-desktop-database /usr/share/applications 2>/dev/null || true
-fi
-if command -v gtk-update-icon-cache >/dev/null 2>&1; then
-    gtk-update-icon-cache /usr/share/icons/hicolor 2>/dev/null || true
-fi
-exit 0
-EOF
-    chmod 755 "$staging/DEBIAN/postinst"
+    cp "$ROOT/installer/linux/debian/templates" "$staging/DEBIAN/templates"
+    cp "$ROOT/installer/linux/debian/config" "$staging/DEBIAN/config"
+    cp "$ROOT/installer/linux/debian/postinst" "$staging/DEBIAN/postinst"
+    cp "$ROOT/installer/linux/debian/postrm" "$staging/DEBIAN/postrm"
+    chmod 755 "$staging/DEBIAN/config" "$staging/DEBIAN/postinst" "$staging/DEBIAN/postrm"
 
     dpkg-deb --build --root-owner-group "$staging" "$output"
     cp -f "$output" "${WEB_DOWNLOAD_DIR}/${DEB_NAME}"
@@ -344,8 +375,16 @@ verify_release_packages() {
             rm -rf "$deb_extract"
             exit 1
         }
-        [[ -f "$deb_extract/usr/share/icons/hicolor/256x256/apps/projectx.png" ]] || {
-            echo "[FAIL] .deb missing icon." >&2
+        local icon_size
+        for icon_size in 16 22 24 32 48 64 128 256 512; do
+            [[ -f "$deb_extract/usr/share/icons/hicolor/${icon_size}x${icon_size}/apps/projectx.png" ]] || {
+                echo "[FAIL] .deb missing icon size ${icon_size}x${icon_size}." >&2
+                rm -rf "$deb_extract"
+                exit 1
+            }
+        done
+        [[ -f "$deb_extract/usr/share/metainfo/projectx.appdata.xml" ]] || {
+            echo "[FAIL] .deb missing AppStream metadata." >&2
             rm -rf "$deb_extract"
             exit 1
         }

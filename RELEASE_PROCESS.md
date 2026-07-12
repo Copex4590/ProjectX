@@ -1,4 +1,4 @@
-# Project X — Public Release Process (SAVE-078)
+# Project X — Public Release Process (SAVE-078 / SAVE-085)
 
 End-to-end workflow for the first public **Alpha** release and subsequent updates.
 
@@ -9,6 +9,8 @@ Build  →  Verify  →  Generate checksums  →  Update website  →  GitHub Re
 Canonical metadata: **`release/manifest.json`**  
 Website config: **`website/releases.json`** (must stay in sync)
 
+Public Linux releases contain **only** `ProjectX.AppImage`, `ProjectX.deb`, and `SHA256SUMS`. The `installer/linux/` tree is for **developers only** and must never be published to end users.
+
 ---
 
 ## Release directory layout
@@ -16,9 +18,8 @@ Website config: **`website/releases.json`** (must stay in sync)
 ```
 release/
 ├── manifest.json          # Version, packages, checksum paths, OS requirements
-├── windows/               # ProjectX-Setup.exe
-├── linux/                 # AppImage + .deb
-├── checksums/             # SHA256SUMS + per-file .sha256
+├── windows/               # ProjectX-Setup.exe + SHA256SUMS
+├── linux/                 # ProjectX.AppImage, ProjectX.deb, SHA256SUMS
 └── notes/                 # Release notes for GitHub / distribution
 ```
 
@@ -34,8 +35,9 @@ release/
 
 Output:
 
-- `release/linux/ProjectX-0.3.0-alpha-x86_64.AppImage`
-- `release/linux/projectx_0.3.0-alpha_amd64.deb`
+- `release/linux/ProjectX.deb` (recommended)
+- `release/linux/ProjectX.AppImage` (portable / advanced)
+- `release/linux/SHA256SUMS`
 
 Verify:
 
@@ -53,6 +55,7 @@ scripts\verify_windows_installer.bat
 Output:
 
 - `release/windows/ProjectX-Setup.exe`
+- `release/windows/SHA256SUMS` (after checksum generation)
 
 ---
 
@@ -69,7 +72,7 @@ This script:
 
 1. Refreshes `release/notes/` from current release notes
 2. Copies artifacts to `website/downloads/windows/` and `website/downloads/linux/`
-3. Generates SHA256 checksums in `release/checksums/`
+3. Generates per-platform `SHA256SUMS` in `release/linux/` and `release/windows/`
 4. Updates `release/manifest.json` build Python version
 
 Generate checksums alone:
@@ -91,11 +94,11 @@ Generate checksums alone:
 
 | Check | Description |
 |-------|-------------|
-| Folder structure | `release/windows`, `linux`, `checksums`, `notes`, `manifest.json` |
+| Folder structure | `release/windows`, `linux`, `notes`, `manifest.json` |
 | Manifest validity | Required JSON keys present |
 | Config sync | `manifest.json` matches `website/releases.json` |
 | Artifacts | Packages exist under `release/` |
-| Checksums | `.sha256` files match artifacts |
+| Checksums | Platform `SHA256SUMS` files match artifacts |
 | Website paths | Download files present under `website/downloads/` |
 | Website HTTP | `releases.json`, download page, release notes load |
 
@@ -107,8 +110,8 @@ Expected **WARN** before first build: missing `.exe` / AppImage artifacts.
 
 For a new version, update only:
 
-1. `release/manifest.json` — version, filenames, dates
-2. `website/releases.json` — `latest`, platform files (must match manifest)
+1. `release/manifest.json` — version, dates (filenames are stable across releases)
+2. `website/releases.json` — `latest`, platform versions (must match manifest)
 3. `website/releases/<website_version>.md` — user-facing notes
 4. `release/notes/` — run `prepare_release.sh` to refresh copies
 
@@ -127,16 +130,24 @@ git push origin v0.3.0-alpha
 
 2. Create a GitHub Release from the tag.
 
-3. Attach artifacts:
+3. Attach **Linux** artifacts from `release/linux/`:
 
-| File | Source |
-|------|--------|
-| `ProjectX-Setup.exe` | `release/windows/` |
-| `ProjectX-0.3.0-alpha-x86_64.AppImage` | `release/linux/` |
-| `projectx_0.3.0-alpha_amd64.deb` | `release/linux/` |
-| `SHA256SUMS` | `release/checksums/` |
+| File | Description |
+|------|-------------|
+| `ProjectX.deb` | **Recommended** Linux download (Linux Mint / Debian) |
+| `ProjectX.AppImage` | Portable / advanced (no system install) |
+| `SHA256SUMS` | Checksums for both Linux files |
 
-4. Paste release notes from `release/notes/0.3.0-alpha.md` or `0.3.0-alpha-full.md`.
+4. Attach **Windows** artifacts from `release/windows/`:
+
+| File | Description |
+|------|-------------|
+| `ProjectX-Setup.exe` | Windows installer |
+| `SHA256SUMS` | Checksum for the installer |
+
+5. Paste release notes from `release/notes/0.3.0-alpha.md` or `0.3.0-alpha-full.md`.
+
+Do **not** attach `installer/linux/` or any source-tree installer scripts to public releases.
 
 ---
 
@@ -159,8 +170,10 @@ git push origin v0.3.0-alpha
 | Manifest | `0.3.0-alpha` |
 | Website `latest` | `0.3-alpha` |
 | Windows package | `ProjectX-Setup.exe` |
-| Linux primary | `ProjectX-0.3.0-alpha-x86_64.AppImage` |
-| Linux secondary | `projectx_0.3.0-alpha_amd64.deb` |
+| Linux primary | `ProjectX.deb` |
+| Linux portable | `ProjectX.AppImage` |
+
+Artifact filenames are **stable**; version information lives in metadata, tags, and in-app display.
 
 ---
 
@@ -168,10 +181,10 @@ git push origin v0.3.0-alpha
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/build_linux_release.sh` | Linux AppImage + .deb |
+| `scripts/build_linux_release.sh` | Linux AppImage + .deb + SHA256SUMS |
 | `scripts/build_windows.bat` | Windows PyInstaller + installer |
 | `scripts/prepare_release.sh` | Sync notes, website, checksums |
-| `scripts/generate_release_checksums.sh` | SHA256 files only |
+| `scripts/generate_release_checksums.sh` | Per-platform SHA256SUMS |
 | `scripts/verify_release.sh` | Full public release verification |
 | `scripts/verify_linux_release.sh` | Linux package contents |
 | `scripts/verify_windows_installer.bat` | Windows silent install test |
@@ -181,19 +194,26 @@ git push origin v0.3.0-alpha
 
 ## Pre-public Alpha checklist
 
+See **`docs/qa/RELEASE-APPROVAL-CHECKLIST.md`** for the full reusable QA gate.
+
+Quick summary:
+
 - [ ] Linux packages built and verified
 - [ ] Windows installer built and verified on clean VM
 - [ ] `./scripts/prepare_release.sh` completed
 - [ ] `./scripts/verify_release.sh` passes (no FAIL)
-- [ ] GitHub Release created with artifacts + SHA256SUMS
+- [ ] RC test reports filed under `docs/qa/reports/`
+- [ ] GitHub Release created with binary artifacts + per-platform SHA256SUMS
 - [ ] Website download links tested
-- [ ] `RELEASE_CHECKLIST.md` blockers resolved
+- [ ] No public links to `installer/linux/install.sh`
 
 ---
 
 ## Related documentation
 
-- `RELEASE_CHECKLIST.md` — readiness audit
+- **`docs/qa/README.md`** — Release Candidate QA framework (SAVE-086)
+
 - `docs/WINDOWS_INSTALLER.md` — Windows installer details
 - `docs/LINUX_INSTALLER.md` — Linux package details
 - `BUILD_WINDOWS.md` — Windows build pipeline
+- `installer/README.md` — developer-only source-tree install (not for end users)

@@ -1,13 +1,14 @@
-# Project X — Public release layout (SAVE-078)
+# Project X — Public release layout (SAVE-078 / SAVE-085)
 
 ```
 release/
 ├── manifest.json       # Canonical release metadata
-├── windows/            # Windows installer (ProjectX-Setup.exe)
-├── linux/              # Linux AppImage and .deb packages
-├── checksums/          # SHA256 checksum files (auto-generated)
+├── windows/            # ProjectX-Setup.exe + SHA256SUMS
+├── linux/              # ProjectX.deb, ProjectX.AppImage, SHA256SUMS
 └── notes/              # Release notes for GitHub / website
 ```
+
+Public Linux releases contain **only** the three files above under `release/linux/`. Developer tooling under `installer/linux/` is never published.
 
 ## Prepare a release
 

@@ -11,6 +11,13 @@
         return "downloads/" + platform + "/" + encodeURIComponent(platformConfig.file);
     }
 
+    function downloadFileUrl(platform, filename) {
+        if (!filename) {
+            return "";
+        }
+        return "downloads/" + platform + "/" + encodeURIComponent(filename);
+    }
+
     function releaseNotesUrl(config) {
         return "releases/" + encodeURIComponent(config.latest) + ".md";
     }
@@ -119,7 +126,10 @@
         var platformConfig = config[platform];
         var href = downloadUrl(platform, config);
         var icon = platform === "windows" ? "🪟" : "🐧";
-        var label = platform === "windows" ? "Download for Windows" : "Download for Linux";
+        var label =
+            platform === "windows"
+                ? "Download for Windows"
+                : "Download .deb (recommended for Linux Mint)";
 
         return (
             '<a class="btn btn-primary btn-large" href="' +
@@ -140,8 +150,8 @@
         var title = platform === "windows" ? "Windows" : "Linux";
         var description =
             platform === "windows"
-                ? "Recommended for dual-boot release builds. Requires Windows 10 or later. The installer bundles PySide6, Qt WebEngine, offline Leaflet maps, and translations."
-                : "AppImage distribution for Linux Mint and compatible distributions. Portable install with desktop integration support.";
+                ? "Inno Setup installer for Windows 10 or later. Bundles PySide6, Qt WebEngine, offline Leaflet maps, and translations."
+                : "Recommended for Linux Mint and Debian-based systems: install Project X from the .deb package for menu integration and clean uninstall. Use the portable AppImage only if you need a single file without system install.";
 
         var html =
             '<article class="panel download-card" data-release-platform="' +
@@ -159,7 +169,10 @@
                 '<ul class="meta-list">' +
                 metaItem("Version", escapeHtml(platformConfig.version)) +
                 metaItem("Platform", escapeHtml(platformConfig.platform || title)) +
-                metaItem("File", escapeHtml(platformConfig.file)) +
+                metaItem("Recommended", escapeHtml(platformConfig.file)) +
+                (platform === "linux" && platformConfig.secondary_file
+                    ? metaItem("Portable option", escapeHtml(platformConfig.secondary_file))
+                    : "") +
                 metaItem("Format", escapeHtml(platformConfig.format || "")) +
                 metaItem("Architecture", escapeHtml(platformConfig.architecture || "")) +
                 metaItem("File size", escapeHtml(platformConfig.size || "TBD")) +
@@ -168,13 +181,29 @@
 
         html += renderDownloadButton(platform, config, !detailed);
 
+        if (platform === "linux" && platformConfig.secondary_file) {
+            html +=
+                '<p class="btn-row" style="margin-top: 0.75rem;">' +
+                '<a class="btn btn-secondary" href="' +
+                escapeHtml(downloadFileUrl("linux", platformConfig.secondary_file)) +
+                '" data-release-download="linux-appimage">Download portable AppImage (advanced)</a>' +
+                "</p>";
+        }
+
+        if (platformConfig.checksum_file) {
+            html +=
+                '<p class="note">Optional — verify download integrity: <a href="' +
+                escapeHtml(downloadFileUrl(platform, platformConfig.checksum_file)) +
+                '">' +
+                escapeHtml(platformConfig.checksum_file) +
+                "</a></p>";
+        }
+
         if (detailed) {
             html +=
-                '<p class="note">Installer path: <code>' +
+                '<p class="note">Recommended download: <code>' +
                 escapeHtml(downloadUrl(platform, config)) +
                 "</code></p>";
-        } else {
-            html += '<p class="note">Release managed via <code>releases.json</code>.</p>';
         }
 
         html += "</article>";

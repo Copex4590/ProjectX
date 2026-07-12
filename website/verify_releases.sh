@@ -99,8 +99,9 @@ import json
 from pathlib import Path
 
 config = json.loads(Path("releases.json").read_text(encoding="utf-8"))
-config["windows"]["file"] = "ProjectX-Setup-0.4-beta.exe"
-config["linux"]["file"] = "ProjectX-0.4-beta-x86_64.AppImage"
+config["windows"]["file"] = "ProjectX-Setup.exe"
+config["linux"]["file"] = "ProjectX.deb"
+config["linux"]["secondary_file"] = "ProjectX.AppImage"
 config["latest"] = "0.4-beta"
 Path("${TMP_CONFIG}").write_text(json.dumps(config), encoding="utf-8")
 PY
@@ -123,12 +124,12 @@ PY
 
 rm -f "$TMP_CONFIG"
 
-if [[ "$WIN_URL" != "downloads/windows/ProjectX-Setup-0.4-beta.exe" ]]; then
+if [[ "$WIN_URL" != "downloads/windows/ProjectX-Setup.exe" ]]; then
     echo "[FAIL] Windows URL generation mismatch: ${WIN_URL}" >&2
     exit 1
 fi
 
-if [[ "$LIN_URL" != "downloads/linux/ProjectX-0.4-beta-x86_64.AppImage" ]]; then
+if [[ "$LIN_URL" != "downloads/linux/ProjectX.deb" ]]; then
     echo "[FAIL] Linux URL generation mismatch: ${LIN_URL}" >&2
     exit 1
 fi
