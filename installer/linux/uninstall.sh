@@ -381,24 +381,128 @@ remove_appimages() {
     done
 }
 
+gui_command() {
+    if command -v zenity >/dev/null 2>&1; then
+        printf 'zenity'
+        return 0
+    fi
+
+    if command -v kdialog >/dev/null 2>&1; then
+        printf 'kdialog'
+        return 0
+    fi
+
+    return 1
+}
+
+run_gui_dialog() {
+    local tool
+    tool="$(gui_command)" || return 1
+
+    if [[ -n "${SUDO_USER:-}" && "$SUDO_USER" != "root" && "$EUID" -eq 0 ]]; then
+        sudo -u "$SUDO_USER" \
+            DISPLAY="${DISPLAY:-:0}" \
+            XAUTHORITY="${XAUTHORITY:-$(getent passwd "$SUDO_USER" | cut -d: -f6)/.Xauthority}" \
+            DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-}" \
+            "$tool" "$@"
+        return $?
+    fi
+
+    "$tool" "$@"
+}
+
+confirm_uninstall_dialog() {
+    local tool="${1:-}"
+
+    case "$tool" in
+        zenity)
+            run_gui_dialog \
+                --question \
+                --title="Project X Uninstall" \
+                --text="Are you sure you want to completely remove Project X?\n\nThis action cannot be undone." \
+                --ok-label="Uninstall" \
+                --cancel-label="Cancel" \
+                --width=460
+            ;;
+        kdialog)
+            run_gui_dialog \
+                --title "Project X Uninstall" \
+                --yesno "Are you sure you want to completely remove Project X?\n\nThis action cannot be undone." \
+                --yes-label "Uninstall" \
+                --no-label "Cancel"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+show_success_dialog() {
+    local tool="${1:-}"
+
+    case "$tool" in
+        zenity)
+            run_gui_dialog \
+                --info \
+                --title="Project X Uninstall" \
+                --text="Project X has been completely removed.\n\nNo Project X files remain on this system.\n\nThank you for using Project X." \
+                --ok-label="Close" \
+                --width=460
+            ;;
+        kdialog)
+            run_gui_dialog \
+                --title "Project X Uninstall" \
+                --msgbox "Project X has been completely removed.\n\nNo Project X files remain on this system.\n\nThank you for using Project X." \
+                --ok-label "Close"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 confirm_uninstall() {
     if [[ "$ASSUME_YES" -eq 1 || "$DRY_RUN" -eq 1 || "$SELF_TEST" -eq 1 ]]; then
         return 0
     fi
 
-    log "This will completely remove ${APP_NAME} and all of its local data."
-    log "Exported files and unrelated backups will not be touched."
-    printf 'Continue? [y/N] '
+    local tool=""
+    if tool="$(gui_command)"; then
+        if ! confirm_uninstall_dialog "$tool"; then
+            exit 0
+        fi
+        return 0
+    fi
+
+    log "Project X Uninstall"
+    log ""
+    log "Are you sure you want to completely remove Project X?"
+    log "This action cannot be undone."
+    log ""
+    printf 'Type Uninstall to continue, or press Enter to cancel: '
     local reply
     read -r reply
-    case "$reply" in
-        y|Y|yes|YES)
-            ;;
-        *)
-            log "Uninstall cancelled."
-            exit 0
-            ;;
-    esac
+    if [[ "$reply" != "Uninstall" ]]; then
+        log "Uninstall cancelled."
+        exit 0
+    fi
+}
+
+show_uninstall_complete() {
+    if [[ "$DRY_RUN" -eq 1 || "$SELF_TEST" -eq 1 ]]; then
+        return 0
+    fi
+
+    local tool=""
+    if tool="$(gui_command)"; then
+        show_success_dialog "$tool" || true
+        return 0
+    fi
+
+    log ""
+    log "Project X has been completely removed."
+    log "No Project X files remain on this system."
+    log "Thank you for using Project X."
 }
 
 run_uninstall() {
@@ -529,6 +633,7 @@ main() {
 
     confirm_uninstall
     run_uninstall
+    show_uninstall_complete
     log "${APP_NAME} uninstall complete."
 }
 
