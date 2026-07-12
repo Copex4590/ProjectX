@@ -191,6 +191,10 @@ class ObservationSetupWidget(QWidget):
                 set_active=True,
             )
             trace_exit("ObservationSetupWidget.handle_confirm.create")
+
+            if observation_manager.try_consume_multi_op_notice():
+                self._show_multi_op_notice()
+
             return True
 
     def update_outer_buttons(
@@ -311,6 +315,20 @@ class ObservationSetupWidget(QWidget):
             self.window(),
             tr("Observation Point Setup"),
             tr("Use the central Map to choose a location."),
+        )
+
+    def _show_multi_op_notice(self) -> None:
+
+        QMessageBox.information(
+            self.window(),
+            tr("Attention!"),
+            tr(
+                "The current release of Project X calculates ship distance and "
+                "direction relative to only one active observation point at a "
+                "time.\n\n"
+                "Please keep this in mind when you activate a different "
+                "observation point."
+            ),
         )
 
     def _start_map_pick(self) -> None:

@@ -12,6 +12,7 @@ from timeline.timeline_recorder import timeline_recorder
 
 
 class ShipRegistry:
+    """Runtime in-memory ship store. AIS updates must enter via HybridAisEngine."""
 
     def __init__(self):
 
@@ -103,22 +104,5 @@ class ShipRegistry:
         with self._lock:
             return mmsi in self._ships
 
-
-
-    def update_from_hybrid(self, data: dict):
-
-        ship = Ship()
-
-        ship.mmsi = int(data.get("mmsi", 0))
-        ship.name = data.get("name", "")
-        ship.lat = data.get("lat", 0.0)
-        ship.lon = data.get("lon", 0.0)
-        ship.speed = data.get("speed", 0.0)
-        ship.heading = data.get("heading", 0.0)
-        ship.course = data.get("heading", 0.0)
-        ship.source = data.get("source", "")
-        ship.camera_visible = True
-
-        self.add(ship)
 
 registry = ShipRegistry()

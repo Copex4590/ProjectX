@@ -17,6 +17,7 @@ class AISProviderType(str, Enum):
     HYBRID = "hybrid"
     LATER = "later"
     MARINE_TRAFFIC = "marinetraffic"
+    AISHUB = "aishub"
     VESSELFINDER = "vesselfinder"
     OTHER = "other"
 
@@ -30,6 +31,7 @@ SUPPORTED_AIS_PROVIDERS = (
 
 FUTURE_AIS_PROVIDERS = (
     AISProviderType.MARINE_TRAFFIC,
+    AISProviderType.AISHUB,
     AISProviderType.VESSELFINDER,
     AISProviderType.OTHER,
 )

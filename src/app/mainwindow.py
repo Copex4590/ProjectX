@@ -40,7 +40,6 @@ from observation import observation_manager
 from preferences import preferences_manager
 from inspector.inspector import PROJECT_VERSION
 from version import PROJECT_NAME
-from engines.ais.ais_catcher_launcher import ensure_ais_catcher_ready
 from engines.rtl.hybrid_engine import HybridEngine
 from logbook import logbook_recorder
 from ais import ais_manager
@@ -81,13 +80,8 @@ class MainWindow(QMainWindow):
 
     def _start_background_services(self) -> None:
 
-        if ensure_ais_catcher_ready():
-            logger.info("Starting Hybrid Engine")
-            self.hybrid_engine.start()
-        else:
-            logger.warning(
-                "AIS-Catcher unavailable — Hybrid Engine not started"
-            )
+        logger.info("Starting Hybrid Engine")
+        self.hybrid_engine.start()
 
     def _connect_event_bridge(self):
 
@@ -373,13 +367,13 @@ class MainWindow(QMainWindow):
         if result.success:
             QMessageBox.information(
                 self,
-                tr("AIS Source"),
+                tr("AIS Providers"),
                 tr(result.message) if result.message else tr("Connection successful"),
             )
         else:
             QMessageBox.warning(
                 self,
-                tr("AIS Source"),
+                tr("AIS Providers"),
                 tr(result.message) if result.message else tr("AIS source is not configured yet."),
             )
 

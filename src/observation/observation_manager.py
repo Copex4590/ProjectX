@@ -63,6 +63,7 @@ class ObservationManager(QObject):
         self._points: list[ObservationPoint] = []
         self._active_id: str | None = None
         self._reference_id: str | None = None
+        self._multi_op_notice_shown = False
         self._load()
 
     def _lock_owner_label(self) -> str:
@@ -343,6 +344,19 @@ class ObservationManager(QObject):
         trace_exit("ObservationManager.create")
         return result
 
+    def try_consume_multi_op_notice(self) -> bool:
+
+        with self._hold_lock("try_consume_multi_op_notice"):
+            if self._multi_op_notice_shown:
+                return False
+
+            if len(self._points) != 2:
+                return False
+
+            self._multi_op_notice_shown = True
+            self._write_unlocked()
+            return True
+
     def move(
         self,
         point_id: str,
@@ -510,6 +524,9 @@ class ObservationManager(QObject):
             ]
             self._active_id = migrated.get("active_id")
             self._reference_id = migrated.get("reference_id")
+            self._multi_op_notice_shown = bool(
+                migrated.get("multi_op_notice_shown", False)
+            )
 
             active = self._find_active()
 
@@ -521,6 +538,13 @@ class ObservationManager(QObject):
             needs_write = data != migrated
 
             if self._normalize_active_state_unlocked():
+                needs_write = True
+
+            if (
+                not self._multi_op_notice_shown
+                and len(self._points) >= 2
+            ):
+                self._multi_op_notice_shown = True
                 needs_write = True
 
             if needs_write:
@@ -555,6 +579,7 @@ class ObservationManager(QObject):
         payload.setdefault("active_id", None)
         payload.setdefault("reference_id", None)
         payload.setdefault("points", [])
+        payload.setdefault("multi_op_notice_shown", False)
 
         version = int(payload.get("version") or 1)
         points = payload.get("points", [])
@@ -596,6 +621,7 @@ class ObservationManager(QObject):
                 "active_id": active.id if active else None,
                 "reference_id": reference.id if reference else self._reference_id,
                 "points": [point.to_dict() for point in self._points],
+                "multi_op_notice_shown": self._multi_op_notice_shown,
             }
 
             trace_enter("ObservationManager._write_unlocked.mkdir")

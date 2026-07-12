@@ -1,6 +1,6 @@
 # ============================================================================
 # Project X
-# AIS Source Setup Wizard
+# AIS Providers Setup Wizard
 # ============================================================================
 
 from __future__ import annotations
@@ -8,15 +8,15 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, QThread, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
-    QButtonGroup,
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
-    QRadioButton,
     QSpinBox,
     QStackedWidget,
     QVBoxLayout,
@@ -31,15 +31,96 @@ from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button
 from i18n import tr
 from preferences import preferences_manager
 
-_SUBSTEP_PROVIDER = 0
+_SUBSTEP_PROVIDERS = 0
 _SUBSTEP_CONFIGURE = 1
 
-_PROVIDER_CHOICES = (
+_PROVIDER_OPTIONS = (
     AISProviderType.AISSTREAM,
     AISProviderType.LOCAL,
-    AISProviderType.HYBRID,
-    AISProviderType.LATER,
+    AISProviderType.MARINE_TRAFFIC,
+    AISProviderType.AISHUB,
 )
+
+
+def _derive_enabled_providers(provider: AISProviderType) -> list[str]:
+
+    if provider == AISProviderType.HYBRID:
+        return [
+            AISProviderType.AISSTREAM.value,
+            AISProviderType.LOCAL.value,
+        ]
+
+    if provider == AISProviderType.LATER:
+        return []
+
+    return [provider.value]
+
+
+def _legacy_provider_from_enabled(enabled: set[AISProviderType]) -> str:
+
+    if not enabled:
+        return AISProviderType.LATER.value
+
+    has_stream = AISProviderType.AISSTREAM in enabled
+    has_local = AISProviderType.LOCAL in enabled
+
+    if has_stream and has_local:
+        return AISProviderType.HYBRID.value
+
+    if has_local:
+        return AISProviderType.LOCAL.value
+
+    if has_stream:
+        return AISProviderType.AISSTREAM.value
+
+    return AISProviderType.LATER.value
+
+
+def _is_provider_configured(provider: AISProviderType) -> bool:
+
+    preferences = preferences_manager.get()
+
+    if provider == AISProviderType.AISSTREAM:
+        return bool(preferences.aisstream_api_key.strip())
+
+    if provider == AISProviderType.LOCAL:
+        return bool(preferences.rtl_sdr_configured)
+
+    if provider in (AISProviderType.MARINE_TRAFFIC, AISProviderType.AISHUB):
+        return False
+
+    return False
+
+
+def _configuration_prompt(provider: AISProviderType) -> str:
+
+    if provider == AISProviderType.LOCAL:
+        return tr("RTL-SDR requires additional configuration.")
+
+    if provider == AISProviderType.MARINE_TRAFFIC:
+        return tr("MarineTraffic requires an API key.")
+
+    if provider == AISProviderType.AISHUB:
+        return tr("AISHub requires additional configuration.")
+
+    return tr("AISStream requires an API key.")
+
+
+def _provider_label(provider: AISProviderType) -> str:
+
+    if provider == AISProviderType.AISSTREAM:
+        return tr("AISStream")
+
+    if provider == AISProviderType.LOCAL:
+        return tr("RTL-SDR")
+
+    if provider == AISProviderType.MARINE_TRAFFIC:
+        return tr("MarineTraffic")
+
+    if provider == AISProviderType.AISHUB:
+        return tr("AISHub")
+
+    return provider.value
 
 
 class _AISTestWorker(QThread):
@@ -76,8 +157,10 @@ class AISSetupWidget(QWidget):
         super().__init__(parent)
 
         self._test_worker: _AISTestWorker | None = None
-        self._selected_provider = AISProviderType.LATER
+        self._selected_provider = AISProviderType.AISSTREAM
         self._last_test_success = False
+        self._provider_checkboxes: dict[AISProviderType, QCheckBox] = {}
+        self._configure_dismissed: set[AISProviderType] = set()
 
         self._build_ui()
         self._connect_signals()
@@ -85,14 +168,13 @@ class AISSetupWidget(QWidget):
 
     def refresh_translations(self) -> None:
 
-        self._provider_title.setText(tr("AIS Source"))
+        self._provider_title.setText(tr("AIS Providers"))
         self._provider_body.setText(
-            tr("Choose where vessel data comes from.")
+            tr("Choose which AIS providers Project X should use.")
         )
-        self._aisstream_option.setText(tr("AISStream (Recommended)"))
-        self._local_option.setText(tr("Local AIS receiver (RTL-SDR)"))
-        self._hybrid_option.setText(tr("Hybrid (Internet + RTL)"))
-        self._later_option.setText(tr("Configure later"))
+
+        for provider, checkbox in self._provider_checkboxes.items():
+            checkbox.setText(_provider_label(provider))
 
         self._aisstream_intro_title.setText(tr("AISStream"))
         self._aisstream_intro_body.setText(
@@ -116,17 +198,14 @@ class AISSetupWidget(QWidget):
         self._api_key_input.setPlaceholderText(tr("Paste here"))
         self._test_button.setText(tr("Test Connection"))
 
-        self._local_title.setText(tr("Local AIS"))
+        self._local_title.setText(tr("RTL-SDR"))
         self._host_label.setText(tr("Host"))
         self._port_label.setText(tr("Port"))
 
-        self._hybrid_title.setText(tr("Hybrid"))
-        self._hybrid_body.setText(tr("Configure both."))
-        self._hybrid_api_key_label.setText(tr("API Key"))
-        self._hybrid_host_label.setText(tr("Host"))
-        self._hybrid_port_label.setText(tr("Port"))
-
-        self._update_result_label()
+        self._future_title.setText(tr("Configuration"))
+        self._future_body.setText(
+            tr("This provider will be configurable in a future Project X release.")
+        )
 
     def substep_index(self) -> int:
 
@@ -134,8 +213,8 @@ class AISSetupWidget(QWidget):
 
     def on_enter(self) -> None:
 
+        self._configure_dismissed.clear()
         self._load_preferences()
-        self._update_result_label()
 
     def on_leave(self) -> None:
 
@@ -144,39 +223,17 @@ class AISSetupWidget(QWidget):
 
     def handle_next(self) -> bool:
 
-        if self.substep_index() != _SUBSTEP_PROVIDER:
+        if self.substep_index() != _SUBSTEP_PROVIDERS:
             return False
 
-        self._selected_provider = self._current_provider_choice()
-
-        if self._selected_provider == AISProviderType.LATER:
-            ais_manager.save_configuration(
-                provider_type=AISProviderType.LATER.value,
-                configured=False,
-            )
-            return True
-
-        self._configure_stack.setCurrentIndex(
-            self._configure_index_for_provider(self._selected_provider)
-        )
-        self._stack.setCurrentIndex(_SUBSTEP_CONFIGURE)
-
-        if self._selected_provider == AISProviderType.AISSTREAM:
-            preferences = preferences_manager.get()
-
-            if preferences.aisstream_api_key:
-                self._api_key_panel.setVisible(True)
-
-        self._update_result_label()
-        return False
+        return self._complete_provider_selection()
 
     def handle_back(self) -> bool:
 
         if self.substep_index() != _SUBSTEP_CONFIGURE:
             return True
 
-        self._stack.setCurrentIndex(_SUBSTEP_PROVIDER)
-        self._update_result_label()
+        self._stack.setCurrentIndex(_SUBSTEP_PROVIDERS)
         return False
 
     def handle_confirm(self) -> bool:
@@ -184,16 +241,26 @@ class AISSetupWidget(QWidget):
         if self.substep_index() != _SUBSTEP_CONFIGURE:
             return False
 
-        if self._selected_provider == AISProviderType.LATER:
-            return True
+        if self._selected_provider == AISProviderType.AISSTREAM:
+            if not self._api_key_input.text().strip():
+                return False
 
-        if not self._last_test_success:
-            self._result_label.setText(tr("Please test the connection first."))
-            self._result_label.setStyleSheet("color: #ef5350;")
+            if not self._last_test_success:
+                if not self._run_aisstream_test(wait=True):
+                    return False
+
+            self._save_aisstream_configuration()
+        elif self._selected_provider == AISProviderType.LOCAL:
+            self._save_local_configuration()
+        elif self._selected_provider in (
+            AISProviderType.MARINE_TRAFFIC,
+            AISProviderType.AISHUB,
+        ):
+            pass
+        else:
             return False
 
-        self._save_current_configuration()
-        return True
+        return self._complete_provider_selection(after_configure=True)
 
     def update_outer_buttons(
         self,
@@ -229,28 +296,15 @@ class AISSetupWidget(QWidget):
         self._provider_body.setStyleSheet("color: #9aa4af;")
         provider_layout.addWidget(self._provider_body)
 
-        self._aisstream_option = QRadioButton()
-        self._local_option = QRadioButton()
-        self._hybrid_option = QRadioButton()
-        self._later_option = QRadioButton()
-        self._aisstream_option.setChecked(True)
-
-        for option in (
-            self._aisstream_option,
-            self._local_option,
-            self._hybrid_option,
-            self._later_option,
-        ):
-            provider_layout.addWidget(option)
+        for provider in _PROVIDER_OPTIONS:
+            checkbox = QCheckBox()
+            if provider == AISProviderType.AISSTREAM:
+                checkbox.setChecked(True)
+            self._provider_checkboxes[provider] = checkbox
+            provider_layout.addWidget(checkbox)
 
         provider_layout.addStretch()
         self._stack.addWidget(provider_page)
-
-        self._provider_group = QButtonGroup(self)
-        self._provider_group.addButton(self._aisstream_option, 0)
-        self._provider_group.addButton(self._local_option, 1)
-        self._provider_group.addButton(self._hybrid_option, 2)
-        self._provider_group.addButton(self._later_option, 3)
 
         configure_page = QWidget()
         configure_layout = QVBoxLayout(configure_page)
@@ -323,43 +377,23 @@ class AISSetupWidget(QWidget):
         local_layout.addStretch()
         self._configure_stack.addWidget(local_page)
 
-        hybrid_page = QWidget()
-        hybrid_layout = QVBoxLayout(hybrid_page)
-        self._hybrid_title = QLabel()
-        self._hybrid_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        hybrid_layout.addWidget(self._hybrid_title)
-
-        self._hybrid_body = QLabel()
-        self._hybrid_body.setWordWrap(True)
-        self._hybrid_body.setStyleSheet("color: #9aa4af;")
-        hybrid_layout.addWidget(self._hybrid_body)
-
-        hybrid_form = QFormLayout()
-        self._hybrid_api_key_label = QLabel()
-        self._hybrid_api_key_input = QLineEdit()
-        self._hybrid_api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self._hybrid_host_label = QLabel()
-        self._hybrid_host_input = QLineEdit(AIS_CATCHER_HOST)
-        self._hybrid_port_label = QLabel()
-        self._hybrid_port_input = QSpinBox()
-        self._hybrid_port_input.setRange(1, 65535)
-        self._hybrid_port_input.setValue(AIS_CATCHER_PORT)
-        hybrid_form.addRow(self._hybrid_api_key_label, self._hybrid_api_key_input)
-        hybrid_form.addRow(self._hybrid_host_label, self._hybrid_host_input)
-        hybrid_form.addRow(self._hybrid_port_label, self._hybrid_port_input)
-        hybrid_layout.addLayout(hybrid_form)
-        hybrid_layout.addStretch()
-        self._configure_stack.addWidget(hybrid_page)
+        future_page = QWidget()
+        future_layout = QVBoxLayout(future_page)
+        self._future_title = QLabel()
+        self._future_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        future_layout.addWidget(self._future_title)
+        self._future_body = QLabel()
+        self._future_body.setWordWrap(True)
+        self._future_body.setStyleSheet("color: #9aa4af;")
+        future_layout.addWidget(self._future_body)
+        future_layout.addStretch()
+        self._configure_stack.addWidget(future_page)
 
         test_row = QHBoxLayout()
         self._test_button = QPushButton()
         test_row.addWidget(self._test_button)
         test_row.addStretch()
         configure_layout.addLayout(test_row)
-
-        self._result_label = QLabel()
-        self._result_label.setWordWrap(True)
-        configure_layout.addWidget(self._result_label)
 
         self._stack.addWidget(configure_page)
 
@@ -372,43 +406,153 @@ class AISSetupWidget(QWidget):
     def _load_preferences(self) -> None:
 
         preferences = preferences_manager.get()
-        provider = normalize_provider_type(preferences.ais_provider)
+        enabled_values = preferences.ais_enabled_providers
 
-        if provider == AISProviderType.LOCAL:
-            self._local_option.setChecked(True)
-        elif provider == AISProviderType.HYBRID:
-            self._hybrid_option.setChecked(True)
-        elif provider == AISProviderType.LATER:
-            self._later_option.setChecked(True)
-        else:
-            self._aisstream_option.setChecked(True)
+        if enabled_values is None:
+            enabled_values = _derive_enabled_providers(
+                normalize_provider_type(preferences.ais_provider)
+            )
+
+        enabled = {
+            normalize_provider_type(value)
+            for value in enabled_values
+        }
+
+        for provider, checkbox in self._provider_checkboxes.items():
+            checkbox.setChecked(provider in enabled)
 
         self._api_key_input.setText(preferences.aisstream_api_key)
-        self._hybrid_api_key_input.setText(preferences.aisstream_api_key)
         self._host_input.setText(preferences.ais_local_host)
-        self._hybrid_host_input.setText(preferences.ais_local_host)
         self._port_input.setValue(preferences.ais_local_port)
-        self._hybrid_port_input.setValue(preferences.ais_local_port)
-        self._last_test_success = bool(preferences.ais_configured)
+        self._last_test_success = bool(
+            preferences.aisstream_api_key.strip() and preferences.ais_configured
+        )
 
-    def _current_provider_choice(self) -> AISProviderType:
+    def _enabled_providers(self) -> set[AISProviderType]:
 
-        button_id = self._provider_group.checkedId()
+        return {
+            provider
+            for provider, checkbox in self._provider_checkboxes.items()
+            if checkbox.isChecked()
+        }
 
-        if button_id < 0 or button_id >= len(_PROVIDER_CHOICES):
-            return AISProviderType.AISSTREAM
+    def _save_enabled_providers(self, enabled: set[AISProviderType]) -> None:
 
-        return _PROVIDER_CHOICES[button_id]
+        legacy_provider = _legacy_provider_from_enabled(enabled)
+        preferences_manager.set_ais_enabled_providers(
+            [provider.value for provider in enabled],
+            legacy_provider=legacy_provider,
+        )
+
+        if not enabled:
+            ais_manager.save_configuration(
+                provider_type=AISProviderType.LATER.value,
+                configured=False,
+            )
+
+    def _unconfigured_enabled_providers(
+        self,
+        enabled: set[AISProviderType],
+    ) -> list[AISProviderType]:
+
+        return [
+            provider
+            for provider in _PROVIDER_OPTIONS
+            if provider in enabled and not _is_provider_configured(provider)
+        ]
+
+    def _prompt_configure_provider(self, provider: AISProviderType) -> bool:
+
+        dialog = QMessageBox(self.window())
+        dialog.setIcon(QMessageBox.Icon.Information)
+        dialog.setWindowTitle(tr("AIS Providers"))
+        dialog.setText(_configuration_prompt(provider))
+        configure_button = dialog.addButton(
+            tr("Configure now"),
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        dialog.addButton(tr("Later"), QMessageBox.ButtonRole.RejectRole)
+        dialog.exec()
+
+        return dialog.clickedButton() == configure_button
+
+    def _begin_provider_configuration(self, provider: AISProviderType) -> None:
+
+        self._selected_provider = provider
+
+        if provider == AISProviderType.LOCAL:
+            from gui.rtlsdrwizard import RTLSdrWizard
+
+            RTLSdrWizard(self.window()).exec()
+            self._load_preferences()
+            self._stack.setCurrentIndex(_SUBSTEP_PROVIDERS)
+            return
+
+        self._configure_stack.setCurrentIndex(
+            self._configure_index_for_provider(provider)
+        )
+        self._stack.setCurrentIndex(_SUBSTEP_CONFIGURE)
+
+        show_test = provider == AISProviderType.AISSTREAM
+        self._test_button.setVisible(show_test)
+
+        if provider == AISProviderType.AISSTREAM:
+            preferences = preferences_manager.get()
+
+            if preferences.aisstream_api_key:
+                self._api_key_panel.setVisible(True)
 
     def _configure_index_for_provider(self, provider: AISProviderType) -> int:
 
         if provider == AISProviderType.LOCAL:
             return 1
 
-        if provider == AISProviderType.HYBRID:
+        if provider in (AISProviderType.MARINE_TRAFFIC, AISProviderType.AISHUB):
             return 2
 
         return 0
+
+    def _complete_provider_selection(self, *, after_configure: bool = False) -> bool:
+
+        enabled = self._enabled_providers()
+        self._save_enabled_providers(enabled)
+
+        pending = self._unconfigured_enabled_providers(enabled)
+        pending = [
+            provider
+            for provider in pending
+            if provider not in self._configure_dismissed
+        ]
+
+        if after_configure and self._selected_provider in enabled:
+            if _is_provider_configured(self._selected_provider):
+                pending = [
+                    provider
+                    for provider in pending
+                    if provider != self._selected_provider
+                ]
+            elif self._selected_provider in (
+                AISProviderType.MARINE_TRAFFIC,
+                AISProviderType.AISHUB,
+            ):
+                self._configure_dismissed.add(self._selected_provider)
+                pending = [
+                    provider
+                    for provider in pending
+                    if provider != self._selected_provider
+                ]
+
+        while pending:
+            next_provider = pending[0]
+
+            if self._prompt_configure_provider(next_provider):
+                self._begin_provider_configuration(next_provider)
+                return False
+
+            self._configure_dismissed.add(next_provider)
+            pending = pending[1:]
+
+        return True
 
     def _on_get_api_key(self) -> None:
 
@@ -422,99 +566,77 @@ class AISSetupWidget(QWidget):
         self._api_key_panel.setVisible(True)
         self._api_key_input.setFocus()
 
-    def _current_test_values(self) -> tuple[str, str, str, int]:
-
-        provider = self._selected_provider
-
-        if provider == AISProviderType.LOCAL:
-            return (
-                provider.value,
-                "",
-                self._host_input.text().strip(),
-                self._port_input.value(),
-            )
-
-        if provider == AISProviderType.HYBRID:
-            return (
-                provider.value,
-                self._hybrid_api_key_input.text().strip(),
-                self._hybrid_host_input.text().strip(),
-                self._hybrid_port_input.value(),
-            )
-
-        return (
-            provider.value,
-            self._api_key_input.text().strip(),
-            AIS_CATCHER_HOST,
-            AIS_CATCHER_PORT,
-        )
-
     def _on_test_connection(self) -> None:
 
-        if self._test_worker is not None and self._test_worker.isRunning():
+        if self._selected_provider != AISProviderType.AISSTREAM:
             return
 
-        provider_type, api_key, host, port = self._current_test_values()
-        self._result_label.setText(tr("Testing connection..."))
-        self._result_label.setStyleSheet("color: #bbbbbb;")
+        self._run_aisstream_test(wait=False)
+
+    def _run_aisstream_test(self, *, wait: bool) -> bool:
+
+        if self._test_worker is not None and self._test_worker.isRunning():
+            if wait:
+                self._test_worker.wait()
+            else:
+                return False
+
+        provider_type = AISProviderType.AISSTREAM.value
+        api_key = self._api_key_input.text().strip()
         self._test_button.setEnabled(False)
         self._last_test_success = False
 
         self._test_worker = _AISTestWorker(
             provider_type,
             api_key,
-            host,
-            port,
+            AIS_CATCHER_HOST,
+            AIS_CATCHER_PORT,
             self,
         )
+
+        if wait:
+            self._test_worker.run()
+            self._test_button.setEnabled(True)
+            result = self._test_worker.result
+
+            if result is not None and result.success:
+                self._last_test_success = True
+                self._save_aisstream_configuration()
+                return True
+
+            return False
+
         self._test_worker.finished.connect(self._on_test_finished)
         self._test_worker.start()
+        return False
 
     def _on_test_finished(self) -> None:
 
         self._test_button.setEnabled(True)
         result = self._test_worker.result if self._test_worker else None
 
-        if result is None:
-            self._result_label.setText(tr("AISStream unavailable."))
-            self._result_label.setStyleSheet("color: #ef5350;")
-            return
-
-        if result.success:
+        if result is not None and result.success:
             self._last_test_success = True
-            self._result_label.setText(
-                f"✓ {tr(result.message)}\n{tr('AIS provider configured.')}"
-            )
-            self._result_label.setStyleSheet("color: #66bb6a;")
-            self._save_current_configuration()
-            return
+            self._save_aisstream_configuration()
 
-        self._last_test_success = False
-        self._result_label.setText(tr(result.message))
-        self._result_label.setStyleSheet("color: #ef5350;")
-
-    def _save_current_configuration(self) -> None:
-
-        provider_type, api_key, host, port = self._current_test_values()
+    def _save_aisstream_configuration(self) -> None:
 
         ais_manager.save_configuration(
-            provider_type=provider_type,
-            api_key=api_key,
-            host=host,
-            port=port,
-            configured=self._last_test_success,
+            provider_type=AISProviderType.AISSTREAM.value,
+            api_key=self._api_key_input.text().strip(),
+            host=AIS_CATCHER_HOST,
+            port=AIS_CATCHER_PORT,
+            configured=True,
         )
 
-    def _update_result_label(self) -> None:
+    def _save_local_configuration(self) -> None:
 
-        if self._last_test_success:
-            self._result_label.setText(
-                f"✓ {tr('Connection successful')}\n{tr('AIS provider configured.')}"
-            )
-            self._result_label.setStyleSheet("color: #66bb6a;")
-            return
-
-        self._result_label.clear()
+        ais_manager.save_configuration(
+            provider_type=AISProviderType.LOCAL.value,
+            host=self._host_input.text().strip(),
+            port=self._port_input.value(),
+            configured=bool(preferences_manager.get().rtl_sdr_configured),
+        )
 
 
 class AISWizard(QDialog):
@@ -534,14 +656,10 @@ class AISWizard(QDialog):
 
     def refresh_translations(self) -> None:
 
-        self.setWindowTitle(tr("AIS Source"))
+        self.setWindowTitle(tr("AIS Providers"))
         self._setup.refresh_translations()
-        self._back_button.setText(
-            tr("Back")
-        )
-        self._next_button.setText(
-            tr("Next")
-        )
+        self._back_button.setText(tr("Back"))
+        self._continue_button.setText(tr("Continue"))
         self._button_box.button(QDialogButtonBox.StandardButton.Cancel).setText(
             tr("Cancel")
         )
@@ -568,7 +686,7 @@ class AISWizard(QDialog):
                 padding: 6px 8px;
             }
 
-            QRadioButton {
+            QCheckBox {
                 color: #d5dbe3;
             }
 
@@ -595,7 +713,7 @@ class AISWizard(QDialog):
         button_row = QHBoxLayout()
         self._button_box = QDialogButtonBox()
         self._back_button = add_wizard_back_button(self._button_box)
-        self._next_button = add_wizard_next_button(self._button_box)
+        self._continue_button = add_wizard_next_button(self._button_box)
         self._button_box.addButton(QDialogButtonBox.StandardButton.Cancel)
         self._button_box.addButton(QDialogButtonBox.StandardButton.Ok)
         button_row.addWidget(self._button_box)
@@ -604,18 +722,14 @@ class AISWizard(QDialog):
     def _connect_signals(self) -> None:
 
         self._button_box.rejected.connect(self.reject)
-        self._next_button.clicked.connect(
-            self._on_next
-        )
-        self._back_button.clicked.connect(
-            self._on_back
-        )
+        self._continue_button.clicked.connect(self._on_continue)
+        self._back_button.clicked.connect(self._on_back)
         self._button_box.accepted.connect(self._on_confirm)
 
     def _sync_buttons(self) -> None:
 
         back_button = self._back_button
-        next_button = self._next_button
+        next_button = self._continue_button
         confirm_button = self._button_box.button(
             QDialogButtonBox.StandardButton.Ok
         )
@@ -626,7 +740,7 @@ class AISWizard(QDialog):
             confirm_button,
         )
 
-    def _on_next(self) -> None:
+    def _on_continue(self) -> None:
 
         if self._setup.handle_next():
             self.accept()
@@ -638,6 +752,7 @@ class AISWizard(QDialog):
 
         if self._setup.handle_back():
             self._setup.on_leave()
+            return
 
         self._sync_buttons()
 
