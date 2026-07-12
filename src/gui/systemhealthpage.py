@@ -82,7 +82,7 @@ class _SubsystemRow(QFrame):
         self.setStyleSheet("""
             QFrame {
                 background: #252a31;
-                border: 1px solid #40444b;
+                border: 1px solid #3d4a5c;
                 border-radius: 8px;
             }
         """)
@@ -114,13 +114,13 @@ class _SubsystemRow(QFrame):
         self._action_button = QPushButton()
         self._action_button.setStyleSheet("""
             QPushButton {
-                background: #343a42;
+                background: #243651;
                 color: white;
-                border: 1px solid #4a5159;
+                border: 1px solid #2d5a8e;
                 border-radius: 6px;
                 padding: 6px 12px;
             }
-            QPushButton:hover { background: #3f464f; }
+            QPushButton:hover { background: #2d4a6f; }
         """)
         self._action_button.clicked.connect(self._on_action)
         layout.addWidget(self._action_button, 0, 3, 2, 1)
@@ -245,20 +245,20 @@ class SystemHealthPage(QWidget):
                 border-radius: 6px;
             }
             QPushButton:hover { background: #1e88e5; }
-            QPushButton:disabled { background: #4a5159; color: #9aa4af; }
+            QPushButton:disabled { background: #2d5a8e; color: #9aa4af; }
         """)
         button_row.addWidget(self._run_check_button)
 
         self._save_report_button = QPushButton()
         self._save_report_button.setStyleSheet("""
             QPushButton {
-                background: #343a42;
+                background: #243651;
                 color: white;
-                border: 1px solid #4a5159;
+                border: 1px solid #2d5a8e;
                 padding: 8px 14px;
                 border-radius: 6px;
             }
-            QPushButton:hover { background: #3f464f; }
+            QPushButton:hover { background: #2d4a6f; }
         """)
         button_row.addWidget(self._save_report_button)
         button_row.addStretch()

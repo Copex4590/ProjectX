@@ -4,8 +4,8 @@
 # ============================================================================
 
 from threading import Thread
-import traceback
 
+from core.logger import logger
 from database import registry
 from engines.ais.ais_client import AISClient
 from engines.ais.ais_parser import AISParser
@@ -27,29 +27,37 @@ class AISStreamEngine(BaseEngine):
 
     def on_start(self):
 
-        print("[AIS] Engine starting...")
+        logger.info("AIS Engine starting")
 
         try:
+
             preferences = preferences_manager.get()
-            print("[AIS] Preferences loaded.")
+
+            logger.info("Preferences loaded")
 
             api_key = preferences.aisstream_api_key.strip()
-            print(f"[AIS] API key length: {len(api_key)}")
+
+            logger.info(
+                "AIS API key loaded (length=%d)",
+                len(api_key)
+            )
 
             if not api_key:
-                print("[AIS] No API key.")
+
+                logger.warning("No AIS API key configured")
 
                 eventbus.publish(
                     "ais.status",
                     status="offline"
                 )
+
                 return
 
-            print("[AIS] Connecting...")
+            logger.info("Connecting to AISStream")
 
             self.client.connect(api_key)
 
-            print("[AIS] Connected.")
+            logger.info("AISStream connected")
 
             eventbus.publish(
                 "ais.status",
@@ -63,13 +71,11 @@ class AISStreamEngine(BaseEngine):
 
             self.thread.start()
 
-            print("[AIS] Worker thread started.")
+            logger.info("AIS worker started")
 
-        except Exception as error:
+        except Exception:
 
-            print("[AIS] START FAILED")
-            print(error)
-            traceback.print_exc()
+            logger.exception("AIS engine failed during startup")
 
             eventbus.publish(
                 "ais.status",
@@ -78,7 +84,7 @@ class AISStreamEngine(BaseEngine):
 
     def worker(self):
 
-        print("[AIS] Worker running.")
+        logger.info("AIS worker running")
 
         while self.running:
 
@@ -98,16 +104,14 @@ class AISStreamEngine(BaseEngine):
                     ship=ship
                 )
 
-            except Exception as error:
+            except Exception:
 
-                print("[AIS] WORKER FAILED")
-                print(error)
-                traceback.print_exc()
+                logger.exception("AIS worker crashed")
                 break
 
     def on_stop(self):
 
-        print("[AIS] Engine stopping.")
+        logger.info("AIS Engine stopping")
 
         self.client.disconnect()
 

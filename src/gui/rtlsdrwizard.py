@@ -119,10 +119,10 @@ class RTLSdrWizard(QDialog):
             QLabel { color: #d5dbe3; }
             QRadioButton, QCheckBox { color: #d5dbe3; }
             QPushButton {
-                background: #343a42; color: white;
-                border: 1px solid #4a5159; border-radius: 6px; padding: 6px 12px;
+                background: #243651; color: white;
+                border: 1px solid #2d5a8e; border-radius: 6px; padding: 6px 12px;
             }
-            QPushButton:hover { background: #3f464f; }
+            QPushButton:hover { background: #2d4a6f; }
         """)
 
         layout = QVBoxLayout(self)

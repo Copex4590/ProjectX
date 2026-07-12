@@ -563,7 +563,7 @@ class AISWizard(QDialog):
             QLineEdit, QSpinBox {
                 background: #252a31;
                 color: white;
-                border: 1px solid #40444b;
+                border: 1px solid #3d4a5c;
                 border-radius: 6px;
                 padding: 6px 8px;
             }
@@ -573,15 +573,15 @@ class AISWizard(QDialog):
             }
 
             QPushButton {
-                background: #343a42;
+                background: #243651;
                 color: white;
-                border: 1px solid #4a5159;
+                border: 1px solid #2d5a8e;
                 border-radius: 6px;
                 padding: 6px 12px;
             }
 
             QPushButton:hover {
-                background: #3f464f;
+                background: #2d4a6f;
             }
         """)
 

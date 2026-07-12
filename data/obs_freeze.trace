@@ -1,0 +1,1098 @@
+[000001] t=604.679386 thr=MainThread === OBS_FREEZE TRACE RESET ===
+[000002] t=604.679417 thr=MainThread trace_file=/home/zoli/rtl-hajomonitor/data/obs_freeze.trace
+[000003] t=604.679439 thr=MainThread === DELETE TRACE SESSION point_id=86bf8b36c58f419ca3ed395eba5f5219 ===
+[000004] t=604.679460 thr=MainThread EXIT DashboardPage._delete_active EXIT step 10
+[000005] t=604.679478 thr=MainThread ENTER DashboardPage._delete_active ENTER step 11
+[000006] t=604.679512 thr=MainThread SCHEDULE QTimer.singleShot delay_ms=0 label=DashboardPage._delete_active->ObservationManager.delete_observation point_id=86bf8b36c58f419ca3ed395eba5f5219
+[000007] t=604.679546 thr=MainThread EXIT DashboardPage._delete_active EXIT step 11
+[000008] t=604.679568 thr=MainThread EXIT DashboardPage._delete_active EXIT step 1
+[000009] t=604.679607 thr=MainThread ENTER DashboardPage._delete_active->ObservationManager.delete_observation point_id=86bf8b36c58f419ca3ed395eba5f5219
+[000010] t=604.679638 thr=MainThread ENTER ObservationManager.delete_observation point_id=86bf8b36c58f419ca3ed395eba5f5219
+[000011] t=604.679666 thr=MainThread ENTER ObservationManager._lock.acquire caller=delete_observation thr=MainThread id=135268708216960 owner=none
+[000012] t=604.679693 thr=MainThread EXIT ObservationManager._lock.acquire caller=delete_observation thr=MainThread id=135268708216960 owner=acquired
+[000013] t=604.679724 thr=MainThread ENTER ObservationManager.delete_observation._write_unlocked
+[000014] t=604.679749 thr=MainThread ENTER ObservationManager._write_unlocked
+[000015] t=604.679770 thr=MainThread ENTER ObservationManager._write_unlocked._find_active
+[000016] t=604.679791 thr=MainThread ENTER ObservationManager._find_active
+[000017] t=604.679812 thr=MainThread EXIT ObservationManager._find_active
+[000018] t=604.679833 thr=MainThread EXIT ObservationManager._write_unlocked._find_active
+[000019] t=604.679853 thr=MainThread ENTER ObservationManager._write_unlocked._find_reference_unlocked
+[000020] t=604.679873 thr=MainThread ENTER ObservationManager._find_reference_unlocked
+[000021] t=604.679893 thr=MainThread EXIT ObservationManager._find_reference_unlocked
+[000022] t=604.679912 thr=MainThread EXIT ObservationManager._write_unlocked._find_reference_unlocked
+[000023] t=604.679930 thr=MainThread ENTER ObservationManager._write_unlocked.mkdir
+[000024] t=604.679958 thr=MainThread EXIT ObservationManager._write_unlocked.mkdir
+[000025] t=604.679977 thr=MainThread ENTER ObservationManager._write_unlocked.json.dump
+[000026] t=604.680061 thr=MainThread EXIT ObservationManager._write_unlocked.json.dump
+[000027] t=604.680100 thr=MainThread EXIT ObservationManager._write_unlocked
+[000028] t=604.680125 thr=MainThread EXIT ObservationManager.delete_observation._write_unlocked
+[000029] t=604.680147 thr=MainThread ENTER ObservationManager._lock.release caller=delete_observation thr=MainThread id=135268708216960
+[000030] t=604.680171 thr=MainThread EXIT ObservationManager._lock.release caller=delete_observation thr=MainThread id=135268708216960
+[000031] t=604.680193 thr=MainThread ENTER ObservationManager.changed.emit
+[000032] t=604.680225 thr=MainThread EXIT ObservationManager.changed.emit
+[000033] t=604.680246 thr=MainThread EXIT ObservationManager.delete_observation point_id=86bf8b36c58f419ca3ed395eba5f5219
+[000034] t=604.680272 thr=MainThread EXIT DashboardPage._delete_active->ObservationManager.delete_observation point_id=86bf8b36c58f419ca3ed395eba5f5219
+[000035] t=604.680479 thr=MainThread ENTER MainWindow->DashboardPage.refresh_observation
+[000036] t=604.680545 thr=MainThread ENTER DashboardPage.refresh_observation
+[000037] t=604.680572 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.all
+[000038] t=604.680597 thr=MainThread ENTER ObservationManager.all
+[000039] t=604.680622 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=135268708216960 owner=none
+[000040] t=604.680647 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=135268708216960 owner=acquired
+[000041] t=604.680675 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=135268708216960
+[000042] t=604.680702 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=135268708216960
+[000043] t=604.680724 thr=MainThread EXIT ObservationManager.all
+[000044] t=604.680745 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.all
+[000045] t=604.680766 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.active
+[000046] t=604.680785 thr=MainThread ENTER ObservationManager.active
+[000047] t=604.680807 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=135268708216960 owner=none
+[000048] t=604.680831 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=135268708216960 owner=acquired
+[000049] t=604.680852 thr=MainThread ENTER ObservationManager._find_active
+[000050] t=604.680872 thr=MainThread EXIT ObservationManager._find_active
+[000051] t=604.680895 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=135268708216960
+[000052] t=604.680916 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=135268708216960
+[000053] t=604.680936 thr=MainThread EXIT ObservationManager.active
+[000054] t=604.680957 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.active
+[000055] t=604.680977 thr=MainThread ENTER DashboardPage.refresh_observation._populate_selector
+[000056] t=604.681005 thr=MainThread ENTER DashboardPage._populate_selector
+[000057] t=604.681026 thr=MainThread ENTER DashboardPage._populate_selector.blockSignals
+[000058] t=604.681050 thr=MainThread EXIT DashboardPage._populate_selector.blockSignals
+[000059] t=604.681069 thr=MainThread ENTER DashboardPage._populate_selector.clear
+[000060] t=604.681165 thr=MainThread EXIT DashboardPage._populate_selector.clear
+[000061] t=604.681198 thr=MainThread ENTER DashboardPage._populate_selector.add_items
+[000062] t=604.681221 thr=MainThread EXIT DashboardPage._populate_selector.add_items
+[000063] t=604.681242 thr=MainThread ENTER DashboardPage._populate_selector.unblockSignals
+[000064] t=604.681262 thr=MainThread EXIT DashboardPage._populate_selector.unblockSignals
+[000065] t=604.681283 thr=MainThread EXIT DashboardPage._populate_selector
+[000066] t=604.681303 thr=MainThread EXIT DashboardPage.refresh_observation._populate_selector
+[000067] t=604.681325 thr=MainThread ENTER DashboardPage.refresh_observation.update_labels
+[000068] t=604.681526 thr=MainThread EXIT DashboardPage.refresh_observation.update_labels
+[000069] t=604.681599 thr=MainThread ENTER DashboardPage.refresh_observation.refresh_cameras
+[000070] t=604.681633 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000071] t=604.681658 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000072] t=604.681683 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000073] t=604.681704 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000074] t=604.681729 thr=MainThread ENTER ObservationManager.active
+[000075] t=604.681753 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=135268708216960 owner=none
+[000076] t=604.681778 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=135268708216960 owner=acquired
+[000077] t=604.681801 thr=MainThread ENTER ObservationManager._find_active
+[000078] t=604.681824 thr=MainThread EXIT ObservationManager._find_active
+[000079] t=604.681847 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=135268708216960
+[000080] t=604.681869 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=135268708216960
+[000081] t=604.681892 thr=MainThread EXIT ObservationManager.active
+[000082] t=604.681913 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000083] t=604.681939 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000084] t=604.681962 thr=MainThread EXIT DashboardPage.refresh_observation.refresh_cameras
+[000085] t=604.681987 thr=MainThread EXIT DashboardPage.refresh_observation
+[000086] t=604.682012 thr=MainThread EXIT MainWindow->DashboardPage.refresh_observation
+[000087] t=604.682035 thr=MainThread ENTER MainWindow->MapPage.on_observation_changed
+[000088] t=604.682059 thr=MainThread ENTER MapPage.on_observation_changed
+[000089] t=604.682081 thr=MainThread ENTER MapPage.on_observation_changed.refresh_observation_point
+[000090] t=604.682105 thr=MainThread ENTER MapPage.refresh_observation_point
+[000091] t=604.682128 thr=MainThread ENTER MapController.refresh_observation_points
+[000092] t=604.682149 thr=MainThread ENTER MapController.refresh_observation_points.observation_manager.all
+[000093] t=604.682170 thr=MainThread ENTER ObservationManager.all
+[000094] t=604.682192 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=135268708216960 owner=none
+[000095] t=604.682215 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=135268708216960 owner=acquired
+[000096] t=604.682240 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=135268708216960
+[000097] t=604.682263 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=135268708216960
+[000098] t=604.682284 thr=MainThread EXIT ObservationManager.all
+[000099] t=604.682305 thr=MainThread EXIT MapController.refresh_observation_points.observation_manager.all
+[000100] t=604.682324 thr=MainThread ENTER MapController.refresh_observation_points.clear_observation_points
+[000101] t=604.682348 thr=MainThread ENTER MapWidget.clear_observation_points
+[000102] t=604.682376 thr=MainThread ENTER MapWidget._apply_empty_state
+[000103] t=604.682401 thr=MainThread ENTER MapWidget._apply_empty_state.json.dumps
+[000104] t=604.682427 thr=MainThread EXIT MapWidget._apply_empty_state.json.dumps
+[000105] t=604.682448 thr=MainThread ENTER MapWidget._apply_empty_state.runJavaScript
+[000106] t=604.682470 thr=MainThread ENTER MapWidget._run_js len=72
+[000107] t=604.682524 thr=MainThread EXIT MapWidget._run_js len=72
+[000108] t=604.682549 thr=MainThread EXIT MapWidget._apply_empty_state.runJavaScript
+[000109] t=604.682570 thr=MainThread EXIT MapWidget._apply_empty_state
+[000110] t=604.682592 thr=MainThread EXIT MapWidget.clear_observation_points
+[000111] t=604.682619 thr=MainThread EXIT MapController.refresh_observation_points.clear_observation_points
+[000112] t=604.682648 thr=MainThread EXIT MapController.refresh_observation_points
+[000113] t=604.682675 thr=MainThread EXIT MapPage.refresh_observation_point
+[000114] t=604.682699 thr=MainThread EXIT MapPage.on_observation_changed.refresh_observation_point
+[000115] t=604.682722 thr=MainThread ENTER MapPage.on_observation_changed.maybe_prompt_reference_selection
+[000116] t=604.682747 thr=MainThread ENTER MapController.maybe_prompt_reference_selection
+[000117] t=604.682770 thr=MainThread ENTER MapController.maybe_prompt_reference_selection.needs_reference_selection
+[000118] t=604.682792 thr=MainThread ENTER ObservationManager.needs_reference_selection
+[000119] t=604.682815 thr=MainThread ENTER ObservationManager._lock.acquire caller=needs_reference_selection thr=MainThread id=135268708216960 owner=none
+[000120] t=604.682838 thr=MainThread EXIT ObservationManager._lock.acquire caller=needs_reference_selection thr=MainThread id=135268708216960 owner=acquired
+[000121] t=604.682860 thr=MainThread ENTER ObservationManager._lock.release caller=needs_reference_selection thr=MainThread id=135268708216960
+[000122] t=604.682881 thr=MainThread EXIT ObservationManager._lock.release caller=needs_reference_selection thr=MainThread id=135268708216960
+[000123] t=604.682902 thr=MainThread EXIT ObservationManager.needs_reference_selection
+[000124] t=604.682924 thr=MainThread EXIT MapController.maybe_prompt_reference_selection.needs_reference_selection
+[000125] t=604.682944 thr=MainThread EXIT MapController.maybe_prompt_reference_selection
+[000126] t=604.682966 thr=MainThread EXIT MapPage.on_observation_changed.maybe_prompt_reference_selection
+[000127] t=604.682989 thr=MainThread ENTER MapPage._map_updates_enabled
+[000128] t=604.683017 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000129] t=604.683049 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=False
+[000130] t=604.683073 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000131] t=604.683097 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=False
+[000132] t=604.683117 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000133] t=604.683142 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000134] t=604.683163 thr=MainThread EXIT MapPage._map_updates_enabled
+[000135] t=604.683186 thr=MainThread MapPage.on_observation_changed skip _update_ships_full (visible=False pick=PickMode.NONE)
+[000136] t=604.683209 thr=MainThread EXIT MapPage.on_observation_changed
+[000137] t=604.683230 thr=MainThread EXIT MainWindow->MapPage.on_observation_changed
+[000138] t=604.880229 thr=Thread-2 (aisstream_worker) ENTER HybridEngine.eventbus.publish ship.updated mmsi=241675000
+[000139] t=604.880498 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish event=ship.updated
+[000140] t=604.880579 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000141] t=604.941514 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000142] t=604.941615 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000143] t=604.941657 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000144] t=604.941719 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000145] t=604.941748 thr=Thread-2 (aisstream_worker) ENTER EventBridge._on_ship_updated
+[000146] t=604.941792 thr=Thread-2 (aisstream_worker) EXIT EventBridge._on_ship_updated
+[000147] t=604.941824 thr=MainThread ENTER MainWindow->VesselsPage.refresh
+[000148] t=604.941941 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000150] t=604.941999 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish event=ship.updated
+[000149] t=604.941992 thr=MainThread ENTER VesselsPage.refresh
+[000151] t=604.942106 thr=Thread-2 (aisstream_worker) EXIT HybridEngine.eventbus.publish ship.updated mmsi=241675000
+[000152] t=604.942285 thr=MainThread EXIT VesselsPage.refresh
+[000153] t=604.942380 thr=MainThread EXIT MainWindow->VesselsPage.refresh
+[000154] t=604.942450 thr=MainThread ENTER MainWindow->DashboardPage.on_ship_updated
+[000155] t=604.942520 thr=MainThread ENTER DashboardPage.on_ship_updated
+[000156] t=604.942604 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_ais
+[000157] t=604.942909 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_ais
+[000158] t=604.943127 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_rtl
+[000159] t=604.943250 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_rtl
+[000160] t=604.943304 thr=MainThread EXIT DashboardPage.on_ship_updated
+[000161] t=604.943344 thr=MainThread EXIT MainWindow->DashboardPage.on_ship_updated
+[000162] t=611.822778 thr=Thread-2 (aisstream_worker) ENTER HybridEngine.eventbus.publish ship.updated mmsi=247356500
+[000163] t=611.823326 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish event=ship.updated
+[000164] t=611.823395 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000165] t=611.827677 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000166] t=611.827746 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000167] t=611.827783 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000168] t=611.827847 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000169] t=611.827876 thr=Thread-2 (aisstream_worker) ENTER EventBridge._on_ship_updated
+[000170] t=611.827921 thr=Thread-2 (aisstream_worker) EXIT EventBridge._on_ship_updated
+[000171] t=611.827946 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000172] t=611.827971 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish event=ship.updated
+[000173] t=611.828011 thr=Thread-2 (aisstream_worker) EXIT HybridEngine.eventbus.publish ship.updated mmsi=247356500
+[000174] t=611.828076 thr=MainThread ENTER MainWindow->VesselsPage.refresh
+[000175] t=611.828564 thr=MainThread ENTER VesselsPage.refresh
+[000176] t=611.828969 thr=MainThread EXIT VesselsPage.refresh
+[000177] t=611.829165 thr=MainThread EXIT MainWindow->VesselsPage.refresh
+[000178] t=611.829247 thr=MainThread ENTER MainWindow->DashboardPage.on_ship_updated
+[000179] t=611.829285 thr=MainThread ENTER DashboardPage.on_ship_updated
+[000180] t=611.829341 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_ais
+[000181] t=611.829585 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_ais
+[000182] t=611.829632 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_rtl
+[000183] t=611.829720 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_rtl
+[000184] t=611.829752 thr=MainThread EXIT DashboardPage.on_ship_updated
+[000185] t=611.829777 thr=MainThread EXIT MainWindow->DashboardPage.on_ship_updated
+[000186] t=618.710121 thr=Thread-2 (aisstream_worker) ENTER HybridEngine.eventbus.publish ship.updated mmsi=538006129
+[000187] t=618.710310 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish event=ship.updated
+[000188] t=618.710569 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000189] t=618.716386 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000190] t=618.716459 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000191] t=618.716496 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000192] t=618.716556 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000193] t=618.716584 thr=Thread-2 (aisstream_worker) ENTER EventBridge._on_ship_updated
+[000194] t=618.716624 thr=Thread-2 (aisstream_worker) EXIT EventBridge._on_ship_updated
+[000195] t=618.716649 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000196] t=618.716680 thr=MainThread ENTER MainWindow->VesselsPage.refresh
+[000197] t=618.716814 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish event=ship.updated
+[000198] t=618.716917 thr=MainThread ENTER VesselsPage.refresh
+[000199] t=618.717037 thr=Thread-2 (aisstream_worker) EXIT HybridEngine.eventbus.publish ship.updated mmsi=538006129
+[000200] t=618.717264 thr=MainThread EXIT VesselsPage.refresh
+[000201] t=618.717692 thr=MainThread EXIT MainWindow->VesselsPage.refresh
+[000202] t=618.717880 thr=MainThread ENTER MainWindow->DashboardPage.on_ship_updated
+[000203] t=618.718061 thr=MainThread ENTER DashboardPage.on_ship_updated
+[000204] t=618.718177 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_ais
+[000205] t=618.718641 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_ais
+[000206] t=618.718771 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_rtl
+[000207] t=618.718993 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_rtl
+[000208] t=618.719170 thr=MainThread EXIT DashboardPage.on_ship_updated
+[000209] t=618.719228 thr=MainThread EXIT MainWindow->DashboardPage.on_ship_updated
+[000210] t=625.631382 thr=Thread-2 (aisstream_worker) ENTER HybridEngine.eventbus.publish ship.updated mmsi=247488800
+[000211] t=625.631801 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish event=ship.updated
+[000212] t=625.631903 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000213] t=625.635975 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000214] t=625.636077 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000215] t=625.636133 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000216] t=625.636197 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000217] t=625.636226 thr=Thread-2 (aisstream_worker) ENTER EventBridge._on_ship_updated
+[000218] t=625.636266 thr=Thread-2 (aisstream_worker) EXIT EventBridge._on_ship_updated
+[000219] t=625.636293 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000220] t=625.636327 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish event=ship.updated
+[000221] t=625.636358 thr=MainThread ENTER MainWindow->VesselsPage.refresh
+[000222] t=625.636486 thr=Thread-2 (aisstream_worker) EXIT HybridEngine.eventbus.publish ship.updated mmsi=247488800
+[000223] t=625.636551 thr=MainThread ENTER VesselsPage.refresh
+[000224] t=625.636856 thr=MainThread EXIT VesselsPage.refresh
+[000225] t=625.637098 thr=MainThread EXIT MainWindow->VesselsPage.refresh
+[000226] t=625.637311 thr=MainThread ENTER MainWindow->DashboardPage.on_ship_updated
+[000227] t=625.637378 thr=MainThread ENTER DashboardPage.on_ship_updated
+[000228] t=625.637472 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_ais
+[000229] t=625.637896 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_ais
+[000230] t=625.637979 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_rtl
+[000231] t=625.638091 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_rtl
+[000232] t=625.638131 thr=MainThread EXIT DashboardPage.on_ship_updated
+[000233] t=625.638160 thr=MainThread EXIT MainWindow->DashboardPage.on_ship_updated
+[000234] t=630.577088 thr=MainThread ENTER MapPage.showEvent
+[000235] t=630.577236 thr=MainThread ENTER MapController.on_map_page_visible
+[000236] t=630.577288 thr=MainThread EXIT MapController.on_map_page_visible
+[000237] t=630.577324 thr=MainThread EXIT MapPage.showEvent
+[000238] t=630.577358 thr=MainThread ENTER MapPage._start_ship_timers
+[000239] t=630.577388 thr=MainThread ENTER MapPage._map_updates_enabled
+[000240] t=630.577414 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000241] t=630.577450 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000242] t=630.577474 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000243] t=630.577498 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000244] t=630.577524 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000245] t=630.577550 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000246] t=630.577574 thr=MainThread EXIT MapPage._map_updates_enabled
+[000247] t=630.577605 thr=MainThread EXIT MapPage._start_ship_timers
+[000248] t=630.577631 thr=MainThread ENTER MapPage._update_ship_markers
+[000249] t=630.577654 thr=MainThread ENTER MapPage._map_updates_enabled
+[000250] t=630.577676 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000251] t=630.577701 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000252] t=630.577724 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000253] t=630.577745 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000254] t=630.577765 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000255] t=630.577787 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000256] t=630.577808 thr=MainThread EXIT MapPage._map_updates_enabled
+[000257] t=630.577834 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000258] t=630.577856 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000259] t=630.577880 thr=MainThread EXIT MapPage._publish_ships.registry.all count=4
+[000260] t=630.577901 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000261] t=630.577926 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000262] t=630.577950 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000263] t=630.577990 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=548
+[000264] t=630.578019 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000265] t=630.578043 thr=MainThread ENTER MapController.update_ships bytes=548
+[000266] t=630.578067 thr=MainThread ENTER MapWidget.update_ships bytes=548
+[000267] t=630.578089 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000268] t=630.578111 thr=MainThread ENTER MapWidget._run_js len=562
+[000269] t=630.578151 thr=MainThread EXIT MapWidget._run_js len=562
+[000270] t=630.578199 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000271] t=630.578220 thr=MainThread EXIT MapWidget.update_ships bytes=548
+[000272] t=630.578241 thr=MainThread EXIT MapController.update_ships bytes=548
+[000273] t=630.578261 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000274] t=630.578282 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000275] t=630.578304 thr=MainThread EXIT MapPage._update_ship_markers
+[000276] t=630.578327 thr=MainThread ENTER MapPage._schedule_ships_full label=MapPage.showEvent->_update_ships_full
+[000277] t=630.578358 thr=MainThread SCHEDULE QTimer.singleShot delay_ms=0 label=MapPage.showEvent->_update_ships_full
+[000278] t=630.578389 thr=MainThread EXIT MapPage._schedule_ships_full label=MapPage.showEvent->_update_ships_full
+[000279] t=630.579019 thr=MainThread ENTER MapPage.showEvent->_update_ships_full
+[000280] t=630.579106 thr=MainThread ENTER MapPage._schedule_ships_full.callback label=MapPage.showEvent->_update_ships_full generation=1
+[000281] t=630.579142 thr=MainThread ENTER MapPage._update_ships_full
+[000282] t=630.579171 thr=MainThread ENTER MapPage._map_updates_enabled
+[000283] t=630.579196 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000284] t=630.579223 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000285] t=630.579246 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000286] t=630.579268 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000287] t=630.579289 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000288] t=630.579314 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000289] t=630.579336 thr=MainThread EXIT MapPage._map_updates_enabled
+[000290] t=630.579360 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship
+[000291] t=630.579382 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000292] t=630.579405 thr=MainThread EXIT MapPage._publish_ships.registry.all count=4
+[000293] t=630.579426 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000294] t=630.579448 thr=MainThread ENTER MapPage._serialize_ship mmsi=241675000
+[000295] t=630.583646 thr=MainThread ENTER MapPage._timeline_fields mmsi=241675000
+[000296] t=630.583838 thr=MainThread EXIT MapPage._timeline_fields mmsi=241675000
+[000297] t=630.583932 thr=MainThread ENTER MapPage._timeline_fields mmsi=241675000
+[000298] t=630.584074 thr=MainThread EXIT MapPage._timeline_fields mmsi=241675000
+[000299] t=630.584191 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=241675000
+[000300] t=630.584362 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=241675000
+[000301] t=630.584406 thr=MainThread EXIT MapPage._serialize_ship mmsi=241675000
+[000302] t=630.584435 thr=MainThread ENTER MapPage._serialize_ship mmsi=247356500
+[000303] t=630.584690 thr=MainThread ENTER MapPage._timeline_fields mmsi=247356500
+[000304] t=630.584843 thr=MainThread EXIT MapPage._timeline_fields mmsi=247356500
+[000305] t=630.584913 thr=MainThread ENTER MapPage._timeline_fields mmsi=247356500
+[000306] t=630.585048 thr=MainThread EXIT MapPage._timeline_fields mmsi=247356500
+[000307] t=630.585148 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=247356500
+[000308] t=630.585293 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=247356500
+[000309] t=630.585332 thr=MainThread EXIT MapPage._serialize_ship mmsi=247356500
+[000310] t=630.585362 thr=MainThread ENTER MapPage._serialize_ship mmsi=538006129
+[000311] t=630.585600 thr=MainThread ENTER MapPage._timeline_fields mmsi=538006129
+[000312] t=630.585737 thr=MainThread EXIT MapPage._timeline_fields mmsi=538006129
+[000313] t=630.585805 thr=MainThread ENTER MapPage._timeline_fields mmsi=538006129
+[000314] t=630.585920 thr=MainThread EXIT MapPage._timeline_fields mmsi=538006129
+[000315] t=630.586015 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=538006129
+[000316] t=630.586138 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=538006129
+[000317] t=630.586175 thr=MainThread EXIT MapPage._serialize_ship mmsi=538006129
+[000318] t=630.586204 thr=MainThread ENTER MapPage._serialize_ship mmsi=247488800
+[000319] t=630.586420 thr=MainThread ENTER MapPage._timeline_fields mmsi=247488800
+[000320] t=630.586554 thr=MainThread EXIT MapPage._timeline_fields mmsi=247488800
+[000321] t=630.586618 thr=MainThread ENTER MapPage._timeline_fields mmsi=247488800
+[000322] t=630.586730 thr=MainThread EXIT MapPage._timeline_fields mmsi=247488800
+[000323] t=630.586820 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=247488800
+[000324] t=630.586951 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=247488800
+[000325] t=630.586994 thr=MainThread EXIT MapPage._serialize_ship mmsi=247488800
+[000326] t=630.587028 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000327] t=630.587053 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000328] t=630.587148 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=25036
+[000329] t=630.587174 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000330] t=630.587202 thr=MainThread ENTER MapController.update_ships bytes=25036
+[000331] t=630.587227 thr=MainThread ENTER MapWidget.update_ships bytes=25036
+[000332] t=630.587249 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000333] t=630.587272 thr=MainThread ENTER MapWidget._run_js len=25050
+[000334] t=630.587335 thr=MainThread EXIT MapWidget._run_js len=25050
+[000335] t=630.587362 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000336] t=630.587384 thr=MainThread EXIT MapWidget.update_ships bytes=25036
+[000337] t=630.587406 thr=MainThread EXIT MapController.update_ships bytes=25036
+[000338] t=630.587429 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000339] t=630.587450 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship
+[000340] t=630.587477 thr=MainThread EXIT MapPage._update_ships_full
+[000341] t=630.587503 thr=MainThread EXIT MapPage._schedule_ships_full.callback label=MapPage.showEvent->_update_ships_full generation=1
+[000342] t=630.587527 thr=MainThread EXIT MapPage.showEvent->_update_ships_full
+[000343] t=631.052668 thr=MainThread ENTER MapPage._marker_timer
+[000344] t=631.052804 thr=MainThread ENTER MapPage._update_ship_markers
+[000345] t=631.052857 thr=MainThread ENTER MapPage._map_updates_enabled
+[000346] t=631.052889 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000347] t=631.052927 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000348] t=631.052953 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000349] t=631.052977 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000350] t=631.052998 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000351] t=631.053029 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000352] t=631.053053 thr=MainThread EXIT MapPage._map_updates_enabled
+[000353] t=631.053083 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000354] t=631.053106 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000355] t=631.053130 thr=MainThread EXIT MapPage._publish_ships.registry.all count=4
+[000356] t=631.053151 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000357] t=631.053176 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000358] t=631.053197 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000359] t=631.053245 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=548
+[000360] t=631.053271 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000361] t=631.053295 thr=MainThread ENTER MapController.update_ships bytes=548
+[000362] t=631.053320 thr=MainThread ENTER MapWidget.update_ships bytes=548
+[000363] t=631.053343 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000364] t=631.053364 thr=MainThread ENTER MapWidget._run_js len=562
+[000365] t=631.053409 thr=MainThread EXIT MapWidget._run_js len=562
+[000366] t=631.053434 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000367] t=631.053455 thr=MainThread EXIT MapWidget.update_ships bytes=548
+[000368] t=631.053475 thr=MainThread EXIT MapController.update_ships bytes=548
+[000369] t=631.053496 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000370] t=631.053518 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000371] t=631.053542 thr=MainThread EXIT MapPage._update_ship_markers
+[000372] t=631.053565 thr=MainThread EXIT MapPage._marker_timer
+[000373] t=631.527384 thr=MainThread ENTER MapPage._marker_timer
+[000374] t=631.527544 thr=MainThread ENTER MapPage._update_ship_markers
+[000375] t=631.527616 thr=MainThread ENTER MapPage._map_updates_enabled
+[000376] t=631.527647 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000377] t=631.527687 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000378] t=631.527711 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000379] t=631.527735 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000380] t=631.527757 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000381] t=631.527783 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000382] t=631.527808 thr=MainThread EXIT MapPage._map_updates_enabled
+[000383] t=631.527836 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000384] t=631.527860 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000385] t=631.527885 thr=MainThread EXIT MapPage._publish_ships.registry.all count=4
+[000386] t=631.527907 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000387] t=631.527932 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000388] t=631.527954 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000389] t=631.527996 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=548
+[000390] t=631.528025 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000391] t=631.528048 thr=MainThread ENTER MapController.update_ships bytes=548
+[000392] t=631.528077 thr=MainThread ENTER MapWidget.update_ships bytes=548
+[000393] t=631.528099 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000394] t=631.528120 thr=MainThread ENTER MapWidget._run_js len=562
+[000395] t=631.528164 thr=MainThread EXIT MapWidget._run_js len=562
+[000396] t=631.528187 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000397] t=631.528208 thr=MainThread EXIT MapWidget.update_ships bytes=548
+[000398] t=631.528240 thr=MainThread EXIT MapController.update_ships bytes=548
+[000399] t=631.528262 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000400] t=631.528283 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000401] t=631.528306 thr=MainThread EXIT MapPage._update_ship_markers
+[000402] t=631.528328 thr=MainThread EXIT MapPage._marker_timer
+[000403] t=632.002692 thr=MainThread ENTER MapPage._marker_timer
+[000404] t=632.002836 thr=MainThread ENTER MapPage._update_ship_markers
+[000405] t=632.002913 thr=MainThread ENTER MapPage._map_updates_enabled
+[000406] t=632.002947 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000407] t=632.002986 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000408] t=632.003015 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000409] t=632.003041 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000410] t=632.003065 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000411] t=632.003100 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000412] t=632.003124 thr=MainThread EXIT MapPage._map_updates_enabled
+[000413] t=632.003153 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000414] t=632.003177 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000415] t=632.003203 thr=MainThread EXIT MapPage._publish_ships.registry.all count=4
+[000416] t=632.003224 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000417] t=632.003250 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000418] t=632.003271 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000419] t=632.003312 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=548
+[000420] t=632.003336 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000421] t=632.003360 thr=MainThread ENTER MapController.update_ships bytes=548
+[000422] t=632.003387 thr=MainThread ENTER MapWidget.update_ships bytes=548
+[000423] t=632.003409 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000424] t=632.003431 thr=MainThread ENTER MapWidget._run_js len=562
+[000425] t=632.003488 thr=MainThread EXIT MapWidget._run_js len=562
+[000426] t=632.003515 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000427] t=632.003538 thr=MainThread EXIT MapWidget.update_ships bytes=548
+[000428] t=632.003562 thr=MainThread EXIT MapController.update_ships bytes=548
+[000429] t=632.003584 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000430] t=632.003609 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000431] t=632.003633 thr=MainThread EXIT MapPage._update_ship_markers
+[000432] t=632.003656 thr=MainThread EXIT MapPage._marker_timer
+[000433] t=632.500932 thr=MainThread ENTER MapPage._popup_timer
+[000434] t=632.501067 thr=MainThread ENTER MapPage._update_ships_full
+[000435] t=632.501138 thr=MainThread ENTER MapPage._map_updates_enabled
+[000436] t=632.501167 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000437] t=632.501203 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000438] t=632.501231 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000439] t=632.501256 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000440] t=632.501277 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000441] t=632.501303 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000442] t=632.501326 thr=MainThread EXIT MapPage._map_updates_enabled
+[000443] t=632.501355 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship
+[000444] t=632.501378 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000445] t=632.501401 thr=MainThread EXIT MapPage._publish_ships.registry.all count=4
+[000446] t=632.501422 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000447] t=632.501443 thr=MainThread ENTER MapPage._serialize_ship mmsi=241675000
+[000448] t=632.501762 thr=MainThread ENTER MapPage._timeline_fields mmsi=241675000
+[000449] t=632.501932 thr=MainThread EXIT MapPage._timeline_fields mmsi=241675000
+[000450] t=632.502020 thr=MainThread ENTER MapPage._timeline_fields mmsi=241675000
+[000451] t=632.502150 thr=MainThread EXIT MapPage._timeline_fields mmsi=241675000
+[000452] t=632.502256 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=241675000
+[000453] t=632.502403 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=241675000
+[000454] t=632.502447 thr=MainThread EXIT MapPage._serialize_ship mmsi=241675000
+[000455] t=632.502475 thr=MainThread ENTER MapPage._serialize_ship mmsi=247356500
+[000456] t=632.502705 thr=MainThread ENTER MapPage._timeline_fields mmsi=247356500
+[000457] t=632.502843 thr=MainThread EXIT MapPage._timeline_fields mmsi=247356500
+[000458] t=632.502911 thr=MainThread ENTER MapPage._timeline_fields mmsi=247356500
+[000459] t=632.503029 thr=MainThread EXIT MapPage._timeline_fields mmsi=247356500
+[000460] t=632.503124 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=247356500
+[000461] t=632.503257 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=247356500
+[000462] t=632.503297 thr=MainThread EXIT MapPage._serialize_ship mmsi=247356500
+[000463] t=632.503324 thr=MainThread ENTER MapPage._serialize_ship mmsi=538006129
+[000464] t=632.503560 thr=MainThread ENTER MapPage._timeline_fields mmsi=538006129
+[000465] t=632.503690 thr=MainThread EXIT MapPage._timeline_fields mmsi=538006129
+[000466] t=632.503755 thr=MainThread ENTER MapPage._timeline_fields mmsi=538006129
+[000467] t=632.503867 thr=MainThread EXIT MapPage._timeline_fields mmsi=538006129
+[000468] t=632.503958 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=538006129
+[000469] t=632.504082 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=538006129
+[000470] t=632.504115 thr=MainThread EXIT MapPage._serialize_ship mmsi=538006129
+[000471] t=632.504141 thr=MainThread ENTER MapPage._serialize_ship mmsi=247488800
+[000472] t=632.504352 thr=MainThread ENTER MapPage._timeline_fields mmsi=247488800
+[000473] t=632.504484 thr=MainThread EXIT MapPage._timeline_fields mmsi=247488800
+[000474] t=632.504548 thr=MainThread ENTER MapPage._timeline_fields mmsi=247488800
+[000475] t=632.504655 thr=MainThread EXIT MapPage._timeline_fields mmsi=247488800
+[000476] t=632.504747 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=247488800
+[000477] t=632.504874 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=247488800
+[000478] t=632.504908 thr=MainThread EXIT MapPage._serialize_ship mmsi=247488800
+[000479] t=632.504933 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000480] t=632.504956 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000481] t=632.505053 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=25036
+[000482] t=632.505080 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000483] t=632.505107 thr=MainThread ENTER MapController.update_ships bytes=25036
+[000484] t=632.505133 thr=MainThread ENTER MapWidget.update_ships bytes=25036
+[000485] t=632.505156 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000486] t=632.505177 thr=MainThread ENTER MapWidget._run_js len=25050
+[000487] t=632.505250 thr=MainThread EXIT MapWidget._run_js len=25050
+[000488] t=632.505274 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000489] t=632.505296 thr=MainThread EXIT MapWidget.update_ships bytes=25036
+[000490] t=632.505319 thr=MainThread EXIT MapController.update_ships bytes=25036
+[000491] t=632.505342 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000492] t=632.505364 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship
+[000493] t=632.505391 thr=MainThread EXIT MapPage._update_ships_full
+[000494] t=632.505413 thr=MainThread EXIT MapPage._popup_timer
+[000495] t=632.505441 thr=MainThread ENTER MapPage._marker_timer
+[000496] t=632.505465 thr=MainThread ENTER MapPage._update_ship_markers
+[000497] t=632.505489 thr=MainThread ENTER MapPage._map_updates_enabled
+[000498] t=632.505510 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000499] t=632.505535 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000500] t=632.505557 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000501] t=632.505579 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000502] t=632.505600 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000503] t=632.505622 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000504] t=632.505644 thr=MainThread EXIT MapPage._map_updates_enabled
+[000505] t=632.505668 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000506] t=632.505690 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000507] t=632.505715 thr=MainThread EXIT MapPage._publish_ships.registry.all count=4
+[000508] t=632.505736 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000509] t=632.505770 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000510] t=632.505795 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000511] t=632.505833 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=548
+[000512] t=632.505857 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000513] t=632.505884 thr=MainThread ENTER MapController.update_ships bytes=548
+[000514] t=632.505934 thr=MainThread ENTER MapWidget.update_ships bytes=548
+[000515] t=632.505957 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000516] t=632.505980 thr=MainThread ENTER MapWidget._run_js len=562
+[000517] t=632.506016 thr=MainThread EXIT MapWidget._run_js len=562
+[000518] t=632.506039 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000519] t=632.506059 thr=MainThread EXIT MapWidget.update_ships bytes=548
+[000520] t=632.506080 thr=MainThread EXIT MapController.update_ships bytes=548
+[000521] t=632.506101 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000522] t=632.506123 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000523] t=632.506147 thr=MainThread EXIT MapPage._update_ship_markers
+[000524] t=632.506172 thr=MainThread EXIT MapPage._marker_timer
+[000525] t=632.597714 thr=Thread-2 (aisstream_worker) ENTER HybridEngine.eventbus.publish ship.updated mmsi=244730796
+[000526] t=632.597949 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish event=ship.updated
+[000527] t=632.598048 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000528] t=632.602288 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000529] t=632.602367 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000530] t=632.602408 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000531] t=632.602470 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000532] t=632.602502 thr=Thread-2 (aisstream_worker) ENTER EventBridge._on_ship_updated
+[000533] t=632.602542 thr=Thread-2 (aisstream_worker) EXIT EventBridge._on_ship_updated
+[000534] t=632.602569 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000535] t=632.602612 thr=MainThread ENTER MainWindow->VesselsPage.refresh
+[000536] t=632.602619 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish event=ship.updated
+[000537] t=632.602757 thr=MainThread ENTER VesselsPage.refresh
+[000538] t=632.602806 thr=Thread-2 (aisstream_worker) EXIT HybridEngine.eventbus.publish ship.updated mmsi=244730796
+[000539] t=632.602974 thr=MainThread EXIT VesselsPage.refresh
+[000540] t=632.603054 thr=MainThread EXIT MainWindow->VesselsPage.refresh
+[000541] t=632.603118 thr=MainThread ENTER MainWindow->DashboardPage.on_ship_updated
+[000542] t=632.603184 thr=MainThread ENTER DashboardPage.on_ship_updated
+[000543] t=632.603276 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_ais
+[000544] t=632.603621 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_ais
+[000545] t=632.603869 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_rtl
+[000546] t=632.604074 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_rtl
+[000547] t=632.604124 thr=MainThread EXIT DashboardPage.on_ship_updated
+[000548] t=632.604157 thr=MainThread EXIT MainWindow->DashboardPage.on_ship_updated
+[000549] t=633.000675 thr=MainThread ENTER MapPage._marker_timer
+[000550] t=633.000830 thr=MainThread ENTER MapPage._update_ship_markers
+[000551] t=633.000923 thr=MainThread ENTER MapPage._map_updates_enabled
+[000552] t=633.000972 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000553] t=633.001050 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000554] t=633.001190 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000555] t=633.001254 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000556] t=633.001282 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000557] t=633.001311 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000558] t=633.001339 thr=MainThread EXIT MapPage._map_updates_enabled
+[000559] t=633.001369 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000560] t=633.001393 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000561] t=633.001417 thr=MainThread EXIT MapPage._publish_ships.registry.all count=5
+[000562] t=633.001438 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000563] t=633.001463 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000564] t=633.001484 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000565] t=633.001527 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=687
+[000566] t=633.001551 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000567] t=633.001574 thr=MainThread ENTER MapController.update_ships bytes=687
+[000568] t=633.001600 thr=MainThread ENTER MapWidget.update_ships bytes=687
+[000569] t=633.001622 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000570] t=633.001644 thr=MainThread ENTER MapWidget._run_js len=701
+[000571] t=633.001702 thr=MainThread EXIT MapWidget._run_js len=701
+[000572] t=633.001725 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000573] t=633.001746 thr=MainThread EXIT MapWidget.update_ships bytes=687
+[000574] t=633.001767 thr=MainThread EXIT MapController.update_ships bytes=687
+[000575] t=633.001797 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000576] t=633.001819 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000577] t=633.001842 thr=MainThread EXIT MapPage._update_ship_markers
+[000578] t=633.001865 thr=MainThread EXIT MapPage._marker_timer
+[000579] t=633.500694 thr=MainThread ENTER MapPage._marker_timer
+[000580] t=633.500828 thr=MainThread ENTER MapPage._update_ship_markers
+[000581] t=633.500898 thr=MainThread ENTER MapPage._map_updates_enabled
+[000582] t=633.500926 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000583] t=633.500964 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000584] t=633.500987 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000585] t=633.501019 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000586] t=633.501042 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000587] t=633.501069 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000588] t=633.501092 thr=MainThread EXIT MapPage._map_updates_enabled
+[000589] t=633.501122 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000590] t=633.501146 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000591] t=633.501169 thr=MainThread EXIT MapPage._publish_ships.registry.all count=5
+[000592] t=633.501194 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000593] t=633.501220 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000594] t=633.501242 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000595] t=633.501282 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=687
+[000596] t=633.501306 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000597] t=633.501330 thr=MainThread ENTER MapController.update_ships bytes=687
+[000598] t=633.501353 thr=MainThread ENTER MapWidget.update_ships bytes=687
+[000599] t=633.501376 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000600] t=633.501398 thr=MainThread ENTER MapWidget._run_js len=701
+[000601] t=633.501451 thr=MainThread EXIT MapWidget._run_js len=701
+[000602] t=633.501474 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000603] t=633.501496 thr=MainThread EXIT MapWidget.update_ships bytes=687
+[000604] t=633.501517 thr=MainThread EXIT MapController.update_ships bytes=687
+[000605] t=633.501539 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000606] t=633.501559 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000607] t=633.501583 thr=MainThread EXIT MapPage._update_ship_markers
+[000608] t=633.501608 thr=MainThread EXIT MapPage._marker_timer
+[000609] t=634.001420 thr=MainThread ENTER MapPage._marker_timer
+[000610] t=634.001548 thr=MainThread ENTER MapPage._update_ship_markers
+[000611] t=634.001616 thr=MainThread ENTER MapPage._map_updates_enabled
+[000612] t=634.001644 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000613] t=634.001684 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000614] t=634.001707 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000615] t=634.001734 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000616] t=634.001759 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000617] t=634.001785 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000618] t=634.001811 thr=MainThread EXIT MapPage._map_updates_enabled
+[000619] t=634.001841 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000620] t=634.001865 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000621] t=634.001891 thr=MainThread EXIT MapPage._publish_ships.registry.all count=5
+[000622] t=634.001915 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000623] t=634.001942 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000624] t=634.001965 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000625] t=634.002018 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=687
+[000626] t=634.002044 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000627] t=634.002070 thr=MainThread ENTER MapController.update_ships bytes=687
+[000628] t=634.002100 thr=MainThread ENTER MapWidget.update_ships bytes=687
+[000629] t=634.002130 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000630] t=634.002154 thr=MainThread ENTER MapWidget._run_js len=701
+[000631] t=634.002212 thr=MainThread EXIT MapWidget._run_js len=701
+[000632] t=634.002244 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000633] t=634.002267 thr=MainThread EXIT MapWidget.update_ships bytes=687
+[000634] t=634.002295 thr=MainThread EXIT MapController.update_ships bytes=687
+[000635] t=634.002322 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000636] t=634.002373 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000637] t=634.002403 thr=MainThread EXIT MapPage._update_ship_markers
+[000638] t=634.002432 thr=MainThread EXIT MapPage._marker_timer
+[000639] t=634.501048 thr=MainThread ENTER MapPage._popup_timer
+[000640] t=634.501177 thr=MainThread ENTER MapPage._update_ships_full
+[000641] t=634.501252 thr=MainThread ENTER MapPage._map_updates_enabled
+[000642] t=634.501279 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000643] t=634.501317 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000644] t=634.501342 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000645] t=634.501366 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000646] t=634.501387 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000647] t=634.501413 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000648] t=634.501439 thr=MainThread EXIT MapPage._map_updates_enabled
+[000649] t=634.501468 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship
+[000650] t=634.501498 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000651] t=634.501523 thr=MainThread EXIT MapPage._publish_ships.registry.all count=5
+[000652] t=634.501544 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000653] t=634.501565 thr=MainThread ENTER MapPage._serialize_ship mmsi=241675000
+[000654] t=634.501928 thr=MainThread ENTER MapPage._timeline_fields mmsi=241675000
+[000655] t=634.502116 thr=MainThread EXIT MapPage._timeline_fields mmsi=241675000
+[000656] t=634.502205 thr=MainThread ENTER MapPage._timeline_fields mmsi=241675000
+[000657] t=634.502333 thr=MainThread EXIT MapPage._timeline_fields mmsi=241675000
+[000658] t=634.502436 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=241675000
+[000659] t=634.502588 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=241675000
+[000660] t=634.502631 thr=MainThread EXIT MapPage._serialize_ship mmsi=241675000
+[000661] t=634.502659 thr=MainThread ENTER MapPage._serialize_ship mmsi=247356500
+[000662] t=634.502895 thr=MainThread ENTER MapPage._timeline_fields mmsi=247356500
+[000663] t=634.503036 thr=MainThread EXIT MapPage._timeline_fields mmsi=247356500
+[000664] t=634.503121 thr=MainThread ENTER MapPage._timeline_fields mmsi=247356500
+[000665] t=634.503237 thr=MainThread EXIT MapPage._timeline_fields mmsi=247356500
+[000666] t=634.503332 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=247356500
+[000667] t=634.503463 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=247356500
+[000668] t=634.503499 thr=MainThread EXIT MapPage._serialize_ship mmsi=247356500
+[000669] t=634.503528 thr=MainThread ENTER MapPage._serialize_ship mmsi=538006129
+[000670] t=634.503756 thr=MainThread ENTER MapPage._timeline_fields mmsi=538006129
+[000671] t=634.503883 thr=MainThread EXIT MapPage._timeline_fields mmsi=538006129
+[000672] t=634.503948 thr=MainThread ENTER MapPage._timeline_fields mmsi=538006129
+[000673] t=634.504060 thr=MainThread EXIT MapPage._timeline_fields mmsi=538006129
+[000674] t=634.504150 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=538006129
+[000675] t=634.504273 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=538006129
+[000676] t=634.504311 thr=MainThread EXIT MapPage._serialize_ship mmsi=538006129
+[000677] t=634.504337 thr=MainThread ENTER MapPage._serialize_ship mmsi=247488800
+[000678] t=634.504573 thr=MainThread ENTER MapPage._timeline_fields mmsi=247488800
+[000679] t=634.504700 thr=MainThread EXIT MapPage._timeline_fields mmsi=247488800
+[000680] t=634.504765 thr=MainThread ENTER MapPage._timeline_fields mmsi=247488800
+[000681] t=634.504874 thr=MainThread EXIT MapPage._timeline_fields mmsi=247488800
+[000682] t=634.504963 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=247488800
+[000683] t=634.505092 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=247488800
+[000684] t=634.505131 thr=MainThread EXIT MapPage._serialize_ship mmsi=247488800
+[000685] t=634.505157 thr=MainThread ENTER MapPage._serialize_ship mmsi=244730796
+[000686] t=634.505382 thr=MainThread ENTER MapPage._timeline_fields mmsi=244730796
+[000687] t=634.505512 thr=MainThread EXIT MapPage._timeline_fields mmsi=244730796
+[000688] t=634.505575 thr=MainThread ENTER MapPage._timeline_fields mmsi=244730796
+[000689] t=634.505684 thr=MainThread EXIT MapPage._timeline_fields mmsi=244730796
+[000690] t=634.505776 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=244730796
+[000691] t=634.505888 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=244730796
+[000692] t=634.505931 thr=MainThread EXIT MapPage._serialize_ship mmsi=244730796
+[000693] t=634.505958 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000694] t=634.505982 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000695] t=634.506099 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=31061
+[000696] t=634.506129 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000697] t=634.506157 thr=MainThread ENTER MapController.update_ships bytes=31061
+[000698] t=634.506183 thr=MainThread ENTER MapWidget.update_ships bytes=31061
+[000699] t=634.506204 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000700] t=634.506228 thr=MainThread ENTER MapWidget._run_js len=31075
+[000701] t=634.506306 thr=MainThread EXIT MapWidget._run_js len=31075
+[000702] t=634.506331 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000703] t=634.506353 thr=MainThread EXIT MapWidget.update_ships bytes=31061
+[000704] t=634.506375 thr=MainThread EXIT MapController.update_ships bytes=31061
+[000705] t=634.506396 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000706] t=634.506419 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship
+[000707] t=634.506450 thr=MainThread EXIT MapPage._update_ships_full
+[000708] t=634.506473 thr=MainThread EXIT MapPage._popup_timer
+[000709] t=634.506526 thr=MainThread ENTER MapPage._marker_timer
+[000710] t=634.506551 thr=MainThread ENTER MapPage._update_ship_markers
+[000711] t=634.506575 thr=MainThread ENTER MapPage._map_updates_enabled
+[000712] t=634.506596 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000713] t=634.506624 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000714] t=634.506646 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000715] t=634.506668 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000716] t=634.506687 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000717] t=634.506711 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000718] t=634.506732 thr=MainThread EXIT MapPage._map_updates_enabled
+[000719] t=634.506757 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000720] t=634.506779 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000721] t=634.506801 thr=MainThread EXIT MapPage._publish_ships.registry.all count=5
+[000722] t=634.506822 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000723] t=634.506846 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000724] t=634.506866 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000725] t=634.506904 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=687
+[000726] t=634.506927 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000727] t=634.506950 thr=MainThread ENTER MapController.update_ships bytes=687
+[000728] t=634.506976 thr=MainThread ENTER MapWidget.update_ships bytes=687
+[000729] t=634.506998 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000730] t=634.507023 thr=MainThread ENTER MapWidget._run_js len=701
+[000731] t=634.507054 thr=MainThread EXIT MapWidget._run_js len=701
+[000732] t=634.507077 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000733] t=634.507097 thr=MainThread EXIT MapWidget.update_ships bytes=687
+[000734] t=634.507118 thr=MainThread EXIT MapController.update_ships bytes=687
+[000735] t=634.507140 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000736] t=634.507162 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000737] t=634.507185 thr=MainThread EXIT MapPage._update_ship_markers
+[000738] t=634.507207 thr=MainThread EXIT MapPage._marker_timer
+[000739] t=635.000607 thr=MainThread ENTER MapPage._marker_timer
+[000740] t=635.000736 thr=MainThread ENTER MapPage._update_ship_markers
+[000741] t=635.000786 thr=MainThread ENTER MapPage._map_updates_enabled
+[000742] t=635.000818 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000743] t=635.000863 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000744] t=635.000891 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000745] t=635.000917 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000746] t=635.000939 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000747] t=635.000965 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000748] t=635.000988 thr=MainThread EXIT MapPage._map_updates_enabled
+[000749] t=635.001031 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000750] t=635.001057 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000751] t=635.001083 thr=MainThread EXIT MapPage._publish_ships.registry.all count=5
+[000752] t=635.001109 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000753] t=635.001135 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000754] t=635.001158 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000755] t=635.001203 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=687
+[000756] t=635.001228 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000757] t=635.001253 thr=MainThread ENTER MapController.update_ships bytes=687
+[000758] t=635.001279 thr=MainThread ENTER MapWidget.update_ships bytes=687
+[000759] t=635.001305 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000760] t=635.001327 thr=MainThread ENTER MapWidget._run_js len=701
+[000761] t=635.001382 thr=MainThread EXIT MapWidget._run_js len=701
+[000762] t=635.001405 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000763] t=635.001427 thr=MainThread EXIT MapWidget.update_ships bytes=687
+[000764] t=635.001449 thr=MainThread EXIT MapController.update_ships bytes=687
+[000765] t=635.001471 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000766] t=635.001506 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000767] t=635.001531 thr=MainThread EXIT MapPage._update_ship_markers
+[000768] t=635.001555 thr=MainThread EXIT MapPage._marker_timer
+[000769] t=635.500830 thr=MainThread ENTER MapPage._marker_timer
+[000770] t=635.500977 thr=MainThread ENTER MapPage._update_ship_markers
+[000771] t=635.501058 thr=MainThread ENTER MapPage._map_updates_enabled
+[000772] t=635.501088 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000773] t=635.501129 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000774] t=635.501154 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000775] t=635.501180 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000776] t=635.501202 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000777] t=635.501232 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000778] t=635.501256 thr=MainThread EXIT MapPage._map_updates_enabled
+[000779] t=635.501286 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000780] t=635.501308 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000781] t=635.501332 thr=MainThread EXIT MapPage._publish_ships.registry.all count=5
+[000782] t=635.501354 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000783] t=635.501379 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000784] t=635.501400 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000785] t=635.501445 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=687
+[000786] t=635.501468 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000787] t=635.501491 thr=MainThread ENTER MapController.update_ships bytes=687
+[000788] t=635.501521 thr=MainThread ENTER MapWidget.update_ships bytes=687
+[000789] t=635.501542 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000790] t=635.501563 thr=MainThread ENTER MapWidget._run_js len=701
+[000791] t=635.501617 thr=MainThread EXIT MapWidget._run_js len=701
+[000792] t=635.501640 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000793] t=635.501660 thr=MainThread EXIT MapWidget.update_ships bytes=687
+[000794] t=635.501681 thr=MainThread EXIT MapController.update_ships bytes=687
+[000795] t=635.501702 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000796] t=635.501723 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000797] t=635.501745 thr=MainThread EXIT MapPage._update_ship_markers
+[000798] t=635.501785 thr=MainThread EXIT MapPage._marker_timer
+[000799] t=636.000908 thr=MainThread ENTER MapPage._marker_timer
+[000800] t=636.001066 thr=MainThread ENTER MapPage._update_ship_markers
+[000801] t=636.001121 thr=MainThread ENTER MapPage._map_updates_enabled
+[000802] t=636.001153 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000803] t=636.001197 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000804] t=636.001224 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000805] t=636.001249 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000806] t=636.001272 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000807] t=636.001298 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000808] t=636.001322 thr=MainThread EXIT MapPage._map_updates_enabled
+[000809] t=636.001354 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000810] t=636.001382 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000811] t=636.001407 thr=MainThread EXIT MapPage._publish_ships.registry.all count=5
+[000812] t=636.001430 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000813] t=636.001456 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000814] t=636.001479 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000815] t=636.001525 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=687
+[000816] t=636.001551 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000817] t=636.001576 thr=MainThread ENTER MapController.update_ships bytes=687
+[000818] t=636.001601 thr=MainThread ENTER MapWidget.update_ships bytes=687
+[000819] t=636.001623 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000820] t=636.001646 thr=MainThread ENTER MapWidget._run_js len=701
+[000821] t=636.001704 thr=MainThread EXIT MapWidget._run_js len=701
+[000822] t=636.001730 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000823] t=636.001751 thr=MainThread EXIT MapWidget.update_ships bytes=687
+[000824] t=636.001773 thr=MainThread EXIT MapController.update_ships bytes=687
+[000825] t=636.001796 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000826] t=636.001817 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000827] t=636.001841 thr=MainThread EXIT MapPage._update_ship_markers
+[000828] t=636.001868 thr=MainThread EXIT MapPage._marker_timer
+[000829] t=636.501048 thr=MainThread ENTER MapPage._popup_timer
+[000830] t=636.501191 thr=MainThread ENTER MapPage._update_ships_full
+[000831] t=636.501244 thr=MainThread ENTER MapPage._map_updates_enabled
+[000832] t=636.501276 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000833] t=636.501320 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000834] t=636.501346 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000835] t=636.501371 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000836] t=636.501393 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000837] t=636.501419 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000838] t=636.501442 thr=MainThread EXIT MapPage._map_updates_enabled
+[000839] t=636.501472 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship
+[000840] t=636.501496 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000841] t=636.501520 thr=MainThread EXIT MapPage._publish_ships.registry.all count=5
+[000842] t=636.501543 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000843] t=636.501565 thr=MainThread ENTER MapPage._serialize_ship mmsi=241675000
+[000844] t=636.501887 thr=MainThread ENTER MapPage._timeline_fields mmsi=241675000
+[000845] t=636.502070 thr=MainThread EXIT MapPage._timeline_fields mmsi=241675000
+[000846] t=636.502162 thr=MainThread ENTER MapPage._timeline_fields mmsi=241675000
+[000847] t=636.502286 thr=MainThread EXIT MapPage._timeline_fields mmsi=241675000
+[000848] t=636.502392 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=241675000
+[000849] t=636.502540 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=241675000
+[000850] t=636.502585 thr=MainThread EXIT MapPage._serialize_ship mmsi=241675000
+[000851] t=636.502614 thr=MainThread ENTER MapPage._serialize_ship mmsi=247356500
+[000852] t=636.502848 thr=MainThread ENTER MapPage._timeline_fields mmsi=247356500
+[000853] t=636.502986 thr=MainThread EXIT MapPage._timeline_fields mmsi=247356500
+[000854] t=636.503069 thr=MainThread ENTER MapPage._timeline_fields mmsi=247356500
+[000855] t=636.503193 thr=MainThread EXIT MapPage._timeline_fields mmsi=247356500
+[000856] t=636.503295 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=247356500
+[000857] t=636.503431 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=247356500
+[000858] t=636.503488 thr=MainThread EXIT MapPage._serialize_ship mmsi=247356500
+[000859] t=636.503527 thr=MainThread ENTER MapPage._serialize_ship mmsi=538006129
+[000860] t=636.503766 thr=MainThread ENTER MapPage._timeline_fields mmsi=538006129
+[000861] t=636.503904 thr=MainThread EXIT MapPage._timeline_fields mmsi=538006129
+[000862] t=636.503974 thr=MainThread ENTER MapPage._timeline_fields mmsi=538006129
+[000863] t=636.504110 thr=MainThread EXIT MapPage._timeline_fields mmsi=538006129
+[000864] t=636.504212 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=538006129
+[000865] t=636.504342 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=538006129
+[000866] t=636.504382 thr=MainThread EXIT MapPage._serialize_ship mmsi=538006129
+[000867] t=636.504409 thr=MainThread ENTER MapPage._serialize_ship mmsi=247488800
+[000868] t=636.504627 thr=MainThread ENTER MapPage._timeline_fields mmsi=247488800
+[000869] t=636.504758 thr=MainThread EXIT MapPage._timeline_fields mmsi=247488800
+[000870] t=636.504823 thr=MainThread ENTER MapPage._timeline_fields mmsi=247488800
+[000871] t=636.504935 thr=MainThread EXIT MapPage._timeline_fields mmsi=247488800
+[000872] t=636.505034 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=247488800
+[000873] t=636.505168 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=247488800
+[000874] t=636.505205 thr=MainThread EXIT MapPage._serialize_ship mmsi=247488800
+[000875] t=636.505232 thr=MainThread ENTER MapPage._serialize_ship mmsi=244730796
+[000876] t=636.505454 thr=MainThread ENTER MapPage._timeline_fields mmsi=244730796
+[000877] t=636.505590 thr=MainThread EXIT MapPage._timeline_fields mmsi=244730796
+[000878] t=636.505657 thr=MainThread ENTER MapPage._timeline_fields mmsi=244730796
+[000879] t=636.505769 thr=MainThread EXIT MapPage._timeline_fields mmsi=244730796
+[000880] t=636.505861 thr=MainThread ENTER MapPage._serialize_ship.render mmsi=244730796
+[000881] t=636.505972 thr=MainThread EXIT MapPage._serialize_ship.render mmsi=244730796
+[000882] t=636.506022 thr=MainThread EXIT MapPage._serialize_ship mmsi=244730796
+[000883] t=636.506052 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000884] t=636.506076 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000885] t=636.506186 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=31061
+[000886] t=636.506215 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000887] t=636.506243 thr=MainThread ENTER MapController.update_ships bytes=31061
+[000888] t=636.506268 thr=MainThread ENTER MapWidget.update_ships bytes=31061
+[000889] t=636.506289 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000890] t=636.506311 thr=MainThread ENTER MapWidget._run_js len=31075
+[000891] t=636.506392 thr=MainThread EXIT MapWidget._run_js len=31075
+[000892] t=636.506416 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000893] t=636.506437 thr=MainThread EXIT MapWidget.update_ships bytes=31061
+[000894] t=636.506459 thr=MainThread EXIT MapController.update_ships bytes=31061
+[000895] t=636.506480 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000896] t=636.506503 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship
+[000897] t=636.506533 thr=MainThread EXIT MapPage._update_ships_full
+[000898] t=636.506556 thr=MainThread EXIT MapPage._popup_timer
+[000899] t=636.506614 thr=MainThread ENTER MapPage._marker_timer
+[000900] t=636.506641 thr=MainThread ENTER MapPage._update_ship_markers
+[000901] t=636.506666 thr=MainThread ENTER MapPage._map_updates_enabled
+[000902] t=636.506688 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000903] t=636.506716 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000904] t=636.506739 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000905] t=636.506761 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000906] t=636.506785 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000907] t=636.506808 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000908] t=636.506831 thr=MainThread EXIT MapPage._map_updates_enabled
+[000909] t=636.506856 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000910] t=636.506880 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000911] t=636.506903 thr=MainThread EXIT MapPage._publish_ships.registry.all count=5
+[000912] t=636.506923 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000913] t=636.506945 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000914] t=636.506967 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000915] t=636.507009 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=687
+[000916] t=636.507035 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000917] t=636.507059 thr=MainThread ENTER MapController.update_ships bytes=687
+[000918] t=636.507084 thr=MainThread ENTER MapWidget.update_ships bytes=687
+[000919] t=636.507106 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000920] t=636.507127 thr=MainThread ENTER MapWidget._run_js len=701
+[000921] t=636.507163 thr=MainThread EXIT MapWidget._run_js len=701
+[000922] t=636.507185 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000923] t=636.507209 thr=MainThread EXIT MapWidget.update_ships bytes=687
+[000924] t=636.507232 thr=MainThread EXIT MapController.update_ships bytes=687
+[000925] t=636.507254 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000926] t=636.507275 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000927] t=636.507298 thr=MainThread EXIT MapPage._update_ship_markers
+[000928] t=636.507321 thr=MainThread EXIT MapPage._marker_timer
+[000929] t=637.000817 thr=MainThread ENTER MapPage._marker_timer
+[000930] t=637.000985 thr=MainThread ENTER MapPage._update_ship_markers
+[000931] t=637.001073 thr=MainThread ENTER MapPage._map_updates_enabled
+[000932] t=637.001106 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000933] t=637.001155 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000934] t=637.001181 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000935] t=637.001207 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000936] t=637.001229 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000937] t=637.001256 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000938] t=637.001280 thr=MainThread EXIT MapPage._map_updates_enabled
+[000939] t=637.001312 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000940] t=637.001338 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000941] t=637.001383 thr=MainThread EXIT MapPage._publish_ships.registry.all count=5
+[000942] t=637.001404 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000943] t=637.001431 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000944] t=637.001454 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000945] t=637.001506 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=687
+[000946] t=637.001532 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000947] t=637.001556 thr=MainThread ENTER MapController.update_ships bytes=687
+[000948] t=637.001582 thr=MainThread ENTER MapWidget.update_ships bytes=687
+[000949] t=637.001604 thr=MainThread ENTER MapWidget.update_ships.runJavaScript
+[000950] t=637.001626 thr=MainThread ENTER MapWidget._run_js len=701
+[000951] t=637.001685 thr=MainThread EXIT MapWidget._run_js len=701
+[000952] t=637.001719 thr=MainThread EXIT MapWidget.update_ships.runJavaScript
+[000953] t=637.001740 thr=MainThread EXIT MapWidget.update_ships bytes=687
+[000954] t=637.001762 thr=MainThread EXIT MapController.update_ships bytes=687
+[000955] t=637.001805 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000956] t=637.001826 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000957] t=637.001851 thr=MainThread EXIT MapPage._update_ship_markers
+[000958] t=637.001875 thr=MainThread EXIT MapPage._marker_timer
+[000959] t=637.055307 thr=MainThread ENTER MapPage.hideEvent
+[000960] t=637.055450 thr=MainThread ENTER MapPage._stop_ship_timers
+[000961] t=637.055509 thr=MainThread EXIT MapPage._stop_ship_timers
+[000962] t=637.055545 thr=MainThread EXIT MapPage.hideEvent
+[000963] t=639.710128 thr=Thread-2 (aisstream_worker) ENTER HybridEngine.eventbus.publish ship.updated mmsi=244260497
+[000964] t=639.710354 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish event=ship.updated
+[000965] t=639.710481 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000966] t=639.714924 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000967] t=639.714998 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000968] t=639.715069 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000969] t=639.715133 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000970] t=639.715161 thr=Thread-2 (aisstream_worker) ENTER EventBridge._on_ship_updated
+[000971] t=639.715198 thr=Thread-2 (aisstream_worker) EXIT EventBridge._on_ship_updated
+[000972] t=639.715234 thr=MainThread ENTER MainWindow->VesselsPage.refresh
+[000973] t=639.715326 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000974] t=639.715366 thr=MainThread ENTER VesselsPage.refresh
+[000975] t=639.715411 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish event=ship.updated
+[000976] t=639.715466 thr=Thread-2 (aisstream_worker) EXIT HybridEngine.eventbus.publish ship.updated mmsi=244260497
+[000977] t=639.715597 thr=MainThread EXIT VesselsPage.refresh
+[000978] t=639.715670 thr=MainThread EXIT MainWindow->VesselsPage.refresh
+[000979] t=639.715719 thr=MainThread ENTER MainWindow->DashboardPage.on_ship_updated
+[000980] t=639.715777 thr=MainThread ENTER DashboardPage.on_ship_updated
+[000981] t=639.715906 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_ais
+[000982] t=639.716251 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_ais
+[000983] t=639.716455 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_rtl
+[000984] t=639.716579 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_rtl
+[000985] t=639.716647 thr=MainThread EXIT DashboardPage.on_ship_updated
+[000986] t=639.716791 thr=MainThread EXIT MainWindow->DashboardPage.on_ship_updated
+[000987] t=646.748386 thr=Thread-2 (aisstream_worker) ENTER HybridEngine.eventbus.publish ship.updated mmsi=244376395
+[000988] t=646.748811 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish event=ship.updated
+[000989] t=646.748887 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000990] t=646.752762 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000991] t=646.752838 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000992] t=646.752877 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000993] t=646.752938 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000994] t=646.752967 thr=Thread-2 (aisstream_worker) ENTER EventBridge._on_ship_updated
+[000995] t=646.753014 thr=Thread-2 (aisstream_worker) EXIT EventBridge._on_ship_updated
+[000996] t=646.753044 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000997] t=646.753067 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish event=ship.updated
+[000998] t=646.753102 thr=Thread-2 (aisstream_worker) EXIT HybridEngine.eventbus.publish ship.updated mmsi=244376395
+[000999] t=646.753153 thr=MainThread ENTER MainWindow->VesselsPage.refresh
+[001000] t=646.753552 thr=MainThread ENTER VesselsPage.refresh
+[001001] t=646.753899 thr=MainThread EXIT VesselsPage.refresh
+[001002] t=646.753949 thr=MainThread EXIT MainWindow->VesselsPage.refresh
+[001003] t=646.754026 thr=MainThread ENTER MainWindow->DashboardPage.on_ship_updated
+[001004] t=646.754081 thr=MainThread ENTER DashboardPage.on_ship_updated
+[001005] t=646.754137 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_ais
+[001006] t=646.754396 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_ais
+[001007] t=646.754442 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_rtl
+[001008] t=646.754546 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_rtl
+[001009] t=646.754621 thr=MainThread EXIT DashboardPage.on_ship_updated
+[001010] t=646.754668 thr=MainThread EXIT MainWindow->DashboardPage.on_ship_updated
+[001011] t=653.690630 thr=Thread-2 (aisstream_worker) ENTER HybridEngine.eventbus.publish ship.updated mmsi=244850557
+[001012] t=653.690899 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish event=ship.updated
+[001013] t=653.690952 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[001014] t=653.695284 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[001015] t=653.695348 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[001016] t=653.695387 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[001017] t=653.695446 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[001018] t=653.695474 thr=Thread-2 (aisstream_worker) ENTER EventBridge._on_ship_updated
+[001019] t=653.695512 thr=Thread-2 (aisstream_worker) EXIT EventBridge._on_ship_updated
+[001021] t=653.695574 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[001020] t=653.695564 thr=MainThread ENTER MainWindow->VesselsPage.refresh
+[001022] t=653.695723 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish event=ship.updated
+[001024] t=653.695789 thr=Thread-2 (aisstream_worker) EXIT HybridEngine.eventbus.publish ship.updated mmsi=244850557
+[001023] t=653.695781 thr=MainThread ENTER VesselsPage.refresh
+[001025] t=653.696421 thr=MainThread EXIT VesselsPage.refresh
+[001026] t=653.696710 thr=MainThread EXIT MainWindow->VesselsPage.refresh
+[001027] t=653.696829 thr=MainThread ENTER MainWindow->DashboardPage.on_ship_updated
+[001028] t=653.697016 thr=MainThread ENTER DashboardPage.on_ship_updated
+[001029] t=653.697132 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_ais
+[001030] t=653.697631 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_ais
+[001031] t=653.697753 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_rtl
+[001032] t=653.697987 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_rtl
+[001033] t=653.698096 thr=MainThread EXIT DashboardPage.on_ship_updated
+[001034] t=653.698178 thr=MainThread EXIT MainWindow->DashboardPage.on_ship_updated
+[001035] t=660.688500 thr=Thread-2 (aisstream_worker) ENTER HybridEngine.eventbus.publish ship.updated mmsi=244860578
+[001036] t=660.688857 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish event=ship.updated
+[001037] t=660.688963 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[001038] t=660.693899 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[001039] t=660.693973 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[001040] t=660.694019 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[001041] t=660.694079 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[001042] t=660.694107 thr=Thread-2 (aisstream_worker) ENTER EventBridge._on_ship_updated
+[001043] t=660.694145 thr=Thread-2 (aisstream_worker) EXIT EventBridge._on_ship_updated
+[001044] t=660.694171 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[001045] t=660.694193 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish event=ship.updated
+[001046] t=660.694227 thr=Thread-2 (aisstream_worker) EXIT HybridEngine.eventbus.publish ship.updated mmsi=244860578
+[001047] t=660.694292 thr=MainThread ENTER MainWindow->VesselsPage.refresh
+[001048] t=660.694649 thr=MainThread ENTER VesselsPage.refresh
+[001049] t=660.695048 thr=MainThread EXIT VesselsPage.refresh
+[001050] t=660.695147 thr=MainThread EXIT MainWindow->VesselsPage.refresh
+[001051] t=660.695259 thr=MainThread ENTER MainWindow->DashboardPage.on_ship_updated
+[001052] t=660.695293 thr=MainThread ENTER DashboardPage.on_ship_updated
+[001053] t=660.695346 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_ais
+[001054] t=660.695601 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_ais
+[001055] t=660.695673 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_rtl
+[001056] t=660.695773 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_rtl
+[001057] t=660.695806 thr=MainThread EXIT DashboardPage.on_ship_updated
+[001058] t=660.695832 thr=MainThread EXIT MainWindow->DashboardPage.on_ship_updated
+[001059] t=667.637083 thr=Thread-2 (aisstream_worker) ENTER HybridEngine.eventbus.publish ship.updated mmsi=270408000
+[001060] t=667.637465 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish event=ship.updated
+[001061] t=667.637553 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[001062] t=667.641461 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[001063] t=667.641535 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[001064] t=667.641574 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[001065] t=667.641634 thr=Thread-2 (aisstream_worker) ENTER EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[001066] t=667.641662 thr=Thread-2 (aisstream_worker) ENTER EventBridge._on_ship_updated
+[001067] t=667.641700 thr=Thread-2 (aisstream_worker) EXIT EventBridge._on_ship_updated
+[001068] t=667.641733 thr=MainThread ENTER MainWindow->VesselsPage.refresh
+[001069] t=667.641818 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[001070] t=667.641859 thr=MainThread ENTER VesselsPage.refresh
+[001071] t=667.641908 thr=Thread-2 (aisstream_worker) EXIT EventBus.publish event=ship.updated
+[001072] t=667.641968 thr=Thread-2 (aisstream_worker) EXIT HybridEngine.eventbus.publish ship.updated mmsi=270408000
+[001073] t=667.642139 thr=MainThread EXIT VesselsPage.refresh
+[001074] t=667.642218 thr=MainThread EXIT MainWindow->VesselsPage.refresh
+[001075] t=667.642270 thr=MainThread ENTER MainWindow->DashboardPage.on_ship_updated
+[001076] t=667.642332 thr=MainThread ENTER DashboardPage.on_ship_updated
+[001077] t=667.642489 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_ais
+[001078] t=667.642841 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_ais
+[001079] t=667.643051 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_rtl
+[001080] t=667.643209 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_rtl
+[001081] t=667.643315 thr=MainThread EXIT DashboardPage.on_ship_updated
+[001082] t=667.643466 thr=MainThread EXIT MainWindow->DashboardPage.on_ship_updated
+[001083] t=673.382240 thr=MainThread ENTER EventBus.publish event=engine.stopped
+[001084] t=673.382540 thr=MainThread EXIT EventBus.publish event=engine.stopped
+[001085] t=673.383051 thr=MainThread ENTER EventBus.publish event=rtl.status
+[001086] t=673.383136 thr=MainThread ENTER EventBus.publish.rtl.status->AISManager._on_rtl_status
+[001087] t=673.383194 thr=MainThread EXIT EventBus.publish.rtl.status->AISManager._on_rtl_status
+[001088] t=673.383225 thr=MainThread ENTER EventBus.publish.rtl.status->RTLManager._on_rtl_status
+[001089] t=673.383251 thr=MainThread EXIT EventBus.publish.rtl.status->RTLManager._on_rtl_status
+[001090] t=673.383318 thr=MainThread ENTER EventBus.publish.rtl.status->EventBridge._on_rtl_status
+[001091] t=673.383343 thr=MainThread ENTER EventBridge._on_rtl_status
+[001092] t=673.383385 thr=MainThread EXIT EventBridge._on_rtl_status
+[001093] t=673.383413 thr=MainThread EXIT EventBus.publish.rtl.status->EventBridge._on_rtl_status
+[001094] t=673.383436 thr=MainThread EXIT EventBus.publish event=rtl.status
+[001095] t=673.384312 thr=MainThread ENTER MainWindow->DashboardPage.refresh_ais(rtl)
+[001096] t=673.384625 thr=MainThread EXIT MainWindow->DashboardPage.refresh_ais(rtl)
+[001097] t=673.384684 thr=MainThread ENTER MainWindow->DashboardPage.refresh_rtl
+[001098] t=673.384796 thr=MainThread EXIT MainWindow->DashboardPage.refresh_rtl

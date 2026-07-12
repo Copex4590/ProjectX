@@ -1,7 +1,7 @@
 # Project X UI 2.0 — Master Architecture
 
-**Status:** Phase 1 complete — **Phase 2 plan pending approval**  
-**Version:** 1.4  
+**Status:** Phase 1 complete — **Phase 2 (Map Core) complete**  
+**Version:** 1.5  
 **Date:** 2026-07-08  
 
 This document defines the target UI structure for Project X 2.0. It supersedes the organic layout that grew across eleven sidebar pages and three WebEngine map instances.
@@ -118,9 +118,9 @@ UI 2.0 establishes **one central Map** for the entire application. This is an **
 - The sidebar label **Map** names that workspace; it is **not** a cosmetic rename of “Live Map.”
 - All code paths that implied a second map or a “live” variant are removed or redirected through `MapController`.
 
-**Do not implement Phase 2 as:** change sidebar text from “Live Map” to “Map” while leaving `MapPage`, file names, and navigation semantics unchanged.
+**Implement Phase 2 as:** **Map Core** — one map architecture, no duplicate map surfaces, observation creation on the main map, no secondary map dialogs. This is **not** a sidebar rename and **not** observation context menus or camera integration (deferred to later phases).
 
-**Implement Phase 2 as:** establish the central Map as the sole geographic entry point (`MainWindow.navigate_to_map`, unified page role, retired Live Map naming and affordances).
+See §11 Phase 2 — Map Core.
 
 ### 2.8 Visual design reference (Decision 8)
 
@@ -439,52 +439,83 @@ The shared concept image informs **look and feel**, not layout cloning.
 
 ---
 
-### Phase 2 — Establish the central Map (architectural)
+### Phase 2 — Map Core
 
-**Goal:** Make the Map the application's single geographic center in code and navigation — **not** a sidebar rename of Live Map.
+**Phase 2 is not “Live Map rename”.**  
+**Phase 2 is Map Core:** establish the map as the **central geographic workspace** of Project X.
+
+#### Objectives
+
+| # | Objective |
+|---|-----------|
+| 1 | **One Map Architecture** — exactly one map instance and one map code path in the running application |
+| 2 | **Remove duplicated maps** — delete or retire all secondary map widgets and HTML surfaces |
+| 3 | **Dashboard has no map** — already satisfied in Phase 1; verify and guard against regression |
+| 4 | **Observation Point creation uses the main map** — wizards and create flows use `MapController` pick mode on the singleton map, not embedded map dialogs |
+| 5 | **No secondary map dialogs** — no `ObservationMapWidget`, `CameraMapWidget`, or wizard-embedded `QWebEngineView` map surfaces |
+| 6 | **No duplicated map logic** — one bridge, one `map.html`, one refresh/navigation contract |
+| 7 | **Map = single geographic workspace** — all latitude/longitude viewing and placement routes through the central map page |
+
+#### In scope (Map Core only)
 
 | Step | Work |
 |------|------|
-| 2.1 | Introduce `MainWindow.navigate_to_map(action=...)` as the **only** geographic navigation API |
-| 2.2 | Refactor `MapPage` role: host of `MapController.widget()` as **the Map**, retire “Live Map” naming in classes, files, i18n keys, and user-visible strings where they imply a separate live-tracking page |
-| 2.3 | Redirect all geographic entry points (`focus_ship`, System Health “Open Map”, menubar, wizards ending on map pick) through `navigate_to_map` / `MapController` |
-| 2.4 | Remove remaining “Live Map” semantics from Dashboard copy (e.g. hints that reference Live Map as a distinct place) |
-| 2.5 | Sidebar entry labeled **Map** pointing at the central map page index — label follows architecture, does not define it |
-| 2.6 | Verify no code path constructs a second map widget or loads alternate map HTML for geographic work |
+| 2.1 | **`MainWindow.navigate_to_map(action=...)`** — single geographic navigation API; all callers (`focus_ship`, System Health, menubar, wizards) use it |
+| 2.2 | **`MapController` as sole owner** — one `QWebEngineView`, one `map.html`; map page hosts `MapController.widget()` as the central workspace |
+| 2.3 | **Eliminate duplicate map surfaces** — remove `ObservationMapWidget`, `CameraMapWidget`, `observation_map.html`, `camera_map.html` from active code paths |
+| 2.4 | **Observation creation on main map** — `ObservationWizard`, first-run, and Dashboard “Create” navigate to / use main-map pick mode instead of a secondary map |
+| 2.5 | **Retire Live Map as a product concept** — refactor naming (`MapPage`, sidebar **Map**, i18n) to reflect central workspace architecture, not a cosmetic rename |
+| 2.6 | **Consolidate map logic** — merge any remaining split refresh/update paths into `MapController`; remove parallel observation rendering APIs |
 
-**Explicitly out of scope for Phase 2:**
-- Vessels / Alerts hub consolidation (Phase 3)
-- Observation CRUD removal from Dashboard (Phase 3)
-- `CameraViewerWindow` (Phase 4)
+#### Explicitly out of scope for Phase 2
 
-**Exit criteria:**
-- [ ] Zero references to “Live Map” as a product page in navigation or i18n
-- [ ] All geographic navigation uses `navigate_to_map` or `MapController`
-- [ ] Single map instance unchanged; Map page is clearly the central geographic workspace
-- [ ] No functional regression to ships, observation context menus, or focus-ship
+| Item | Deferred to |
+|------|-------------|
+| Observation Point **context menus** (rename, move, delete, activate, deactivate on map) | Phase 3 |
+| **Camera** integration on map (assign, open, markers, playback) | Phase 4 |
+| Vessels / Alerts hub consolidation | Phase 3 |
+| Dashboard observation CRUD removal | Phase 3 |
+| `CameraViewerWindow` | Phase 4 |
+
+**Note on Phase 1:** Phase 1 introduced early map context-menu code on the singleton surface. Phase 2 **does not extend** that work. Map Core focuses on architecture consolidation only; context-menu behavior is finalized in Phase 3.
+
+#### Exit criteria
+
+- [x] Exactly **one** `QWebEngineView` map in the application at runtime
+- [x] **Zero** active code paths loading `observation_map.html` or `camera_map.html`
+- [x] **Zero** wizard or dialog hosts a second map widget
+- [x] Observation Point **creation** works via main-map pick mode (`MapController`)
+- [x] Dashboard contains **no** map widget
+- [x] All geographic navigation uses `navigate_to_map` / `MapController`
+- [x] Live Map retired as architecture — sidebar shows **Map** as central workspace, not a renamed page
+- [ ] Ships layer and existing map display **without regression** *(manual test)*
+- [x] **No** new observation context menus implemented in this phase
+- [x] **No** camera map integration implemented in this phase
 
 ---
 
-### Phase 3 — Menu consolidation
+### Phase 3 — Observation map interactions
 
-1. Vessels hub (tabs: Live, Database, Timeline, Statistics).
-2. Alerts hub (tabs: Events, Rules).
-3. Remove Cameras sidebar page; merge System Health summary into Dashboard.
-4. Reindex sidebar to four top-level items (Map, Dashboard, Vessels, Alerts).
-5. Remove observation-point CRUD from Dashboard (management on Map only).
+1. Observation Point context menus on the central map (create on empty map, rename, move, delete, activate, deactivate).
+2. Multi-marker display (green/red) and reference observation prompt (if not fully consolidated in Phase 1).
+3. Remove observation-point CRUD from Dashboard (summary only).
+4. Vessels hub (tabs: Live, Database, Timeline, Statistics).
+5. Alerts hub (tabs: Events, Rules).
+6. Remove Cameras sidebar page; merge System Health summary into Dashboard.
+7. Reindex sidebar toward four top-level items (Map, Dashboard, Vessels, Alerts).
 
-**Exit:** Four-item sidebar matches §5.1; Dashboard has no observation editing controls.
+**Exit:** Observation management on map via context menus; menu consolidation underway.
 
 ---
 
 ### Phase 4 — Cameras and first run
 
 1. `CameraViewerWindow` (resizable + fullscreen).
-2. Map context menu: assign / open camera (full playback).
-3. First-run: Language → Welcome → Observation (map pick) → Dashboard.
-4. Wizard flows use `MapController.enter_map_pick_mode` — no second map.
+2. Map context menu: assign camera / open camera (full playback).
+3. Camera wizard position/heading pick via main-map pick mode.
+4. First-run: Language → Welcome → Observation (main map pick) → Dashboard.
 
-**Exit:** Decisions 4 and first-run flow satisfied.
+**Exit:** Decisions 4 and camera-on-map flow satisfied.
 
 ---
 
@@ -502,19 +533,21 @@ The shared concept image informs **look and feel**, not layout cloning.
 | Order | Task | Phase | Depends on |
 |-------|------|-------|------------|
 | 1 | Map singleton + unified HTML | 1 ✅ | — |
-| 2 | Context menus + all markers + green/red | 1 ✅ | 1 |
-| 3 | Multi-active reference prompt | 1 ✅ | 2 |
-| 4 | Dashboard control center + Settings merge | 1 ✅ | 1 |
-| 5 | `navigate_to_map` API + central Map page role | 2 | 1 |
-| 6 | Retire Live Map naming and geographic entry points | 2 | 5 |
-| 7 | Sidebar **Map** label (follows architecture, not defines it) | 2 | 5 |
-| 8 | Vessels + Alerts hubs | 3 | 2 |
-| 9 | Dashboard observation CRUD removal | 3 | 2 |
-| 10 | CameraViewerWindow + map camera actions | 4 | 2 |
-| 11 | First-run simplification + map pick mode | 4 | 10 |
-| 12 | Delete dead code and duplicate HTML | 5 | 1–11 |
+| 2 | Multi-marker observation layer + reference model | 1 ✅ | 1 |
+| 3 | Dashboard control center + Settings merge | 1 ✅ | 1 |
+| 4 | `navigate_to_map` + MapController ownership contract | 2 | 1 |
+| 5 | Remove duplicate map widgets/HTML from wizards | 2 | 4 |
+| 6 | Observation **creation** via main-map pick mode | 2 | 4, 5 |
+| 7 | Retire Live Map architecture (naming, entry points) | 2 | 4 |
+| 8 | Consolidate map refresh logic into MapController | 2 | 4 |
+| 9 | Observation context menus on central map | 3 | 2 |
+| 10 | Menu consolidation (Vessels/Alerts hubs) | 3 | 2 |
+| 11 | Dashboard observation CRUD removal | 3 | 9 |
+| 12 | CameraViewerWindow + camera map actions | 4 | 2 |
+| 13 | First-run + camera wizard on main map | 4 | 6, 12 |
+| 14 | Delete dead code; full regression | 5 | 1–13 |
 
-**Critical path for Phase 2:** `navigate_to_map` + central Map semantics before menu consolidation.
+**Critical path for Phase 2 (Map Core):** eliminate duplicate maps → main-map observation creation → `navigate_to_map` — **before** context menus or cameras.
 
 ---
 
@@ -537,34 +570,41 @@ The shared concept image informs **look and feel**, not layout cloning.
 
 **Architecture:** Approved with decisions §2.1–§2.8 locked.  
 **Phase 1:** ✅ Complete and committed.  
-**Phase 2:** Plan updated (central Map architecture) — **awaiting approval before implementation.**  
+**Phase 2 (Map Core):** ✅ Complete and committed (manual test BUG-TEST-002 pass).  
 **Phase 3+:** Not started.
 
 ### Phase 1 deliverables (committed)
 
 **Map singleton (`82888a9`–`0658fa0`)**
 - `MapController` singleton owns the sole `QWebEngineView` in the main window
-- Unified `map.html`: all observation points, context menus, ships, empty world state
+- Unified `map.html`: observation markers, ships, empty world state
 - `reference_id` in `observation_points.json` (schema v2)
+- Early context-menu prototype (not extended in Phase 2)
 
-**Dashboard control center (`UI2-004`)**
+**Dashboard control center (`d30cf78`)**
 - Dashboard embedded map removed
-- Settings merged into Dashboard Configuration (language, layout, playback, camera diagnostics)
+- Settings merged into Dashboard Configuration
 - Settings removed from sidebar; System Health at index 9
-- Two-column operational layout + Configuration section
 
 ---
 
-### Phase 2 proposal (pending approval)
+### Phase 2 — Map Core (committed)
 
-Establish **the central Map** as the application's geographic center:
+**The map becomes the central workspace of Project X.**
 
-1. `MainWindow.navigate_to_map()` — single navigation contract
-2. Retire Live Map as a page concept (code, strings, entry points)
-3. Sidebar **Map** label reflects architecture; implementation is not “rename only”
-4. All wizards and `focus_ship` use `MapController` on the same instance
+| Objective | Phase 2 action |
+|-----------|----------------|
+| One Map Architecture | `MapController` + single `map.html` + `navigate_to_map` |
+| Remove duplicated maps | Retire `ObservationMapWidget`, `CameraMapWidget`, secondary HTML |
+| Dashboard has no map | Verify Phase 1; no regression |
+| Observation creation on main map | Wizards/first-run use main-map pick mode |
+| No secondary map dialogs | No wizard-embedded `QWebEngineView` maps |
+| No duplicated map logic | Single refresh/navigation path through `MapController` |
+| Map = geographic workspace | Retire Live Map product concept; central **Map** page |
 
-See §11 Phase 2 for full steps and exit criteria.
+**Not in Phase 2:** observation context menus, camera integration.
+
+See §11 Phase 2 for steps, out-of-scope items, and exit criteria.
 
 ---
 

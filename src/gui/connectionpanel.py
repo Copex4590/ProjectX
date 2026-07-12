@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
 )
 
 from gui.i18n_support import bind_language_refresh
+from gui.theme import BG_BASE, BORDER
 from i18n import tr
 
 
@@ -28,16 +29,16 @@ class ConnectionPanel(QFrame):
 
         self.setFixedWidth(240)
 
-        self.setStyleSheet("""
-            QFrame{
-                background:#252a31;
-                border-left:1px solid #40444b;
-            }
+        self.setStyleSheet(f"""
+            QFrame{{
+                background:{BG_BASE};
+                border-left:1px solid {BORDER};
+            }}
 
-            QLabel{
+            QLabel{{
                 color:white;
                 padding:6px;
-            }
+            }}
         """)
 
         layout = QVBoxLayout(self)

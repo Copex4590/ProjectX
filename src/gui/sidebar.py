@@ -12,7 +12,7 @@ class Sidebar(QFrame):
 
     _PAGE_KEYS = (
         ("Dashboard", 0),
-        ("Live Map", 1),
+        ("Map", 1),
         ("Vessels", 2),
         ("Cameras", 3),
         ("Vessel Database", 4),

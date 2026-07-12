@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Project X — Official Danube vessel monitoring platform. Download for Windows and Linux, read documentation, and view screenshots.">
+    <meta name="keywords" content="Project X, vessel monitoring, AIS, Danube, ship tracking">
+    <title>Project X — Official Website</title>
+    <link rel="icon" href="images/projectx-logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="css/site.css">
+</head>
+<body data-page="home">
+    <header class="site-header">
+        <div class="container nav-inner">
+            <a class="brand" href="index.html">
+                <img src="images/projectx-logo.svg" alt="Project X logo">
+                <span>Project X</span>
+            </a>
+            <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+            <nav class="site-nav" id="site-nav" aria-label="Main">
+                <ul>
+                    <li><a href="index.html" data-page="home">Home</a></li>
+                    <li><a href="download.html" data-page="download">Download</a></li>
+                    <li><a href="documentation.html" data-page="documentation">Documentation</a></li>
+                    <li><a href="screenshots.html" data-page="screenshots">Screenshots</a></li>
+                    <li><a href="https://github.com/Copex4590/ProjectX" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container hero-grid">
+                <div>
+                    <span class="eyebrow">Danube vessel monitoring</span>
+                    <h1>Monitor vessels on the Danube with live AIS, maps, and cameras.</h1>
+                    <p class="hero-lead">
+                        Project X is a desktop platform for real-time ship tracking, timeline history,
+                        statistics, alerts, and camera playback — built for operators who need a clear
+                        picture of river traffic.
+                    </p>
+                    <div class="version-badge">
+                        <strong>Current version:</strong> <span data-release-version>Loading…</span>
+                        <span aria-hidden="true">·</span>
+                        <span data-release-status>Release</span>
+                    </div>
+                    <p class="note" data-release-error hidden></p>
+                    <div class="btn-row">
+                        <a class="btn btn-primary btn-large" href="download.html">
+                            <span class="btn-icon" aria-hidden="true">⬇</span>
+                            Download Project X
+                        </a>
+                        <a class="btn btn-secondary" href="documentation.html">Read documentation</a>
+                    </div>
+                </div>
+                <img class="hero-logo" src="images/projectx-logo.svg" alt="Project X application logo">
+            </div>
+        </section>
+
+        <section id="download">
+            <div class="container">
+                <h2 class="section-title">Download</h2>
+                <p class="section-lead">Choose your platform. Release links are loaded from the official release configuration.</p>
+                <div class="grid-2" data-release-download-cards>
+                    <article class="panel download-card">
+                        <h3>Loading releases…</h3>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section id="release-notes">
+            <div class="container">
+                <h2 class="section-title">Release notes</h2>
+                <p class="section-lead" data-release-notes-lead>Loading release highlights…</p>
+                <article class="panel release-notes markdown-body" data-release-notes>
+                    <p>Loading release notes…</p>
+                </article>
+            </div>
+        </section>
+
+        <section id="documentation">
+            <div class="container">
+                <h2 class="section-title">Documentation</h2>
+                <p class="section-lead">Get started quickly with installation guides and platform requirements.</p>
+                <div class="grid-3">
+                    <article class="panel doc-card">
+                        <h3>Getting started</h3>
+                        <p>Install Project X, run the first-run wizard, and connect AIS data.</p>
+                        <a href="documentation.html#getting-started">View guide →</a>
+                    </article>
+                    <article class="panel doc-card">
+                        <h3>System requirements</h3>
+                        <p>Python 3.10+, PySide6 with Qt WebEngine, and optional mpv or VLC for playback.</p>
+                        <a href="documentation.html#requirements">View requirements →</a>
+                    </article>
+                    <article class="panel doc-card">
+                        <h3>Build from source</h3>
+                        <p>Clone the repository and follow platform-specific build instructions.</p>
+                        <a href="documentation.html#source">Build instructions →</a>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section id="screenshots">
+            <div class="container">
+                <h2 class="section-title">Screenshots</h2>
+                <p class="section-lead">Preview the Project X desktop experience. Replace placeholders with real captures before launch.</p>
+                <div class="screenshot-grid">
+                    <figure class="screenshot-card">
+                        <img src="images/screenshots/dashboard.svg" alt="Project X dashboard preview">
+                        <figcaption>Dashboard — live status and ship counts</figcaption>
+                    </figure>
+                    <figure class="screenshot-card">
+                        <img src="images/screenshots/map.svg" alt="Project X live map preview">
+                        <figcaption>Live map — AIS vessels with Leaflet</figcaption>
+                    </figure>
+                </div>
+                <div class="btn-row" style="margin-top: 1.25rem;">
+                    <a class="btn btn-secondary" href="screenshots.html">View all screenshots</a>
+                </div>
+            </div>
+        </section>
+
+        <section id="github">
+            <div class="container">
+                <article class="panel github-banner">
+                    <div>
+                        <h2 class="section-title">Open source on GitHub</h2>
+                        <p>
+                            Explore the source code, report issues, and follow development on GitHub.
+                            Project X is maintained in the public ProjectX repository.
+                        </p>
+                    </div>
+                    <a class="btn btn-secondary" href="https://github.com/Copex4590/ProjectX" target="_blank" rel="noopener noreferrer">
+                        Visit GitHub repository
+                    </a>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-grid">
+            <p>© 2026 Project X · Danube vessel monitoring platform</p>
+            <div class="footer-links">
+                <a href="download.html">Download</a>
+                <a href="documentation.html">Documentation</a>
+                <a href="screenshots.html">Screenshots</a>
+                <a href="https://github.com/Copex4590/ProjectX" target="_blank" rel="noopener noreferrer">GitHub</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/releases.js"></script>
+    <script src="js/site.js"></script>
+</body>
+</html>

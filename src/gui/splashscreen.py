@@ -10,6 +10,7 @@ from PySide6.QtGui import QColor, QFont, QPainter, QPixmap
 from PySide6.QtWidgets import QSplashScreen
 
 from branding.assets import logo_pixmap
+from gui.theme import ACCENT_GLOW, BG_BASE, BORDER, TEXT_MUTED, TEXT_PRIMARY
 from i18n import tr
 from version import PROJECT_NAME, PROJECT_VERSION
 
@@ -24,13 +25,13 @@ class ProjectXSplashScreen(QSplashScreen):
         width = 480
         height = 300
         pixmap = QPixmap(width, height)
-        pixmap.fill(QColor("#252a31"))
+        pixmap.fill(QColor(BG_BASE))
 
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        painter.setPen(QColor("#40444b"))
-        painter.setBrush(QColor("#252a31"))
+        painter.setPen(QColor(BORDER))
+        painter.setBrush(QColor(BG_BASE))
         painter.drawRoundedRect(1, 1, width - 2, height - 2, 12, 12)
 
         logo = logo_pixmap(96)
@@ -43,13 +44,13 @@ class ProjectXSplashScreen(QSplashScreen):
         title_font.setPointSize(24)
         title_font.setBold(True)
         painter.setFont(title_font)
-        painter.setPen(QColor("#ffffff"))
+        painter.setPen(QColor(TEXT_PRIMARY))
         painter.drawText(0, 150, width, 40, Qt.AlignmentFlag.AlignCenter, PROJECT_NAME)
 
         version_font = QFont()
         version_font.setPointSize(11)
         painter.setFont(version_font)
-        painter.setPen(QColor("#bbbbbb"))
+        painter.setPen(QColor(TEXT_MUTED))
         painter.drawText(
             0,
             188,
@@ -59,7 +60,7 @@ class ProjectXSplashScreen(QSplashScreen):
             f"{tr('Version')} {PROJECT_VERSION}",
         )
 
-        painter.setPen(QColor("#4FC3F7"))
+        painter.setPen(QColor(ACCENT_GLOW))
         painter.drawText(
             0,
             height - 48,
@@ -77,7 +78,7 @@ class ProjectXSplashScreen(QSplashScreen):
         self.showMessage(
             "",
             Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter,
-            QColor("#4FC3F7"),
+            QColor(ACCENT_GLOW),
         )
 
 

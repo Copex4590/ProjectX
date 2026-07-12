@@ -45,14 +45,14 @@ class EmptyStateWidget(QWidget):
         self._help_button = QPushButton()
         self._help_button.setStyleSheet("""
             QPushButton {
-                background: #343a42;
+                background: #243651;
                 color: white;
-                border: 1px solid #4a5159;
+                border: 1px solid #2d5a8e;
                 border-radius: 6px;
                 padding: 6px 16px;
             }
             QPushButton:hover {
-                background: #3f464f;
+                background: #2d4a6f;
             }
         """)
         self._help_button.clicked.connect(self._on_help_clicked)

@@ -3,21 +3,49 @@
 # AIS-catcher configuration
 # ============================================================================
 
+from __future__ import annotations
+
 import os
+import shutil
 from pathlib import Path
 
-_DEFAULT_AIS_CATCHER_EXECUTABLE = (
-    "/home/zoli/AIS-catcher/build/AIS-catcher"
-)
 
 _DEFAULT_AIS_CATCHER_ARGS = "-d:0 -o 5 -S 10110"
 
-AIS_CATCHER_EXECUTABLE = Path(
-    os.environ.get(
-        "PROJECTX_AIS_CATCHER_EXECUTABLE",
-        _DEFAULT_AIS_CATCHER_EXECUTABLE,
-    )
-)
+
+def _find_default_executable() -> Path:
+    """
+    Megpróbálja automatikusan megtalálni az AIS-catcher binárist.
+    """
+
+    env = os.environ.get("PROJECTX_AIS_CATCHER_EXECUTABLE")
+    if env:
+        return Path(env)
+
+    exe = shutil.which("AIS-catcher")
+    if exe:
+        return Path(exe)
+
+    candidates = [
+        Path.home() / "AIS-catcher" / "build" / "AIS-catcher",
+        Path("/usr/local/bin/AIS-catcher"),
+        Path("/usr/bin/AIS-catcher"),
+    ]
+
+    if os.name == "nt":
+        candidates = [
+            Path.home() / "AIS-catcher" / "AIS-catcher.exe",
+            Path("C:/Program Files/AIS-catcher/AIS-catcher.exe"),
+        ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    return Path("AIS-catcher")
+
+
+AIS_CATCHER_EXECUTABLE = _find_default_executable()
 
 AIS_CATCHER_ARGS = os.environ.get(
     "PROJECTX_AIS_CATCHER_ARGS",

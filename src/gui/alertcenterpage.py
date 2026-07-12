@@ -223,7 +223,7 @@ class AlertCenterPage(QWidget):
             QLineEdit, QComboBox {
                 background: #252a31;
                 color: white;
-                border: 1px solid #40444b;
+                border: 1px solid #3d4a5c;
                 border-radius: 6px;
                 padding: 6px 8px;
             }
@@ -243,14 +243,14 @@ class AlertCenterPage(QWidget):
             QTableWidget {
                 background: #252a31;
                 color: white;
-                border: 1px solid #40444b;
-                gridline-color: #40444b;
+                border: 1px solid #3d4a5c;
+                gridline-color: #3d4a5c;
             }
 
             QHeaderView::section {
-                background: #2f353d;
+                background: #2a3548;
                 color: #d5dbe3;
-                border: 1px solid #40444b;
+                border: 1px solid #3d4a5c;
                 padding: 6px;
             }
         """)

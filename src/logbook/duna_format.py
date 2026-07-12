@@ -27,7 +27,12 @@ def format_timestamp(when: datetime | None = None) -> str:
 
 def calc_distance_km(lat: float, lon: float) -> float:
 
-    origin_lat, origin_lon = fallback_coordinates()
+    coords = fallback_coordinates()
+
+    if coords is None:
+        return 0.0
+
+    origin_lat, origin_lon = coords
     return math.sqrt(
         (lat - origin_lat) ** 2 + (lon - origin_lon) ** 2
     ) * 111.0
@@ -35,7 +40,12 @@ def calc_distance_km(lat: float, lon: float) -> float:
 
 def get_direction(lat: float) -> str:
 
-    origin_lat, _origin_lon = fallback_coordinates()
+    coords = fallback_coordinates()
+
+    if coords is None:
+        return ""
+
+    origin_lat, _origin_lon = coords
     return "északra" if lat > origin_lat else "délre"
 
 
