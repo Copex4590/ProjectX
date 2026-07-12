@@ -1,11 +1,11 @@
 Template: projectx/desktop-shortcut
 Type: boolean
-Default: true
+Default: false
 Description: Create desktop shortcut?
  Create a Project X shortcut on the installing user's desktop.
 
 Template: projectx/launch-after-install
 Type: boolean
-Default: true
-Description: Launch Project X after installation?
- Start Project X automatically when installation completes.
+Default: false
+Description: Run Project X?
+ Launch Project X after installation completes.

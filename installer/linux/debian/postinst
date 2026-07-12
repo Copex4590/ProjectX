@@ -14,7 +14,7 @@ desktop_shortcut_enabled() {
         [ "$RET" = "true" ]
         return
     fi
-    return 0
+    return 1
 }
 
 launch_after_install_enabled() {
@@ -25,7 +25,7 @@ launch_after_install_enabled() {
         [ "$RET" = "true" ]
         return
     fi
-    return 0
+    return 1
 }
 
 refresh_desktop_integration() {

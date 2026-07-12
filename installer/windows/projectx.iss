@@ -60,8 +60,8 @@ VersionInfoProductVersion={#MyAppVersionNumeric}
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "launch"; Description: "Launch Project X after installation"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "desktopicon"; Description: "Create desktop shortcut"; GroupDescription: "Optional:"; Flags: unchecked
+Name: "launch"; Description: "Run Project X"; GroupDescription: "Optional:"; Flags: unchecked
 
 [Files]
 Source: "..\..\dist\projectx\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs

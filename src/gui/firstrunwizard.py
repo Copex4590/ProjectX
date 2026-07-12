@@ -23,19 +23,36 @@ from debug.obs_freeze_trace import trace_block
 from gui.i18n_support import bind_language_refresh
 from gui.mapcontroller import MapController
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button
-from i18n import tr
+from i18n import language_manager, tr
 from observation import observation_manager
 from observation.coords import max_observation_radius_km
-from preferences import preferences_manager
+from preferences import SUPPORTED_LANGUAGES, preferences_manager
 
 _DEFAULT_COVERAGE_RADIUS_KM = 25.0
 
-_STEP_NAME = 0
-_STEP_METHOD = 1
-_STEP_COORDS = 2
+_STEP_LANGUAGE = 0
+_STEP_NAME = 1
+_STEP_METHOD = 2
+_STEP_COORDS = 3
 
 _METHOD_MAP = 0
 _METHOD_COORDS = 1
+
+_NAME_INPUT_STYLE = """
+    background: #252a31;
+    color: white;
+    border: 1px solid #3d4a5c;
+    border-radius: 6px;
+    padding: 6px 8px;
+"""
+
+_NAME_INPUT_ERROR_STYLE = """
+    background: #252a31;
+    color: white;
+    border: 1px solid #e53935;
+    border-radius: 6px;
+    padding: 6px 8px;
+"""
 
 
 class _FirstRunSuccessDialog(QDialog):
@@ -139,21 +156,28 @@ class FirstRunWizard(QDialog):
         self._connect_signals()
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
-        self._stack.setCurrentIndex(_STEP_NAME)
+        self._stack.setCurrentIndex(_STEP_LANGUAGE)
         self._sync_buttons()
-        QTimer.singleShot(0, self._focus_name_input)
 
     def showEvent(self, event) -> None:
 
         super().showEvent(event)
-        if self._stack.currentIndex() == _STEP_NAME:
+        step = self._stack.currentIndex()
+
+        if step == _STEP_NAME:
             QTimer.singleShot(0, self._focus_name_input)
 
     def refresh_translations(self) -> None:
 
         self.setWindowTitle(tr("Project X Setup"))
+        self._language_title.setText(tr("Choose your language"))
+        self._english_option.setText(tr("English"))
+        self._hungarian_option.setText(tr("Magyar"))
         self._name_title.setText(tr("Observation Point Name"))
         self._name_input.setPlaceholderText(tr("e.g. Home"))
+        self._name_error.setText(
+            tr("Enter the observation point name first.")
+        )
         self._method_title.setText(
             tr("How would you like to choose the observation point location?")
         )
@@ -211,14 +235,37 @@ class FirstRunWizard(QDialog):
         self._stack = QStackedWidget()
         layout.addWidget(self._stack)
 
+        language_page = QWidget()
+        language_layout = QVBoxLayout(language_page)
+        self._language_title = QLabel()
+        self._language_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        language_layout.addWidget(self._language_title)
+        self._english_option = QRadioButton()
+        self._hungarian_option = QRadioButton()
+        self._english_option.setChecked(True)
+        language_layout.addWidget(self._english_option)
+        language_layout.addWidget(self._hungarian_option)
+        language_layout.addStretch()
+        self._stack.addWidget(language_page)
+
+        self._language_group = QButtonGroup(self)
+        self._language_group.addButton(self._english_option, 0)
+        self._language_group.addButton(self._hungarian_option, 1)
+
         name_page = QWidget()
         name_layout = QVBoxLayout(name_page)
         self._name_title = QLabel()
         self._name_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
         name_layout.addWidget(self._name_title)
         self._name_input = QLineEdit()
+        self._name_input.setStyleSheet(_NAME_INPUT_STYLE)
         self._name_input.returnPressed.connect(self._on_continue)
         name_layout.addWidget(self._name_input)
+        self._name_error = QLabel()
+        self._name_error.setWordWrap(True)
+        self._name_error.setStyleSheet("color: #e53935; font-size: 10pt;")
+        self._name_error.hide()
+        name_layout.addWidget(self._name_error)
         name_layout.addStretch()
         self._stack.addWidget(name_page)
 
@@ -273,27 +320,62 @@ class FirstRunWizard(QDialog):
         self._continue_button.clicked.connect(self._on_continue)
         self._back_button.clicked.connect(self._on_back)
         self._button_box.rejected.connect(self._on_cancel)
+        self._name_input.textChanged.connect(self._clear_name_error)
 
     def _focus_name_input(self) -> None:
 
         if self._stack.currentIndex() == _STEP_NAME:
             self._name_input.setFocus(Qt.FocusReason.OtherFocusReason)
 
+    def _clear_name_error(self) -> None:
+
+        self._name_error.hide()
+        self._name_input.setStyleSheet(_NAME_INPUT_STYLE)
+
+    def _show_name_error(self) -> None:
+
+        self._name_error.show()
+        self._name_input.setStyleSheet(_NAME_INPUT_ERROR_STYLE)
+        self._name_input.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def _selected_language(self) -> str:
+
+        button_id = self._language_group.checkedId()
+
+        if button_id < 0:
+            button_id = 0
+
+        return SUPPORTED_LANGUAGES[button_id]
+
+    def _apply_language_selection(self) -> None:
+
+        language_manager.set_language(self._selected_language())
+
     def _sync_buttons(self) -> None:
 
         step = self._stack.currentIndex()
-        self._back_button.setEnabled(step > _STEP_NAME)
-        self._back_button.setVisible(step != _STEP_NAME)
+        self._back_button.setEnabled(step > _STEP_LANGUAGE)
+        self._back_button.setVisible(step > _STEP_LANGUAGE)
         self._continue_button.setVisible(True)
 
     def _on_continue(self) -> None:
 
         step = self._stack.currentIndex()
 
+        if step == _STEP_LANGUAGE:
+            self._apply_language_selection()
+            self.refresh_translations()
+            self._stack.setCurrentIndex(_STEP_NAME)
+            self._sync_buttons()
+            QTimer.singleShot(0, self._focus_name_input)
+            return
+
         if step == _STEP_NAME:
             if not self._name_input.text().strip():
+                self._show_name_error()
                 return
 
+            self._clear_name_error()
             self._picked_lat = None
             self._picked_lon = None
             self._stack.setCurrentIndex(_STEP_METHOD)
@@ -328,6 +410,11 @@ class FirstRunWizard(QDialog):
             self._stack.setCurrentIndex(_STEP_NAME)
             self._sync_buttons()
             QTimer.singleShot(0, self._focus_name_input)
+            return
+
+        if step == _STEP_NAME:
+            self._stack.setCurrentIndex(_STEP_LANGUAGE)
+            self._sync_buttons()
 
     def _on_cancel(self) -> None:
 
