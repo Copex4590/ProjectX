@@ -575,6 +575,7 @@
   "Camera playback opens from the map sidebar for now. A dedicated resizable camera window arrives in a later phase.": "A kamerakép egyelőre a térkép oldalsó paneljén érhető el. Az átméretezhető kameraablak egy későbbi fázisban érkezik.",
   "Operational control center": "Operatív irányítóközpont",
   "Geographic editing is available on the Map.": "A földrajzi szerkesztés a Térképen érhető el.",
+  "Use Create new to add another observation point.": "További megfigyelési pont hozzáadásához válaszd az „Új létrehozása” lehetőséget.",
   "Select location on Map": "Hely kiválasztása a Térképen",
   "Use the central Map to choose a location.": "A hely kiválasztásához használd a központi Térképet.",
   "No location selected": "Nincs kiválasztott hely",

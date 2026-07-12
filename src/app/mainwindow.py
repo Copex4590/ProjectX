@@ -3,6 +3,7 @@ import logging
 from PySide6.QtCore import Qt, QEventLoop, QTimer
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
+    QApplication,
     QHBoxLayout,
     QMainWindow,
     QMessageBox,
@@ -164,6 +165,9 @@ class MainWindow(QMainWindow):
         wizard.setModal(False)
         wizard.setWindowModality(Qt.WindowModality.NonModal)
 
+        self.navigate_to_map()
+        QApplication.processEvents()
+
         loop = QEventLoop(self)
         wizard.finished.connect(loop.quit)
         wizard.start_setup()
@@ -196,8 +200,7 @@ class MainWindow(QMainWindow):
 
             return False
 
-        preferences = preferences_manager.get()
-        return not preferences.first_run_completed
+        return True
 
     def build_ui(self):
 

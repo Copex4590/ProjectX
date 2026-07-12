@@ -42,12 +42,8 @@ def _log_startup_phase(phase: str) -> None:
 def _is_first_run_pending() -> bool:
 
     from observation import observation_manager
-    from preferences import preferences_manager
 
-    if observation_manager.all():
-        return False
-
-    return not preferences_manager.get().first_run_completed
+    return not observation_manager.all()
 
 
 def _install_exception_hook() -> None:
@@ -140,11 +136,9 @@ class Application:
     def run(self):
 
         if self._first_run_pending:
-            _log_startup_phase("first-run wizard opening")
-            self.window.run_first_run_wizard()
-            _log_startup_phase("first-run wizard complete")
+            _log_startup_phase("first-run startup scheduled")
             self.window.show()
-            _log_startup_phase("main window visible")
+            QTimer.singleShot(0, self._begin_first_run)
             return self.qt.exec()
 
         elapsed_ms = int((time.monotonic() - self._startup_started) * 1000)
@@ -153,6 +147,13 @@ class Application:
 
         QTimer.singleShot(remaining_ms, self._finish_startup)
         return self.qt.exec()
+
+    def _begin_first_run(self) -> None:
+
+        _log_startup_phase("first-run wizard opening")
+        self.window.navigate_to_map()
+        self.window.run_first_run_wizard()
+        _log_startup_phase("first-run wizard complete")
 
     def _finish_startup(self) -> None:
 

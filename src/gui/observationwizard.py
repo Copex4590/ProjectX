@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 
 from debug.obs_freeze_trace import trace_block, trace_enter, trace_exit
 from gui.i18n_support import bind_language_refresh
+from gui.map_core import PickMode
 from gui.mapcontroller import MapController
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button
 from i18n import tr
@@ -52,9 +53,14 @@ class ObservationSetupWidget(QWidget):
 
         self._picked_lat: float | None = None
         self._picked_lon: float | None = None
+        self._map_pick_token = 0
+        self._map_pick_cancelled = False
 
         self._build_ui()
         self._connect_signals()
+        MapController.instance().pick_mode_changed.connect(
+            self._on_pick_mode_changed,
+        )
 
     def refresh_translations(self) -> None:
 
@@ -82,6 +88,8 @@ class ObservationSetupWidget(QWidget):
 
     def begin_map_selection(self) -> None:
 
+        self._cancel_pending_map_advance()
+        self._map_pick_cancelled = False
         self._picked_lat = None
         self._picked_lon = None
         self._stack.setCurrentIndex(_SUBSTEP_MAP)
@@ -96,6 +104,8 @@ class ObservationSetupWidget(QWidget):
     def on_leave(self) -> None:
 
         with trace_block("ObservationSetupWidget.on_leave"):
+            self._map_pick_cancelled = True
+            self._cancel_pending_map_advance()
             MapController.instance().cancel_pick_mode(restore_host=False)
 
     def handle_next(self) -> bool:
@@ -104,6 +114,7 @@ class ObservationSetupWidget(QWidget):
 
         if substep == _SUBSTEP_MAP:
             if self._picked_lat is None or self._picked_lon is None:
+                self._show_map_pick_required_message()
                 return False
 
             MapController.instance().cancel_pick_mode(restore_host=False)
@@ -267,9 +278,48 @@ class ObservationSetupWidget(QWidget):
 
         self._name_input.textChanged.connect(self._clear_name_error)
 
-    def _start_map_pick(self) -> None:
+    def _cancel_pending_map_advance(self) -> None:
+
+        self._map_pick_token += 1
+
+    def _on_pick_mode_changed(self, mode: PickMode) -> None:
+
+        if mode != PickMode.NONE:
+            return
+
+        if not isValid(self):
+            return
+
+        if self.substep_index() != _SUBSTEP_MAP:
+            return
+
+        if self._picked_lat is not None and self._picked_lon is not None:
+            return
+
+        if self._map_pick_cancelled:
+            return
 
         host = self._pick_host_dialog()
+        if host is not None and isValid(host) and host.isVisible():
+            host.hide()
+
+        QTimer.singleShot(0, self._start_map_pick)
+
+    def _show_map_pick_required_message(self) -> None:
+
+        QMessageBox.information(
+            self.window(),
+            tr("Observation Point Setup"),
+            tr("Use the central Map to choose a location."),
+        )
+
+    def _start_map_pick(self) -> None:
+
+        self._map_pick_cancelled = False
+        host = self._pick_host_dialog()
+        if host is not None and isValid(host):
+            host.hide()
+
         MapController.instance().begin_location_pick(
             self._on_map_location,
             overlay_message=tr("Use the central Map to choose a location."),
@@ -302,13 +352,15 @@ class ObservationSetupWidget(QWidget):
         self._picked_lon = longitude
         self._update_picked_coords_label()
 
+        self._map_pick_token += 1
+        pick_token = self._map_pick_token
+
         MapController.instance().cancel_pick_mode(restore_host=False)
 
         QTimer.singleShot(
             _MAP_PICK_CONFIRM_DELAY_MS,
-            lambda lat=latitude, lon=longitude: self._advance_after_map_pick(
-                lat,
-                lon,
+            lambda lat=latitude, lon=longitude, token=pick_token: (
+                self._advance_after_map_pick(lat, lon, token)
             ),
         )
 
@@ -316,9 +368,16 @@ class ObservationSetupWidget(QWidget):
         self,
         latitude: float,
         longitude: float,
+        pick_token: int,
     ) -> None:
 
+        if pick_token != self._map_pick_token:
+            return
+
         if not isValid(self):
+            return
+
+        if self.substep_index() != _SUBSTEP_MAP:
             return
 
         self._picked_lat = latitude
@@ -470,9 +529,12 @@ class ObservationWizard(QDialog):
     def _on_next(self) -> None:
 
         self._setup.handle_next()
-        self.show()
-        self.raise_()
-        self.activateWindow()
+
+        if self._setup.substep_index() > _SUBSTEP_MAP:
+            self.show()
+            self.raise_()
+            self.activateWindow()
+
         self._sync_buttons()
 
     def _on_back(self) -> None:

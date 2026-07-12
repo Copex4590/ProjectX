@@ -122,6 +122,10 @@ class MapWidget(QWebEngineView):
 
         self._pick_enabled = False
         self._pick_overlay_message = ""
+
+        if not self._page_ready:
+            return
+
         self._run_js("endLocationPick();")
 
     def reset_world_view(self) -> None:
@@ -155,11 +159,17 @@ class MapWidget(QWebEngineView):
 
     def set_pick_marker(self, latitude: float, longitude: float) -> None:
 
+        if not self._page_ready:
+            return
+
         self._run_js(
             f"setPickMarker({float(latitude)}, {float(longitude)});"
         )
 
     def clear_pick_marker(self) -> None:
+
+        if not self._page_ready:
+            return
 
         self._run_js("clearPickMarker();")
 

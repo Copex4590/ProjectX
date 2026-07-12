@@ -191,9 +191,12 @@ class FirstRunWizard(QDialog):
             return
 
         self._setup.handle_next()
-        self.show()
-        self.raise_()
-        self.activateWindow()
+
+        if self._setup.substep_index() > _SUBSTEP_MAP:
+            self.show()
+            self.raise_()
+            self.activateWindow()
+
         self._sync_buttons()
 
     def _on_back(self) -> None:
