@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -19,12 +19,14 @@ from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button
 from i18n import tr
 from observation import observation_manager
 from observation.coords import max_observation_radius_km
+from shiboken6 import isValid
 
 _SUBSTEP_MAP = 0
 _SUBSTEP_NAME = 1
 _SUBSTEP_RADIUS = 2
 
 _DEFAULT_COVERAGE_RADIUS_KM = 25.0
+_MAP_PICK_CONFIRM_DELAY_MS = 750
 
 _NAME_INPUT_STYLE = """
     background: #252a31;
@@ -94,7 +96,7 @@ class ObservationSetupWidget(QWidget):
     def on_leave(self) -> None:
 
         with trace_block("ObservationSetupWidget.on_leave"):
-            MapController.instance().cancel_pick_mode()
+            MapController.instance().cancel_pick_mode(restore_host=False)
 
     def handle_next(self) -> bool:
 
@@ -293,15 +295,39 @@ class ObservationSetupWidget(QWidget):
 
     def _on_map_location(self, latitude: float, longitude: float) -> None:
 
+        if not isValid(self):
+            return
+
         self._picked_lat = latitude
         self._picked_lon = longitude
         self._update_picked_coords_label()
 
         MapController.instance().cancel_pick_mode(restore_host=False)
+
+        QTimer.singleShot(
+            _MAP_PICK_CONFIRM_DELAY_MS,
+            lambda lat=latitude, lon=longitude: self._advance_after_map_pick(
+                lat,
+                lon,
+            ),
+        )
+
+    def _advance_after_map_pick(
+        self,
+        latitude: float,
+        longitude: float,
+    ) -> None:
+
+        if not isValid(self):
+            return
+
+        self._picked_lat = latitude
+        self._picked_lon = longitude
+        self._update_picked_coords_label()
         self._stack.setCurrentIndex(_SUBSTEP_NAME)
 
         host = self._pick_host_dialog()
-        if host is not None:
+        if host is not None and isValid(host):
             host.show()
             host.raise_()
             host.activateWindow()
@@ -309,7 +335,7 @@ class ObservationSetupWidget(QWidget):
         self._name_input.setFocus(Qt.FocusReason.OtherFocusReason)
 
         parent = self.window()
-        if hasattr(parent, "_sync_buttons"):
+        if isValid(parent) and hasattr(parent, "_sync_buttons"):
             parent._sync_buttons()
 
     def _sync_radius_limits(self) -> None:
@@ -372,14 +398,8 @@ class ObservationWizard(QDialog):
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
 
-    def showEvent(self, event) -> None:
+    def start_setup(self) -> None:
 
-        super().showEvent(event)
-
-        if self._setup.substep_index() > _SUBSTEP_MAP:
-            return
-
-        self.hide()
         self._setup.begin_map_selection()
 
     def refresh_translations(self) -> None:
@@ -420,7 +440,7 @@ class ObservationWizard(QDialog):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(12)
 
-        self._setup = ObservationSetupWidget()
+        self._setup = ObservationSetupWidget(self)
         layout.addWidget(self._setup)
 
         self._button_box = QDialogButtonBox()
@@ -474,11 +494,13 @@ class ObservationWizard(QDialog):
     def reject(self) -> None:
 
         with trace_block("ObservationWizard.reject"):
+            MapController.instance().cancel_pick_mode(restore_host=False)
             self._setup.on_leave()
             super().reject()
 
     def accept(self) -> None:
 
         with trace_block("ObservationWizard.accept"):
+            MapController.instance().cancel_pick_mode(restore_host=False)
             self._setup.on_leave()
             super().accept()

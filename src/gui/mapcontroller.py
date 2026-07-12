@@ -4,13 +4,14 @@ from collections.abc import Callable
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal
 
-from debug.obs_freeze_trace import trace_block, trace_enter, trace_exit, trace_timer_callback
+from debug.obs_freeze_trace import trace_block, trace_enter, trace_exit, trace_event, trace_timer_callback
 from gui.map_core import MAP_PAGE_INDEX, PickMode
 from gui.observationreferencedialog import ObservationReferenceDialog
 from gui.widgets.mapwidget import MapWidget
 from i18n import tr
 from observation import observation_manager
 from PySide6.QtWidgets import QApplication, QDialog, QWidget
+from shiboken6 import isValid
 
 
 LocationPickCallback = Callable[[float, float], None]
@@ -178,6 +179,9 @@ class MapController(QObject):
     def refresh_observation_points(self) -> None:
 
         with trace_block("MapController.refresh_observation_points"):
+            if self._pick_mode == PickMode.LOCATION:
+                return
+
             trace_enter("MapController.refresh_observation_points.observation_manager.all")
             points = observation_manager.all()
             trace_exit("MapController.refresh_observation_points.observation_manager.all")
@@ -277,8 +281,15 @@ class MapController(QObject):
         self._location_pick_callback = None
         self._set_pick_mode(PickMode.NONE)
         self._widget.end_location_pick()
-        self._restore_pick_host()
-        callback(latitude, longitude)
+        self._clear_pick_host()
+        self.release_application_modality()
+
+        try:
+            callback(latitude, longitude)
+        except RuntimeError:
+            trace_event(
+                "MapController._on_location_selected ignored deleted pick host"
+            )
 
     def _set_pick_mode(self, mode: PickMode) -> None:
 
@@ -355,10 +366,10 @@ class MapController(QObject):
         dialog = self._resolve_pick_dialog(host)
         parent = self._dialog_parent
 
-        if parent is not None and not parent.isVisible():
+        if parent is not None and isValid(parent) and not parent.isVisible():
             parent.show()
 
-        if dialog is not None:
+        if dialog is not None and isValid(dialog):
             self._pick_host = dialog
             self._pick_host_was_modal = dialog.isModal()
             self.release_application_modality(dialog)
@@ -368,7 +379,7 @@ class MapController(QObject):
 
         self.release_application_modality()
 
-        if parent is not None:
+        if parent is not None and isValid(parent):
             parent.raise_()
             parent.activateWindow()
             parent.setFocus(Qt.FocusReason.OtherFocusReason)
@@ -381,7 +392,7 @@ class MapController(QObject):
         dialog = self._pick_host
         self._pick_host = None
 
-        if dialog is None:
+        if dialog is None or not isValid(dialog):
             return
 
         dialog.show()
@@ -391,4 +402,9 @@ class MapController(QObject):
 
         dialog.raise_()
         dialog.activateWindow()
+        self._pick_host_was_modal = False
+
+    def _clear_pick_host(self) -> None:
+
+        self._pick_host = None
         self._pick_host_was_modal = False
