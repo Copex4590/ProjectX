@@ -258,6 +258,8 @@
   "Enter coordinates": "Enter coordinates",
   "Enter the observation point name first.": "Enter the observation point name first.",
   "First observation point created successfully": "First observation point created successfully",
+  "You successfully created your first observation point.": "You successfully created your first observation point.",
+  "To create additional observation points, choose Create new on the Dashboard.": "To create additional observation points, choose Create new on the Dashboard.",
   "How would you like to choose the observation point location?": "How would you like to choose the observation point location?",
   "Click on map": "Click on map",
   "Observation Point Name": "Observation Point Name",
