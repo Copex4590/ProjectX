@@ -193,7 +193,7 @@ class PlaybackSettingsPage(QFrame):
             QLineEdit {
                 background: #252a31;
                 color: white;
-                border: 1px solid #40444b;
+                border: 1px solid #3d4a5c;
                 border-radius: 6px;
                 padding: 6px 8px;
             }

@@ -33,7 +33,7 @@ from camera import (
 )
 from camera.camera import FUTURE_CAMERA_TYPES
 from gui.i18n_support import bind_language_refresh
-from gui.widgets.cameramapwidget import CameraMapWidget
+from gui.mapcontroller import MapController
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button, show_wizard_help
 from i18n import tr
 from observation import observation_manager
@@ -91,7 +91,6 @@ class CameraWizard(QDialog):
         self._field_of_view = camera.field_of_view if camera else 90.0
         self._max_distance = camera.max_distance if camera else 5.0
         self._use_observation_position = True
-        self._heading_pick_active = False
         self._test_worker: _StreamTestWorker | None = None
         self._last_test_success: bool | None = None
 
@@ -126,6 +125,7 @@ class CameraWizard(QDialog):
                     self._use_observation_option.setChecked(False)
 
         self.refresh_translations()
+        self._sync_position_mode()
         self._sync_buttons()
 
     def refresh_translations(self) -> None:
@@ -165,18 +165,17 @@ class CameraWizard(QDialog):
         self._map_position_option.setText(
             tr("Select another position on map")
         )
+        self._pick_map_button.setText(tr("Select location on Map"))
         self._position_hint.setText(
-            tr("Click the map once. A blue camera marker appears.")
+            tr("Use the central Map to choose a location.")
         )
 
         self._step_title_labels[_STEP_HEADING].setText(
             tr("Step 5 — Camera Direction")
         )
         self._heading_label.setText(tr("Heading"))
-        self._heading_hint.setText(
-            tr("Rotate visually on map or enter 0–359°.")
-        )
-        self._rotate_map_button.setText(tr("Rotate on map"))
+        self._heading_hint.setText(tr("Enter a heading from 0–359°."))
+        self._update_position_coords_label()
 
         self._step_title_labels[_STEP_FOV].setText(tr("Step 6 — Field of View"))
         self._fov_label.setText(tr("Field of View"))
@@ -236,7 +235,7 @@ class CameraWizard(QDialog):
             QLineEdit, QDoubleSpinBox, QSpinBox {
                 background: #252a31;
                 color: white;
-                border: 1px solid #40444b;
+                border: 1px solid #3d4a5c;
                 border-radius: 6px;
                 padding: 6px 8px;
             }
@@ -246,15 +245,15 @@ class CameraWizard(QDialog):
             }
 
             QPushButton {
-                background: #343a42;
+                background: #243651;
                 color: white;
-                border: 1px solid #4a5159;
+                border: 1px solid #2d5a8e;
                 border-radius: 6px;
                 padding: 6px 12px;
             }
 
             QPushButton:hover {
-                background: #3f464f;
+                background: #2d4a6f;
             }
 
             QPushButton:disabled {
@@ -391,16 +390,26 @@ class CameraWizard(QDialog):
         self._position_group.addButton(self._use_observation_option, 0)
         self._position_group.addButton(self._map_position_option, 1)
 
-        self._position_map = CameraMapWidget()
-        self._position_map.setMinimumHeight(240)
-        self._position_map.setVisible(False)
-        layout.addWidget(self._position_map)
+        self._map_panel = QWidget()
+        map_panel_layout = QVBoxLayout(self._map_panel)
+        map_panel_layout.setContentsMargins(0, 0, 0, 0)
+        map_panel_layout.setSpacing(8)
 
         self._position_hint = QLabel()
         self._position_hint.setWordWrap(True)
-        self._position_hint.setVisible(False)
         self._position_hint.setStyleSheet("color: #9aa4af; font-size: 10pt;")
-        layout.addWidget(self._position_hint)
+        map_panel_layout.addWidget(self._position_hint)
+
+        self._pick_map_button = QPushButton()
+        map_panel_layout.addWidget(self._pick_map_button)
+
+        self._picked_coords_label = QLabel()
+        self._picked_coords_label.setWordWrap(True)
+        self._picked_coords_label.setStyleSheet("color: white; font-weight: 600;")
+        map_panel_layout.addWidget(self._picked_coords_label)
+
+        self._map_panel.setVisible(False)
+        layout.addWidget(self._map_panel)
         layout.addStretch()
         self._stack.addWidget(page)
 
@@ -416,13 +425,6 @@ class CameraWizard(QDialog):
         self._heading_input.setRange(0, 359)
         form.addRow(self._heading_label, self._heading_input)
         layout.addLayout(form)
-
-        self._rotate_map_button = QPushButton()
-        layout.addWidget(self._rotate_map_button)
-
-        self._heading_map = CameraMapWidget()
-        self._heading_map.setMinimumHeight(240)
-        layout.addWidget(self._heading_map)
 
         self._heading_hint = QLabel()
         self._heading_hint.setWordWrap(True)
@@ -597,10 +599,8 @@ class CameraWizard(QDialog):
 
         self._source_group.idClicked.connect(self._on_source_changed)
         self._position_group.idClicked.connect(self._on_position_mode_changed)
-        self._position_map.positionSelected.connect(self._on_position_selected)
+        self._pick_map_button.clicked.connect(self._start_map_pick)
         self._heading_input.valueChanged.connect(self._on_heading_changed)
-        self._rotate_map_button.clicked.connect(self._toggle_heading_pick)
-        self._heading_map.headingSelected.connect(self._on_heading_selected)
         self._test_button.clicked.connect(self._run_stream_test)
         self._url_input.textChanged.connect(self._clear_url_error)
 
@@ -664,55 +664,53 @@ class CameraWizard(QDialog):
 
         self._camera_type = self._current_source_type()
 
-    def _on_position_mode_changed(self, button_id: int) -> None:
+    def _on_position_mode_changed(self, _button_id: int) -> None:
 
-        use_map = button_id == 1
+        self._sync_position_mode()
+
+    def _sync_position_mode(self) -> None:
+
+        use_map = self._map_position_option.isChecked()
         self._use_observation_position = not use_map
-        self._position_map.setVisible(use_map)
-        self._position_hint.setVisible(use_map)
+        self._map_panel.setVisible(use_map)
 
-        if use_map:
-            self._position_map.set_camera(
-                self._latitude,
-                self._longitude,
-                self._heading,
-            )
-            self._position_map.enable_position_pick(True)
-        else:
-            self._position_map.enable_position_pick(False)
+        if not use_map:
+            MapController.instance().cancel_pick_mode()
             point = observation_manager.get(self._observation_point_id)
 
             if point is not None:
                 self._latitude = point.latitude
                 self._longitude = point.longitude
 
+        self._update_position_coords_label()
+
+    def _start_map_pick(self) -> None:
+
+        MapController.instance().begin_location_pick(
+            self._on_position_selected,
+            host=self.window(),
+        )
+
     def _on_position_selected(self, latitude: float, longitude: float) -> None:
 
         self._latitude = latitude
         self._longitude = longitude
+        self._update_position_coords_label()
+
+    def _update_position_coords_label(self) -> None:
+
+        self._picked_coords_label.setText(
+            f"{self._latitude:.5f}, {self._longitude:.5f}"
+        )
 
     def _on_heading_changed(self, value: int) -> None:
 
         self._heading = float(value)
-        self._heading_map.set_heading(self._heading)
 
-    def _toggle_heading_pick(self) -> None:
+    def reject(self) -> None:
 
-        self._heading_pick_active = not self._heading_pick_active
-        self._heading_map.enable_heading_pick(self._heading_pick_active)
-        self._rotate_map_button.setStyleSheet(
-            "background: #1e88e5;" if self._heading_pick_active else ""
-        )
-
-    def _on_heading_selected(self, heading: float) -> None:
-
-        self._heading = heading % 360.0
-        self._heading_input.blockSignals(True)
-        self._heading_input.setValue(int(self._heading))
-        self._heading_input.blockSignals(False)
-        self._heading_map.enable_heading_pick(False)
-        self._heading_pick_active = False
-        self._rotate_map_button.setStyleSheet("")
+        MapController.instance().cancel_pick_mode()
+        super().reject()
 
     def _clear_url_error(self) -> None:
 
@@ -749,6 +747,8 @@ class CameraWizard(QDialog):
         step = self._stack.currentIndex()
 
         if step == _STEP_POSITION:
+            MapController.instance().cancel_pick_mode()
+
             if self._use_observation_position:
                 point = observation_manager.get(self._observation_point_id)
 
@@ -756,24 +756,13 @@ class CameraWizard(QDialog):
                     self._latitude = point.latitude
                     self._longitude = point.longitude
 
-            self._position_map.enable_position_pick(False)
-
-        if step == _STEP_HEADING:
-            self._heading_map.enable_heading_pick(False)
-            self._heading_pick_active = False
-            self._rotate_map_button.setStyleSheet("")
-
         if step >= _STEP_SUMMARY:
             return
 
         self._stack.setCurrentIndex(step + 1)
 
-        if step + 1 == _STEP_HEADING:
-            self._heading_map.set_camera(
-                self._latitude,
-                self._longitude,
-                self._heading,
-            )
+        if step + 1 == _STEP_POSITION:
+            self._sync_position_mode()
 
         if step + 1 == _STEP_SUMMARY:
             self._field_of_view = self._fov_input.value()
@@ -789,12 +778,13 @@ class CameraWizard(QDialog):
         if step <= _STEP_NAME:
             return
 
-        if step == _STEP_HEADING:
-            self._heading_map.enable_heading_pick(False)
-            self._heading_pick_active = False
-            self._rotate_map_button.setStyleSheet("")
+        if step == _STEP_POSITION:
+            MapController.instance().cancel_pick_mode()
 
         self._stack.setCurrentIndex(step - 1)
+
+        if step - 1 == _STEP_POSITION:
+            self._sync_position_mode()
         self._sync_buttons()
 
     def _sync_buttons(self) -> None:

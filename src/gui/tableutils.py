@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QTableWidget, QTableWidgetItem
 
+from gui.theme import TEXT_MUTED
 from i18n import tr
 
 _EMPTY_ROW_HEIGHT = 44
@@ -30,7 +31,7 @@ def show_empty_table_message(
     item.setTextAlignment(
         Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
     )
-    item.setForeground(QColor("#9aa4af"))
+    item.setForeground(QColor(TEXT_MUTED))
     table.setItem(0, 0, item)
 
     if columns > 1:

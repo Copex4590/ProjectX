@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from gui.i18n_support import bind_language_refresh
+from gui.theme import ACCENT, BG_BASE, TEXT, TEXT_MUTED
 from i18n import tr
 from vessel_statistics.statistics_manager import StatisticsManager, statistics_manager
 
@@ -36,7 +37,7 @@ class SummaryCard(QFrame):
         self.setStyleSheet("""
             QFrame {
                 background: #252a31;
-                border: 1px solid #40444b;
+                border: 1px solid #3d4a5c;
                 border-radius: 10px;
             }
         """)
@@ -76,7 +77,7 @@ class TopListPanel(QFrame):
         self.setStyleSheet("""
             QFrame {
                 background: #252a31;
-                border: 1px solid #40444b;
+                border: 1px solid #3d4a5c;
                 border-radius: 10px;
             }
 
@@ -135,7 +136,7 @@ class SimpleBarChart(QFrame):
         self.setStyleSheet("""
             QFrame {
                 background: #252a31;
-                border: 1px solid #40444b;
+                border: 1px solid #3d4a5c;
                 border-radius: 10px;
             }
         """)
@@ -154,19 +155,19 @@ class SimpleBarChart(QFrame):
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), QColor("#252a31"))
+        painter.fillRect(self.rect(), QColor(BG_BASE))
 
         title_font = QFont()
         title_font.setPointSize(10)
         title_font.setBold(True)
         painter.setFont(title_font)
-        painter.setPen(QColor("#d5dbe3"))
+        painter.setPen(QColor(TEXT))
         painter.drawText(12, 24, tr(self._title_key))
 
         chart_rect = self.rect().adjusted(16, 36, -16, -16)
 
         if not self._values or max(self._values, default=0) <= 0:
-            painter.setPen(QColor("#9aa4af"))
+            painter.setPen(QColor(TEXT_MUTED))
             painter.drawText(
                 chart_rect,
                 Qt.AlignmentFlag.AlignCenter,
@@ -187,7 +188,7 @@ class SimpleBarChart(QFrame):
             bar_height = int((value / max_value) * (chart_rect.height() - 18))
             x = chart_rect.left() + index * (bar_width + gap)
             y = chart_rect.bottom() - bar_height
-            painter.fillRect(x, y, bar_width, bar_height, QColor("#1976d2"))
+            painter.fillRect(x, y, bar_width, bar_height, QColor(ACCENT))
 
         painter.setPen(QColor("#6b7688"))
         painter.drawLine(

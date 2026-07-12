@@ -53,7 +53,7 @@ class CameraPreviewPanel(QFrame):
         self.setStyleSheet("""
             QFrame#CameraPreviewPanel {
                 background: #353b44;
-                border: 1px solid #4b535d;
+                border: 1px solid #2d5a8e;
                 border-radius: 10px;
             }
 
@@ -91,7 +91,7 @@ class CameraPreviewPanel(QFrame):
 
             QFrame#videoHost {
                 background: #252a31;
-                border: 1px solid #40444b;
+                border: 1px solid #3d4a5c;
                 border-radius: 6px;
                 min-height: 180px;
             }

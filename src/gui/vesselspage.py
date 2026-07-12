@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal
 
 from database import registry
+from debug.obs_freeze_trace import trace_block
 from gui.i18n_support import bind_language_refresh
 from gui.widgets.emptystate import EmptyStateWidget
 from i18n import tr
@@ -40,7 +41,7 @@ class VesselsPage(QWidget):
             QListWidget{
                 background:#252a31;
                 color:white;
-                border:1px solid #40444b;
+                border:1px solid #3d4a5c;
                 font-size:12pt;
             }
         """)
@@ -70,32 +71,33 @@ class VesselsPage(QWidget):
 
     def refresh(self):
 
-        ships = sorted(
-            registry.all(),
-            key=lambda s: s.name.lower()
-        )
-
-        self._last_count = len(ships)
-        self.list.clear()
-
-        if not ships:
-            self._stack.setCurrentWidget(self._empty_state)
-            return
-
-        self._stack.setCurrentWidget(self.list)
-
-        for ship in ships:
-
-            item = QListWidgetItem(
-                f"{ship.name:28} {ship.speed:5.1f} {tr('km/h')}"
+        with trace_block("VesselsPage.refresh"):
+            ships = sorted(
+                registry.all(),
+                key=lambda s: s.name.lower()
             )
 
-            item.setData(
-                Qt.UserRole,
-                ship.mmsi
-            )
+            self._last_count = len(ships)
+            self.list.clear()
 
-            self.list.addItem(item)
+            if not ships:
+                self._stack.setCurrentWidget(self._empty_state)
+                return
+
+            self._stack.setCurrentWidget(self.list)
+
+            for ship in ships:
+
+                item = QListWidgetItem(
+                    f"{ship.name:28} {ship.speed:5.1f} {tr('km/h')}"
+                )
+
+                item.setData(
+                    Qt.UserRole,
+                    ship.mmsi
+                )
+
+                self.list.addItem(item)
 
     def item_clicked(self, item):
 
