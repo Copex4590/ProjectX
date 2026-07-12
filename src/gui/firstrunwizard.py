@@ -2,13 +2,16 @@
 # First Run Wizard
 # ============================================================================
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QButtonGroup,
     QDialog,
     QDialogButtonBox,
+    QDoubleSpinBox,
+    QFormLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QRadioButton,
     QStackedWidget,
@@ -16,24 +19,107 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from gui.aiswizard import AISSetupWidget
+from debug.obs_freeze_trace import trace_block
 from gui.i18n_support import bind_language_refresh
-from gui.observationwizard import ObservationSetupWidget
+from gui.mapcontroller import MapController
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button
-from i18n import language_manager, tr
-from preferences import SUPPORTED_LANGUAGES, preferences_manager
+from i18n import tr
+from observation import observation_manager
+from observation.coords import max_observation_radius_km
+from preferences import preferences_manager
 
-_LANGUAGE_LABELS = {
-    "en": "English",
-    "hu": "Magyar",
-}
+_DEFAULT_COVERAGE_RADIUS_KM = 25.0
 
-_STEP_LANGUAGE = 0
-_STEP_WELCOME = 1
-_STEP_OBSERVATION = 2
-_STEP_AIS = 3
-_STEP_CAMERA = 4
-_STEP_FINISH = 5
+_STEP_NAME = 0
+_STEP_METHOD = 1
+_STEP_COORDS = 2
+
+_METHOD_MAP = 0
+_METHOD_COORDS = 1
+
+
+class _FirstRunSuccessDialog(QDialog):
+
+    def __init__(
+        self,
+        name: str,
+        latitude: float,
+        longitude: float,
+        parent=None,
+    ):
+        super().__init__(parent)
+
+        self.setModal(True)
+        self.setMinimumWidth(420)
+        self.setWindowFlags(
+            self.windowFlags() & ~Qt.WindowType.WindowCloseButtonHint
+        )
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(12)
+
+        title = QLabel(
+            "✓ "
+            + tr("First observation point created successfully")
+        )
+        title.setWordWrap(True)
+        title.setStyleSheet(
+            "font-size: 14pt; font-weight: bold; color: #e8f5e9;"
+        )
+        layout.addWidget(title)
+
+        point_label = QLabel(tr("Observation Point"))
+        point_label.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        layout.addWidget(point_label)
+
+        point_value = QLabel(name)
+        point_value.setStyleSheet(
+            "color: white; font-size: 13pt; font-weight: 600;"
+        )
+        layout.addWidget(point_value)
+
+        layout.addSpacing(4)
+
+        coords_label = QLabel(tr("Coordinates"))
+        coords_label.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        layout.addWidget(coords_label)
+
+        lat_value = QLabel(f"{latitude:.6f}")
+        lat_value.setStyleSheet("color: white; font-size: 13pt;")
+        layout.addWidget(lat_value)
+
+        lon_value = QLabel(f"{longitude:.6f}")
+        lon_value.setStyleSheet("color: white; font-size: 13pt;")
+        layout.addWidget(lon_value)
+
+        layout.addSpacing(8)
+
+        button_row = QHBoxLayout()
+        button_row.addStretch()
+        self._continue_button = QPushButton(tr("Continue"))
+        self._continue_button.setMinimumWidth(120)
+        self._continue_button.clicked.connect(self.accept)
+        button_row.addWidget(self._continue_button)
+        layout.addLayout(button_row)
+
+        self.setStyleSheet("""
+            QDialog {
+                background: #1d2127;
+            }
+
+            QPushButton {
+                background: #243651;
+                color: white;
+                border: 1px solid #2d5a8e;
+                border-radius: 6px;
+                padding: 8px 20px;
+            }
+
+            QPushButton:hover {
+                background: #2d4a6f;
+            }
+        """)
 
 
 class FirstRunWizard(QDialog):
@@ -44,64 +130,42 @@ class FirstRunWizard(QDialog):
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
         self.setMinimumWidth(560)
-        self.setMinimumHeight(520)
+        self.setMinimumHeight(420)
 
-        self._add_camera_now = False
+        self._picked_lat: float | None = None
+        self._picked_lon: float | None = None
 
         self._build_ui()
         self._connect_signals()
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
-        self._stack.setCurrentIndex(_STEP_LANGUAGE)
+        self._stack.setCurrentIndex(_STEP_NAME)
         self._sync_buttons()
+        QTimer.singleShot(0, self._focus_name_input)
 
-    @property
-    def open_camera_page(self) -> bool:
+    def showEvent(self, event) -> None:
 
-        return self._add_camera_now
+        super().showEvent(event)
+        if self._stack.currentIndex() == _STEP_NAME:
+            QTimer.singleShot(0, self._focus_name_input)
 
     def refresh_translations(self) -> None:
 
         self.setWindowTitle(tr("Project X Setup"))
-        self._welcome_title.setText(tr("Project X"))
-        self._welcome_body.setText(tr("Welcome to Project X."))
-        self._welcome_hint.setText(
-            tr(
-                "This wizard will help you configure "
-                "your first Observation Point."
-            )
+        self._name_title.setText(tr("Observation Point Name"))
+        self._name_input.setPlaceholderText(tr("e.g. Home"))
+        self._method_title.setText(
+            tr("How would you like to choose the observation point location?")
         )
-        self._language_title.setText(tr("Choose your language"))
-        self._english_option.setText(tr("English"))
-        self._hungarian_option.setText(tr("Magyar"))
-        self._observation_setup.refresh_translations()
-        self._ais_setup.refresh_translations()
-        self._camera_title.setText(
-            tr("Would you like to add your first camera now?")
-        )
-        self._camera_yes_option.setText(tr("Yes"))
-        self._camera_skip_option.setText(
-            tr("Skip (recommended if you only want AIS)")
-        )
-        self._finish_title.setText(tr("Configuration completed."))
-        self._finish_body.setText(tr("Welcome to Project X."))
-
+        self._map_option.setText(tr("Select on Map"))
+        self._coords_option.setText(tr("Enter Coordinates"))
+        self._latitude_label.setText(tr("Latitude"))
+        self._longitude_label.setText(tr("Longitude"))
         self._continue_button.setText(tr("Continue"))
-        self._back_button.setText(
-            tr("Back")
-        )
-        self._next_button.setText(
-            tr("Next")
-        )
+        self._back_button.setText(tr("Back"))
         self._button_box.button(QDialogButtonBox.StandardButton.Cancel).setText(
             tr("Cancel")
         )
-        self._button_box.button(QDialogButtonBox.StandardButton.Ok).setText(
-            tr("Confirm")
-        )
-        self._open_dashboard_button.setText(tr("Open Dashboard"))
-
-        self._sync_language_selection()
         self._sync_buttons()
 
     def _build_ui(self) -> None:
@@ -147,277 +211,185 @@ class FirstRunWizard(QDialog):
         self._stack = QStackedWidget()
         layout.addWidget(self._stack)
 
-        language = QWidget()
-        language_layout = QVBoxLayout(language)
-        self._language_title = QLabel()
-        self._language_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        language_layout.addWidget(self._language_title)
+        name_page = QWidget()
+        name_layout = QVBoxLayout(name_page)
+        self._name_title = QLabel()
+        self._name_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        name_layout.addWidget(self._name_title)
+        self._name_input = QLineEdit()
+        self._name_input.returnPressed.connect(self._on_continue)
+        name_layout.addWidget(self._name_input)
+        name_layout.addStretch()
+        self._stack.addWidget(name_page)
 
-        self._english_option = QRadioButton()
-        self._hungarian_option = QRadioButton()
-        self._english_option.setChecked(True)
+        method_page = QWidget()
+        method_layout = QVBoxLayout(method_page)
+        self._method_title = QLabel()
+        self._method_title.setWordWrap(True)
+        self._method_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        method_layout.addWidget(self._method_title)
 
-        language_layout.addWidget(self._english_option)
-        language_layout.addWidget(self._hungarian_option)
-        language_layout.addStretch()
-        self._stack.addWidget(language)
+        self._map_option = QRadioButton()
+        self._coords_option = QRadioButton()
+        self._map_option.setChecked(True)
+        method_layout.addWidget(self._map_option)
+        method_layout.addWidget(self._coords_option)
+        method_layout.addStretch()
+        self._stack.addWidget(method_page)
 
-        self._language_group = QButtonGroup(self)
-        self._language_group.addButton(self._english_option, 0)
-        self._language_group.addButton(self._hungarian_option, 1)
+        self._method_group = QButtonGroup(self)
+        self._method_group.addButton(self._map_option, _METHOD_MAP)
+        self._method_group.addButton(self._coords_option, _METHOD_COORDS)
 
-        welcome = QWidget()
-        welcome_layout = QVBoxLayout(welcome)
-        self._welcome_title = QLabel()
-        self._welcome_title.setAlignment(Qt.AlignCenter)
-        self._welcome_title.setStyleSheet(
-            "font-size: 22pt; font-weight: bold; color: white;"
-        )
-        welcome_layout.addWidget(self._welcome_title)
-
-        self._welcome_body = QLabel()
-        self._welcome_body.setAlignment(Qt.AlignCenter)
-        self._welcome_body.setStyleSheet("font-size: 13pt;")
-        welcome_layout.addWidget(self._welcome_body)
-
-        self._welcome_hint = QLabel()
-        self._welcome_hint.setAlignment(Qt.AlignCenter)
-        self._welcome_hint.setWordWrap(True)
-        self._welcome_hint.setStyleSheet("color: #9aa4af; font-size: 10pt;")
-        welcome_layout.addWidget(self._welcome_hint)
-        welcome_layout.addStretch()
-
-        self._continue_button = QPushButton()
-        welcome_layout.addWidget(self._continue_button, alignment=Qt.AlignCenter)
-        self._stack.addWidget(welcome)
-
-        self._observation_setup = ObservationSetupWidget()
-        self._stack.addWidget(self._observation_setup)
-
-        self._ais_setup = AISSetupWidget()
-        self._stack.addWidget(self._ais_setup)
-
-        camera = QWidget()
-        camera_layout = QVBoxLayout(camera)
-        self._camera_title = QLabel()
-        self._camera_title.setWordWrap(True)
-        self._camera_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        camera_layout.addWidget(self._camera_title)
-
-        self._camera_yes_option = QRadioButton()
-        self._camera_skip_option = QRadioButton()
-        self._camera_skip_option.setChecked(True)
-
-        camera_layout.addWidget(self._camera_yes_option)
-        camera_layout.addWidget(self._camera_skip_option)
-        camera_layout.addStretch()
-        self._stack.addWidget(camera)
-
-        self._camera_group = QButtonGroup(self)
-        self._camera_group.addButton(self._camera_yes_option, 0)
-        self._camera_group.addButton(self._camera_skip_option, 1)
-
-        finish = QWidget()
-        finish_layout = QVBoxLayout(finish)
-        self._finish_title = QLabel()
-        self._finish_title.setAlignment(Qt.AlignCenter)
-        self._finish_title.setStyleSheet(
-            "font-size: 16pt; font-weight: bold; color: white;"
-        )
-        finish_layout.addWidget(self._finish_title)
-
-        self._finish_body = QLabel()
-        self._finish_body.setAlignment(Qt.AlignCenter)
-        self._finish_body.setStyleSheet("font-size: 13pt;")
-        finish_layout.addWidget(self._finish_body)
-        finish_layout.addStretch()
-
-        self._open_dashboard_button = QPushButton()
-        finish_layout.addWidget(
-            self._open_dashboard_button,
-            alignment=Qt.AlignCenter,
-        )
-        self._stack.addWidget(finish)
+        coords_page = QWidget()
+        coords_layout = QVBoxLayout(coords_page)
+        coords_form = QFormLayout()
+        self._latitude_label = QLabel()
+        self._longitude_label = QLabel()
+        self._latitude_input = QDoubleSpinBox()
+        self._latitude_input.setRange(-90.0, 90.0)
+        self._latitude_input.setDecimals(5)
+        self._latitude_input.setValue(0.0)
+        self._longitude_input = QDoubleSpinBox()
+        self._longitude_input.setRange(-180.0, 180.0)
+        self._longitude_input.setDecimals(5)
+        self._longitude_input.setValue(0.0)
+        coords_form.addRow(self._latitude_label, self._latitude_input)
+        coords_form.addRow(self._longitude_label, self._longitude_input)
+        coords_layout.addLayout(coords_form)
+        coords_layout.addStretch()
+        self._stack.addWidget(coords_page)
 
         button_row = QHBoxLayout()
         self._button_box = QDialogButtonBox()
         self._back_button = add_wizard_back_button(self._button_box)
-        self._next_button = add_wizard_next_button(self._button_box)
+        self._continue_button = add_wizard_next_button(self._button_box)
         self._button_box.addButton(QDialogButtonBox.StandardButton.Cancel)
-        self._button_box.addButton(QDialogButtonBox.StandardButton.Ok)
         button_row.addWidget(self._button_box)
         layout.addLayout(button_row)
 
     def _connect_signals(self) -> None:
 
         self._continue_button.clicked.connect(self._on_continue)
-        self._open_dashboard_button.clicked.connect(self._on_finish)
-        self._button_box.rejected.connect(self.reject)
-        self._next_button.clicked.connect(
-            self._on_next
-        )
-        self._back_button.clicked.connect(
-            self._on_back
-        )
-        self._button_box.accepted.connect(self._on_confirm_or_ais)
-        self._language_group.idClicked.connect(self._on_language_selected)
-        self._camera_group.idClicked.connect(self._on_camera_selected)
+        self._back_button.clicked.connect(self._on_back)
+        self._button_box.rejected.connect(self._on_cancel)
 
-    def _sync_language_selection(self) -> None:
+    def _focus_name_input(self) -> None:
 
-        current = language_manager.current_language
-
-        if current == "hu":
-            self._hungarian_option.setChecked(True)
-        else:
-            self._english_option.setChecked(True)
+        if self._stack.currentIndex() == _STEP_NAME:
+            self._name_input.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def _sync_buttons(self) -> None:
 
         step = self._stack.currentIndex()
-        back_button = self._back_button
-        next_button = self._next_button
-        cancel_button = self._button_box.button(
-            QDialogButtonBox.StandardButton.Cancel
-        )
-        confirm_button = self._button_box.button(
-            QDialogButtonBox.StandardButton.Ok
-        )
-
-        self._continue_button.setVisible(step == _STEP_WELCOME)
-        self._open_dashboard_button.setVisible(step == _STEP_FINISH)
-
-        back_button.setVisible(
-            step not in (_STEP_LANGUAGE, _STEP_FINISH)
-        )
-        cancel_button.setVisible(
-            step not in (_STEP_WELCOME, _STEP_FINISH)
-        )
-
-        if step == _STEP_OBSERVATION:
-            self._observation_setup.update_outer_buttons(
-                back_button,
-                next_button,
-                confirm_button,
-            )
-        elif step == _STEP_AIS:
-            self._ais_setup.update_outer_buttons(
-                back_button,
-                next_button,
-                confirm_button,
-            )
-        else:
-            confirm_button.setVisible(False)
-            next_button.setVisible(step in (_STEP_LANGUAGE, _STEP_CAMERA))
-
-        if step == _STEP_LANGUAGE:
-            back_button.setEnabled(False)
-        elif step == _STEP_WELCOME:
-            back_button.setEnabled(True)
-        elif step == _STEP_CAMERA:
-            back_button.setEnabled(True)
-        elif step == _STEP_FINISH:
-            back_button.setEnabled(False)
+        self._back_button.setEnabled(step > _STEP_NAME)
+        self._back_button.setVisible(step != _STEP_NAME)
+        self._continue_button.setVisible(True)
 
     def _on_continue(self) -> None:
 
-        self._stack.setCurrentIndex(_STEP_OBSERVATION)
-        self._observation_setup.on_enter()
-        self._sync_buttons()
-
-    def _persist_language_selection(self) -> None:
-
-        button_id = self._language_group.checkedId()
-
-        if button_id < 0:
-            button_id = 0
-
-        code = SUPPORTED_LANGUAGES[button_id]
-        language_manager.set_language(code)
-
-    def _on_language_selected(self, button_id: int) -> None:
-
-        code = SUPPORTED_LANGUAGES[button_id]
-        language_manager.set_language(code)
-
-    def _on_camera_selected(self, button_id: int) -> None:
-
-        self._add_camera_now = button_id == 0
-
-    def _on_next(self) -> None:
-
         step = self._stack.currentIndex()
 
-        if step == _STEP_LANGUAGE:
-            self._persist_language_selection()
-            self._stack.setCurrentIndex(_STEP_WELCOME)
-        elif step == _STEP_OBSERVATION:
-            self._observation_setup.handle_next()
-        elif step == _STEP_AIS:
-            if self._ais_setup.handle_next():
-                self._ais_setup.on_leave()
-                self._stack.setCurrentIndex(_STEP_CAMERA)
-        elif step == _STEP_CAMERA:
-            self._stack.setCurrentIndex(_STEP_FINISH)
+        if step == _STEP_NAME:
+            if not self._name_input.text().strip():
+                return
 
-        self._sync_buttons()
+            self._picked_lat = None
+            self._picked_lon = None
+            self._stack.setCurrentIndex(_STEP_METHOD)
+            self._sync_buttons()
+            return
+
+        if step == _STEP_METHOD:
+            if self._method_group.checkedId() == _METHOD_MAP:
+                self._start_map_pick()
+            else:
+                self._stack.setCurrentIndex(_STEP_COORDS)
+                self._latitude_input.setFocus(Qt.FocusReason.OtherFocusReason)
+                self._sync_buttons()
+            return
+
+        if step == _STEP_COORDS:
+            self._picked_lat = self._latitude_input.value()
+            self._picked_lon = self._longitude_input.value()
+            self._complete_observation_setup()
 
     def _on_back(self) -> None:
 
         step = self._stack.currentIndex()
 
-        if step == _STEP_WELCOME:
-            self._stack.setCurrentIndex(_STEP_LANGUAGE)
-        elif step == _STEP_OBSERVATION:
-            if self._observation_setup.handle_back():
-                self._observation_setup.on_leave()
-                self._stack.setCurrentIndex(_STEP_WELCOME)
-        elif step == _STEP_AIS:
-            if self._ais_setup.handle_back():
-                self._ais_setup.on_leave()
-                self._stack.setCurrentIndex(_STEP_OBSERVATION)
-                self._observation_setup.on_enter()
-        elif step == _STEP_CAMERA:
-            self._stack.setCurrentIndex(_STEP_AIS)
-            self._ais_setup.on_enter()
-
-        self._sync_buttons()
-
-    def _on_confirm_or_ais(self) -> None:
-
-        if self._stack.currentIndex() == _STEP_AIS:
-            self._on_ais_confirm()
+        if step == _STEP_COORDS:
+            MapController.instance().cancel_pick_mode()
+            self._stack.setCurrentIndex(_STEP_METHOD)
+            self._sync_buttons()
             return
 
-        self._on_confirm()
+        if step == _STEP_METHOD:
+            self._stack.setCurrentIndex(_STEP_NAME)
+            self._sync_buttons()
+            QTimer.singleShot(0, self._focus_name_input)
 
-    def _on_confirm(self) -> None:
+    def _on_cancel(self) -> None:
 
-        if self._stack.currentIndex() != _STEP_OBSERVATION:
+        MapController.instance().cancel_pick_mode()
+        self.reject()
+
+    def _start_map_pick(self) -> None:
+
+        MapController.instance().begin_location_pick(
+            self._on_map_location,
+            overlay_message=tr("Use the central Map to choose a location."),
+            host=self,
+        )
+
+    def _on_map_location(self, latitude: float, longitude: float) -> None:
+
+        self._picked_lat = latitude
+        self._picked_lon = longitude
+        self._complete_observation_setup()
+
+    def _complete_observation_setup(self) -> None:
+
+        name = self._name_input.text().strip()
+
+        if not name or self._picked_lat is None or self._picked_lon is None:
             return
 
-        if not self._observation_setup.handle_confirm():
+        coverage_radius_km = _DEFAULT_COVERAGE_RADIUS_KM
+        max_radius_km = max_observation_radius_km(
+            self._picked_lat,
+            self._picked_lon,
+        )
+
+        if coverage_radius_km > max_radius_km:
+            coverage_radius_km = max_radius_km
+
+        with trace_block("FirstRunWizard._complete_observation_setup.create"):
+            observation_manager.create(
+                name,
+                self._picked_lat,
+                self._picked_lon,
+                coverage_radius_km=coverage_radius_km,
+                set_active=True,
+            )
+
+        if not self._show_success_dialog(name, self._picked_lat, self._picked_lon):
             return
 
-        self._observation_setup.on_leave()
-        self._stack.setCurrentIndex(_STEP_AIS)
-        self._ais_setup.on_enter()
-        self._sync_buttons()
-
-    def _on_ais_confirm(self) -> None:
-
-        if self._stack.currentIndex() != _STEP_AIS:
-            return
-
-        if not self._ais_setup.handle_confirm():
-            return
-
-        self._ais_setup.on_leave()
-        self._stack.setCurrentIndex(_STEP_CAMERA)
-        self._sync_buttons()
-
-    def _on_finish(self) -> None:
-
-        self._add_camera_now = self._camera_yes_option.isChecked()
         preferences_manager.set_first_run_completed(True)
         self.accept()
+
+    def _show_success_dialog(
+        self,
+        name: str,
+        latitude: float,
+        longitude: float,
+    ) -> bool:
+
+        dialog = _FirstRunSuccessDialog(name, latitude, longitude, self)
+        return dialog.exec() == QDialog.DialogCode.Accepted
+
+    def reject(self) -> None:
+
+        MapController.instance().cancel_pick_mode()
+        super().reject()
