@@ -17,7 +17,9 @@ PACKAGE_NAME="projectx"
 DRY_RUN=0
 ASSUME_YES=0
 SELF_TEST=0
+PRIVILEGED_ONLY=0
 APPIMAGE_PATHS=()
+SCRIPT_PATH="$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")"
 
 usage() {
     cat <<EOF
@@ -28,13 +30,13 @@ Usage: $0 [options]
 Options:
   --dry-run            Show what would be removed without deleting
   --yes, -y            Do not prompt for confirmation
+  --privileged-only    Internal: run package/system removal as root
   --appimage PATH      Also remove a ProjectX.AppImage file (repeatable)
   --self-test          Run built-in verification (uses a temporary HOME)
   -h, --help           Show this help
 
 Examples:
   $0
-  sudo $0
   $0 --appimage ~/Downloads/ProjectX.AppImage
   $0 --dry-run
 EOF
@@ -61,6 +63,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --yes|-y)
             ASSUME_YES=1
+            shift
+            ;;
+        --privileged-only)
+            PRIVILEGED_ONLY=1
             shift
             ;;
         --self-test)
@@ -231,7 +237,9 @@ remove_user_desktop_entries() {
     local desktop_dir file
 
     remove_path "$home/.local/share/applications/projectx.desktop"
+    remove_path "$home/.local/share/applications/projectx-uninstall.desktop"
     remove_path "$home/.local/bin/projectx"
+    remove_path "$home/.local/bin/projectx-uninstall"
 
     desktop_dir="$(user_desktop_dir "$home")"
     if [[ -n "$desktop_dir" ]]; then
@@ -281,6 +289,7 @@ remove_user_state() {
     remove_path "$home/.local/share/projectx"
     remove_path "$home/.local/share/Project X"
     remove_path "$home/.cache/Project X"
+    remove_path "$home/.cache/projectx"
 }
 
 remove_system_icons() {
@@ -309,6 +318,15 @@ deb_package_present() {
     dpkg-query -W -f='${Status}' "$PACKAGE_NAME" 2>/dev/null | grep -Eq 'ok installed|ok config-files'
 }
 
+needs_privileged_removal() {
+    deb_package_present || \
+        [[ -d /opt/projectx ]] || \
+        [[ -x /usr/bin/projectx ]] || \
+        [[ -x /usr/bin/projectx-uninstall ]] || \
+        [[ -f /usr/share/applications/projectx.desktop ]] || \
+        [[ -f /usr/share/applications/projectx-uninstall.desktop ]]
+}
+
 remove_deb_package() {
     if ! deb_package_present; then
         return 0
@@ -320,11 +338,16 @@ remove_deb_package() {
     fi
 
     if [[ "$EUID" -ne 0 ]]; then
-        die "Removing the ${PACKAGE_NAME} package requires root. Re-run with sudo."
+        die "Removing the ${PACKAGE_NAME} package requires root."
     fi
 
     log "Removing Debian package: ${PACKAGE_NAME}"
-    dpkg --purge "$PACKAGE_NAME"
+    if dpkg --purge "$PACKAGE_NAME"; then
+        return 0
+    fi
+
+    warn "dpkg --purge ${PACKAGE_NAME} failed."
+    return 1
 }
 
 refresh_desktop_integration() {
@@ -343,6 +366,14 @@ refresh_desktop_integration() {
     if command -v gtk-update-icon-cache >/dev/null 2>&1 &&
         [[ -d /usr/share/icons/hicolor ]]; then
         gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
+    fi
+
+    if command -v xdg-desktop-menu >/dev/null 2>&1; then
+        xdg-desktop-menu forceupdate 2>/dev/null || true
+    fi
+
+    if [[ "$EUID" -eq 0 ]] && command -v update-menus >/dev/null 2>&1; then
+        update-menus 2>/dev/null || true
     fi
 }
 
@@ -396,14 +427,34 @@ gui_command() {
     return 1
 }
 
+gui_user() {
+    if [[ -n "${PROJECTX_UNINSTALL_USER:-}" ]]; then
+        printf '%s' "$PROJECTX_UNINSTALL_USER"
+        return 0
+    fi
+
+    if [[ -n "${SUDO_USER:-}" && "$SUDO_USER" != "root" ]]; then
+        printf '%s' "$SUDO_USER"
+        return 0
+    fi
+
+    if [[ -n "${USER:-}" && "$USER" != "root" ]]; then
+        printf '%s' "$USER"
+        return 0
+    fi
+
+    return 1
+}
+
 run_gui_dialog() {
     local tool
     tool="$(gui_command)" || return 1
 
-    if [[ -n "${SUDO_USER:-}" && "$SUDO_USER" != "root" && "$EUID" -eq 0 ]]; then
-        sudo -u "$SUDO_USER" \
+    local gui_user=""
+    if gui_user="$(gui_user)"; then
+        sudo -u "$gui_user" \
             DISPLAY="${DISPLAY:-:0}" \
-            XAUTHORITY="${XAUTHORITY:-$(getent passwd "$SUDO_USER" | cut -d: -f6)/.Xauthority}" \
+            XAUTHORITY="${XAUTHORITY:-$(user_home_dir "$gui_user")/.Xauthority}" \
             DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-}" \
             "$tool" "$@"
         return $?
@@ -419,16 +470,16 @@ confirm_uninstall_dialog() {
         zenity)
             run_gui_dialog \
                 --question \
-                --title="Project X Uninstall" \
-                --text="Are you sure you want to completely remove Project X?\n\nThis action cannot be undone." \
+                --title="Project X" \
+                --text="Are you sure you want to completely remove Project X?\n\nThis will remove the application, your configuration, and all Project X data from this computer.\n\nThis action cannot be undone." \
                 --ok-label="Uninstall" \
                 --cancel-label="Cancel" \
-                --width=460
+                --width=480
             ;;
         kdialog)
             run_gui_dialog \
-                --title "Project X Uninstall" \
-                --yesno "Are you sure you want to completely remove Project X?\n\nThis action cannot be undone." \
+                --title "Project X" \
+                --yesno "Are you sure you want to completely remove Project X?\n\nThis will remove the application, your configuration, and all Project X data from this computer.\n\nThis action cannot be undone." \
                 --yes-label "Uninstall" \
                 --no-label "Cancel"
             ;;
@@ -445,16 +496,16 @@ show_success_dialog() {
         zenity)
             run_gui_dialog \
                 --info \
-                --title="Project X Uninstall" \
-                --text="Project X has been completely removed.\n\nNo Project X files remain on this system.\n\nThank you for using Project X." \
-                --ok-label="Close" \
+                --title="Project X" \
+                --text="Project X has been successfully removed from your computer." \
+                --ok-label="OK" \
                 --width=460
             ;;
         kdialog)
             run_gui_dialog \
-                --title "Project X Uninstall" \
-                --msgbox "Project X has been completely removed.\n\nNo Project X files remain on this system.\n\nThank you for using Project X." \
-                --ok-label "Close"
+                --title "Project X" \
+                --msgbox "Project X has been successfully removed from your computer." \
+                --ok-label "OK"
             ;;
         *)
             return 1
@@ -462,8 +513,34 @@ show_success_dialog() {
     esac
 }
 
+show_error_dialog() {
+    local message="$1"
+    local tool=""
+
+    if tool="$(gui_command)"; then
+        case "$tool" in
+            zenity)
+                run_gui_dialog \
+                    --error \
+                    --title="Project X" \
+                    --text="$message" \
+                    --ok-label="OK" \
+                    --width=480
+                ;;
+            kdialog)
+                run_gui_dialog \
+                    --title "Project X" \
+                    --error "$message"
+                ;;
+        esac
+        return 0
+    fi
+
+    printf 'Error: %s\n' "$message" >&2
+}
+
 confirm_uninstall() {
-    if [[ "$ASSUME_YES" -eq 1 || "$DRY_RUN" -eq 1 || "$SELF_TEST" -eq 1 ]]; then
+    if [[ "$ASSUME_YES" -eq 1 || "$DRY_RUN" -eq 1 || "$SELF_TEST" -eq 1 || "$PRIVILEGED_ONLY" -eq 1 ]]; then
         return 0
     fi
 
@@ -478,6 +555,7 @@ confirm_uninstall() {
     log "Project X Uninstall"
     log ""
     log "Are you sure you want to completely remove Project X?"
+    log "This will remove the application, your configuration, and all Project X data."
     log "This action cannot be undone."
     log ""
     printf 'Type Uninstall to continue, or press Enter to cancel: '
@@ -490,7 +568,7 @@ confirm_uninstall() {
 }
 
 show_uninstall_complete() {
-    if [[ "$DRY_RUN" -eq 1 || "$SELF_TEST" -eq 1 ]]; then
+    if [[ "$DRY_RUN" -eq 1 || "$SELF_TEST" -eq 1 || "$PRIVILEGED_ONLY" -eq 1 ]]; then
         return 0
     fi
 
@@ -501,12 +579,80 @@ show_uninstall_complete() {
     fi
 
     log ""
-    log "Project X has been completely removed."
-    log "No Project X files remain on this system."
-    log "Thank you for using Project X."
+    log "Project X has been successfully removed from your computer."
 }
 
-run_uninstall() {
+run_privileged_uninstall() {
+    if [[ "$EUID" -ne 0 ]]; then
+        die "Privileged uninstall requires root."
+    fi
+
+    if deb_package_present; then
+        if ! remove_deb_package; then
+            return 1
+        fi
+    fi
+
+    remove_system_artifacts
+    refresh_desktop_integration
+    return 0
+}
+
+run_privileged_phase() {
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+        log "[dry-run] privileged removal (package and system files)"
+        remove_deb_package
+        return 0
+    fi
+
+    if [[ "$EUID" -eq 0 ]]; then
+        run_privileged_uninstall
+        return $?
+    fi
+
+    if ! command -v pkexec >/dev/null 2>&1; then
+        show_error_dialog \
+            "Administrator privileges are required to remove Project X from your computer.\n\npkexec is not available on this system."
+        return 1
+    fi
+
+    local launcher="$SCRIPT_PATH"
+    if [[ ! -x "$launcher" ]]; then
+        launcher="/usr/bin/projectx-uninstall"
+    fi
+
+    if [[ ! -x "$launcher" ]]; then
+        show_error_dialog \
+            "Administrator privileges are required to remove Project X from your computer.\n\nThe uninstaller could not be located."
+        return 1
+    fi
+
+    local gui_user=""
+    gui_user="$(gui_user)" || gui_user="$USER"
+
+    local pkexec_status=0
+    if pkexec env \
+        DISPLAY="${DISPLAY:-:0}" \
+        XAUTHORITY="${XAUTHORITY:-${HOME}/.Xauthority}" \
+        DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-}" \
+        PROJECTX_UNINSTALL_USER="${gui_user}" \
+        "$launcher" --privileged-only --yes; then
+        return 0
+    fi
+    pkexec_status=$?
+
+    if [[ "$pkexec_status" -eq 127 || "$pkexec_status" -eq 126 ]]; then
+        show_error_dialog \
+            "Project X could not be completely removed.\n\nAdministrator approval is required to remove the installed package and system files.\n\nIf you cancelled the password prompt, no system changes were made."
+        return 1
+    fi
+
+    show_error_dialog \
+        "Project X could not be completely removed.\n\nThe Debian package removal failed.\n\nYour Project X data was removed, but the installed package may still be present."
+    return 1
+}
+
+run_user_uninstall() {
     local home
 
     stop_projectx_processes
@@ -518,18 +664,23 @@ run_uninstall() {
         remove_user_state "$home"
     done < <(collect_target_users)
 
-    if deb_package_installed; then
-        remove_deb_package
-    fi
-
-    if [[ "$EUID" -eq 0 ]]; then
-        remove_system_artifacts
-    elif [[ -d /opt/projectx || -x /usr/bin/projectx ]]; then
-        warn "System files remain under /opt/projectx or /usr/bin/projectx."
-        warn "Re-run with sudo to remove the installed package and system files."
-    fi
-
     remove_appimages
+}
+
+run_uninstall() {
+    run_user_uninstall
+
+    if [[ "$SELF_TEST" -eq 1 ]]; then
+        refresh_desktop_integration
+        return 0
+    fi
+
+    if needs_privileged_removal; then
+        if ! run_privileged_phase; then
+            exit 1
+        fi
+    fi
+
     refresh_desktop_integration
 }
 
@@ -629,6 +780,13 @@ EOF
 main() {
     if [[ "$SELF_TEST" -eq 1 ]]; then
         run_self_test
+        exit 0
+    fi
+
+    if [[ "$PRIVILEGED_ONLY" -eq 1 ]]; then
+        if ! run_privileged_uninstall; then
+            exit 1
+        fi
         exit 0
     fi
 
