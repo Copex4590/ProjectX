@@ -109,14 +109,8 @@ class FirstRunWizard(QDialog):
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
 
-    def showEvent(self, event) -> None:
+    def start_setup(self) -> None:
 
-        super().showEvent(event)
-
-        if self._setup.substep_index() > _SUBSTEP_MAP:
-            return
-
-        self.hide()
         self._setup.begin_map_selection()
 
     def refresh_translations(self) -> None:

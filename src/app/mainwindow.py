@@ -166,7 +166,7 @@ class MainWindow(QMainWindow):
 
         loop = QEventLoop(self)
         wizard.finished.connect(loop.quit)
-        wizard.show()
+        wizard.start_setup()
         loop.exec()
 
         if wizard.result() != FirstRunWizard.DialogCode.Accepted:

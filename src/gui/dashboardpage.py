@@ -34,6 +34,7 @@ from gui.rtlsdrwizard import RTLSdrWizard
 from gui.wizardhelp import show_wizard_help
 from gui.camerawizard import CameraWizard
 from gui.i18n_support import bind_language_refresh
+from gui.mapcontroller import MapController
 from gui.observationwizard import ObservationWizard
 from gui.settings.cameradiagnosticspanel import CameraDiagnosticsPanel
 from gui.settings.playbacksettings import PlaybackSettingsPage
@@ -1141,19 +1142,29 @@ class DashboardPage(QWidget):
 
     def _create_new(self) -> None:
 
-        if (
-            self._observation_wizard is not None
-            and self._observation_wizard.isVisible()
-        ):
-            self._observation_wizard.raise_()
-            self._observation_wizard.activateWindow()
-            return
+        if self._observation_wizard is not None:
+            from shiboken6 import isValid
+
+            if isValid(self._observation_wizard):
+                self._observation_wizard.raise_()
+                self._observation_wizard.activateWindow()
+                return
+
+            self._observation_wizard = None
 
         wizard = ObservationWizard(self)
         wizard.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         wizard.finished.connect(self._on_observation_wizard_finished)
+        wizard.destroyed.connect(self._on_observation_wizard_destroyed)
         self._observation_wizard = wizard
-        wizard.show()
+        wizard.start_setup()
+
+    def _on_observation_wizard_destroyed(self, _object=None) -> None:
+
+        MapController.instance().cancel_pick_mode(restore_host=False)
+
+        if self._observation_wizard is self.sender():
+            self._observation_wizard = None
 
     def _on_observation_wizard_finished(self, result: int) -> None:
 
