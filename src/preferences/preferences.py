@@ -38,6 +38,7 @@ SUPPORTED_VESSEL_CARD_LAYOUTS = (
 class Preferences:
 
     language: str = DEFAULT_LANGUAGE
+    language_selected: bool = False
     vessel_card_layout: str = DEFAULT_VESSEL_CARD_LAYOUT
     first_run_completed: bool = False
     ais_provider: str = DEFAULT_AIS_PROVIDER
@@ -57,6 +58,7 @@ class Preferences:
         return {
             "version": SCHEMA_VERSION,
             "language": self.language,
+            "language_selected": self.language_selected,
             "vessel_card_layout": self.vessel_card_layout,
             "first_run_completed": self.first_run_completed,
             "ais_provider": self.ais_provider,
@@ -95,6 +97,7 @@ class Preferences:
             layout = DEFAULT_VESSEL_CARD_LAYOUT
 
         first_run_completed = bool(data.get("first_run_completed", False))
+        language_selected = bool(data.get("language_selected", False))
         ais_provider = str(
             data.get("ais_provider", DEFAULT_AIS_PROVIDER)
         ).strip().lower() or DEFAULT_AIS_PROVIDER
@@ -113,6 +116,7 @@ class Preferences:
 
         return cls(
             language=language,
+            language_selected=language_selected,
             vessel_card_layout=layout,
             first_run_completed=first_run_completed,
             ais_provider=ais_provider,
@@ -161,6 +165,13 @@ class Preferences:
         migrated["first_run_completed"] = bool(
             migrated.get("first_run_completed", False)
         )
+
+        if "language_selected" not in data:
+            migrated["language_selected"] = bool(data)
+        else:
+            migrated["language_selected"] = bool(
+                migrated.get("language_selected", False)
+            )
         migrated.setdefault("ais_provider", DEFAULT_AIS_PROVIDER)
         migrated.setdefault("aisstream_api_key", "")
         migrated.setdefault("ais_local_host", DEFAULT_AIS_LOCAL_HOST)

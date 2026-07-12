@@ -1,6 +1,6 @@
 import logging
 
-from PySide6.QtCore import Qt, QEventLoop
+from PySide6.QtCore import Qt, QEventLoop, QTimer
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -75,6 +75,10 @@ class MainWindow(QMainWindow):
         self._connect_event_bridge()
         self._connect_observation()
         self._connect_cameras()
+
+        QTimer.singleShot(0, self._start_background_services)
+
+    def _start_background_services(self) -> None:
 
         if ensure_ais_catcher_ready():
             logger.info("Starting Hybrid Engine")

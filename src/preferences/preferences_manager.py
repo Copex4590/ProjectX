@@ -48,6 +48,12 @@ class PreferencesManager:
         current.language = str(language).strip().lower()
         return self.save(Preferences.from_dict(current.to_dict()))
 
+    def set_language_selected(self, selected: bool = True) -> Preferences:
+
+        current = self.get()
+        current.language_selected = bool(selected)
+        return self.save(Preferences.from_dict(current.to_dict()))
+
     def set_vessel_card_layout(self, layout: str) -> Preferences:
 
         current = self.get()
