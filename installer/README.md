@@ -79,11 +79,28 @@ Options:
 - `--no-start-menu` — skip applications menu entry
 - `--launch` — start Project X after installation
 
-Uninstall:
+Uninstall (complete removal — restores never-installed state):
 
 ```bash
 installer/linux/uninstall.sh
 ```
+
+For `.deb` installs, run with sudo so system files and the package are removed:
+
+```bash
+sudo projectx-uninstall
+# or
+sudo installer/linux/uninstall.sh
+```
+
+Options:
+
+- `--dry-run` — preview paths that would be removed
+- `--yes` — skip confirmation prompt
+- `--appimage PATH` — also remove a portable AppImage file
+- `--self-test` — run built-in verification
+
+Removes program files, configuration, observation points, cache, logs, language/first-run state, icons, desktop entries, and Project X autostart entries. Does **not** remove exported files, unrelated backups, or the development source tree at `~/ProjectX`.
 
 ## Windows installer (SAVE-076)
 

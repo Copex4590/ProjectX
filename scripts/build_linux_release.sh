@@ -193,8 +193,11 @@ create_appdir() {
 
     cp -a "$ROOT/dist/projectx/." "$APPDIR/usr/lib/projectx/"
     cp "$ROOT/installer/linux/projectx-appimage.desktop" "$APPDIR/projectx.desktop"
+    mkdir -p "$APPDIR/usr/share/applications"
+    cp "$ROOT/installer/linux/projectx-appimage.desktop" "$APPDIR/usr/share/applications/projectx.desktop"
     mkdir -p "$APPDIR/usr/share/metainfo"
-    cp "$ROOT/installer/linux/projectx.appdata.xml" "$APPDIR/usr/share/metainfo/projectx.appdata.xml"
+    cp "$ROOT/installer/linux/projectx.appdata.xml" \
+        "$APPDIR/usr/share/metainfo/io.github.copex4590.projectx.appdata.xml"
     cp "$ROOT/src/resources/branding/projectx-logo.png" "$APPDIR/projectx.png"
 
     cat > "$APPDIR/AppRun" <<'EOF'
@@ -289,7 +292,10 @@ EOF
     chmod +x "$staging/usr/bin/projectx"
 
     cp "$ROOT/installer/linux/projectx-deb.desktop" "$staging/usr/share/applications/projectx.desktop"
-    cp "$ROOT/installer/linux/projectx.appdata.xml" "$staging/usr/share/metainfo/projectx.appdata.xml"
+    cp "$ROOT/installer/linux/projectx.appdata.xml" \
+        "$staging/usr/share/metainfo/io.github.copex4590.projectx.appdata.xml"
+    cp "$ROOT/installer/linux/uninstall.sh" "$staging/usr/bin/projectx-uninstall"
+    chmod 755 "$staging/usr/bin/projectx-uninstall"
     install_hicolor_icons "$staging"
 
     cat > "$staging/DEBIAN/control" <<EOF
@@ -319,6 +325,13 @@ EOF
     dpkg-deb --build --root-owner-group "$staging" "$output"
     cp -f "$output" "${WEB_DOWNLOAD_DIR}/${DEB_NAME}"
     echo "[OK] Debian package: $output"
+}
+
+publish_uninstall_script() {
+    cp "$ROOT/installer/linux/uninstall.sh" "${RELEASE_DIR}/ProjectX-uninstall.sh"
+    chmod 755 "${RELEASE_DIR}/ProjectX-uninstall.sh"
+    cp -f "${RELEASE_DIR}/ProjectX-uninstall.sh" "${WEB_DOWNLOAD_DIR}/ProjectX-uninstall.sh"
+    echo "[OK] Uninstaller script: ${RELEASE_DIR}/ProjectX-uninstall.sh"
 }
 
 write_checksums() {
@@ -383,7 +396,7 @@ verify_release_packages() {
                 exit 1
             }
         done
-        [[ -f "$deb_extract/usr/share/metainfo/projectx.appdata.xml" ]] || {
+        [[ -f "$deb_extract/usr/share/metainfo/io.github.copex4590.projectx.appdata.xml" ]] || {
             echo "[FAIL] .deb missing AppStream metadata." >&2
             rm -rf "$deb_extract"
             exit 1
@@ -393,8 +406,13 @@ verify_release_packages() {
             rm -rf "$deb_extract"
             exit 1
         }
+        [[ -x "$deb_extract/usr/bin/projectx-uninstall" ]] || {
+            echo "[FAIL] .deb missing uninstaller." >&2
+            rm -rf "$deb_extract"
+            exit 1
+        }
         rm -rf "$deb_extract"
-        echo "[OK] .deb contents verified (menu entry, icon, application)."
+        echo "[OK] .deb contents verified (menu entry, icon, application, uninstaller)."
     fi
 }
 
@@ -442,6 +460,7 @@ verify_bundle_contents
 create_appdir
 build_appimage
 build_deb
+publish_uninstall_script
 write_checksums
 verify_release_packages
 print_summary
