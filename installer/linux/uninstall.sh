@@ -295,6 +295,7 @@ remove_system_artifacts() {
     remove_path "/usr/bin/projectx"
     remove_path "/usr/bin/projectx-uninstall"
     remove_path "/usr/share/applications/projectx.desktop"
+    remove_path "/usr/share/applications/projectx-uninstall.desktop"
     remove_path "/usr/share/metainfo/io.github.copex4590.projectx.appdata.xml"
     remove_system_icons
     remove_path "/var/lib/projectx"

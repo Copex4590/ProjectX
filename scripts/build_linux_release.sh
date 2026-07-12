@@ -292,6 +292,8 @@ EOF
     chmod +x "$staging/usr/bin/projectx"
 
     cp "$ROOT/installer/linux/projectx-deb.desktop" "$staging/usr/share/applications/projectx.desktop"
+    cp "$ROOT/installer/linux/projectx-uninstall.desktop" \
+        "$staging/usr/share/applications/projectx-uninstall.desktop"
     cp "$ROOT/installer/linux/projectx.appdata.xml" \
         "$staging/usr/share/metainfo/io.github.copex4590.projectx.appdata.xml"
     cp "$ROOT/installer/linux/uninstall.sh" "$staging/usr/bin/projectx-uninstall"
@@ -411,6 +413,17 @@ verify_release_packages() {
             rm -rf "$deb_extract"
             exit 1
         }
+        [[ -f "$deb_extract/usr/share/applications/projectx-uninstall.desktop" ]] || {
+            echo "[FAIL] .deb missing uninstall desktop entry." >&2
+            rm -rf "$deb_extract"
+            exit 1
+        }
+        if ! grep -q '^Exec=/usr/bin/projectx-uninstall$' \
+            "$deb_extract/usr/share/applications/projectx-uninstall.desktop"; then
+            echo "[FAIL] .deb uninstall desktop Exec is not /usr/bin/projectx-uninstall." >&2
+            rm -rf "$deb_extract"
+            exit 1
+        fi
         rm -rf "$deb_extract"
         echo "[OK] .deb contents verified (menu entry, icon, application, uninstaller)."
     fi

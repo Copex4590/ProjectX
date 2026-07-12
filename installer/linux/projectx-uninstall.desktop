@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Project X Uninstall
+GenericName=Uninstall Project X
+Comment=Completely remove Project X from this system
+Exec=/usr/bin/projectx-uninstall
+Icon=projectx
+Terminal=false
+Categories=Settings;Utility;
+Keywords=uninstall;remove;Project X;projectx;
