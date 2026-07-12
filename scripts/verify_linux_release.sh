@@ -83,7 +83,9 @@ if [[ -f "$DEB" ]]; then
     [[ -x "$DEB_EXTRACT/opt/projectx/projectx" ]] && ok ".deb contains application" || fail ".deb missing application"
     [[ -f "$DEB_EXTRACT/usr/share/applications/projectx.desktop" ]] && ok ".deb contains menu entry" || fail ".deb missing desktop file"
     [[ -x "$DEB_EXTRACT/usr/bin/projectx" ]] && ok ".deb contains usr/bin launcher" || fail ".deb missing usr/bin/projectx"
-    [[ -f "$DEB_EXTRACT/usr/share/metainfo/projectx.appdata.xml" ]] && ok ".deb contains AppStream metadata" || fail ".deb missing AppStream metadata"
+    [[ -x "$DEB_EXTRACT/usr/bin/projectx-uninstall" ]] && ok ".deb contains projectx-uninstall" || fail ".deb missing usr/bin/projectx-uninstall"
+    [[ -f "$DEB_EXTRACT/usr/share/applications/projectx-uninstall.desktop" ]] && ok ".deb contains uninstall menu entry" || fail ".deb missing uninstall desktop entry"
+    [[ -f "$DEB_EXTRACT/usr/share/metainfo/io.github.copex4590.projectx.appdata.xml" ]] && ok ".deb contains AppStream metadata" || fail ".deb missing AppStream metadata"
 
     if grep -q '^Name=Project X' "$DEB_EXTRACT/usr/share/applications/projectx.desktop"; then
         ok ".deb menu entry displays Project X"
@@ -97,6 +99,25 @@ if [[ -f "$DEB" ]]; then
         fail ".deb desktop Comment missing expected short description"
     fi
 
+    if grep -q '^Name=Project X Uninstall' "$DEB_EXTRACT/usr/share/applications/projectx-uninstall.desktop"; then
+        ok ".deb uninstall menu entry displays Project X Uninstall"
+    else
+        fail ".deb uninstall desktop Name is not 'Project X Uninstall'"
+    fi
+
+    uninstall_exec="$(grep -E '^Exec=' "$DEB_EXTRACT/usr/share/applications/projectx-uninstall.desktop" | head -n1 | cut -d= -f2-)"
+    if [[ "$uninstall_exec" == "/usr/bin/projectx-uninstall" ]]; then
+        ok ".deb uninstall desktop Exec=/usr/bin/projectx-uninstall"
+    else
+        fail ".deb uninstall desktop Exec is not /usr/bin/projectx-uninstall (got: ${uninstall_exec:-<empty>})"
+    fi
+
+    if [[ -x "$DEB_EXTRACT/usr/bin/projectx-uninstall" ]]; then
+        ok ".deb uninstall launcher target is executable"
+    else
+        fail ".deb uninstall launcher target is missing or not executable"
+    fi
+
     for icon_size in 16 22 24 32 48 64 128 256 512; do
         icon_path="$DEB_EXTRACT/usr/share/icons/hicolor/${icon_size}x${icon_size}/apps/projectx.png"
         if [[ -f "$icon_path" ]]; then
@@ -106,13 +127,13 @@ if [[ -f "$DEB" ]]; then
         fi
     done
 
-    if grep -q '<name>Project X</name>' "$DEB_EXTRACT/usr/share/metainfo/projectx.appdata.xml"; then
+    if grep -q '<name>Project X</name>' "$DEB_EXTRACT/usr/share/metainfo/io.github.copex4590.projectx.appdata.xml"; then
         ok "AppStream title is Project X"
     else
         fail "AppStream metadata missing Project X title"
     fi
 
-    if grep -q 'Professional Maritime Monitoring Platform' "$DEB_EXTRACT/usr/share/metainfo/projectx.appdata.xml"; then
+    if grep -q 'Professional Maritime Monitoring Platform' "$DEB_EXTRACT/usr/share/metainfo/io.github.copex4590.projectx.appdata.xml"; then
         ok "AppStream summary configured"
     else
         fail "AppStream metadata missing expected summary"
