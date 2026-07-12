@@ -518,8 +518,35 @@ class ObservationManager(QObject):
 
             self._find_reference_unlocked()
 
-            if data != migrated:
+            needs_write = data != migrated
+
+            if self._normalize_active_state_unlocked():
+                needs_write = True
+
+            if needs_write:
                 self._write_unlocked()
+
+    def _normalize_active_state_unlocked(self) -> bool:
+
+        active = self._find_active()
+
+        if active is None:
+            return False
+
+        changed = False
+
+        for point in self._points:
+            should_active = point.id == active.id
+
+            if point.active != should_active:
+                point.active = should_active
+                changed = True
+
+        if self._active_id != active.id:
+            self._active_id = active.id
+            changed = True
+
+        return changed
 
     def _migrate(self, data: dict | None) -> dict:
 

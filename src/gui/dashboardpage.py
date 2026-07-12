@@ -730,7 +730,7 @@ class DashboardPage(QWidget):
 
         self._observation_title.setText(tr("Observation Point"))
         self._observation_map_hint.setText(
-            tr("Geographic editing is available on the Map.")
+            tr("Use Create new to add another observation point.")
         )
         self._name_caption.setText(tr("Name"))
         self._coords_caption.setText(tr("Coordinates"))
@@ -1228,12 +1228,7 @@ class DashboardPage(QWidget):
             trace_exit("DashboardPage._delete_active EXIT step 10")
 
             trace_enter("DashboardPage._delete_active ENTER step 11")
-            schedule_traced_single_shot(
-                0,
-                f"DashboardPage._delete_active->ObservationManager.delete_observation "
-                f"point_id={point_id}",
-                lambda: observation_manager.delete(point_id),
-            )
+            observation_manager.delete(point_id)
             trace_exit("DashboardPage._delete_active EXIT step 11")
         finally:
             trace_exit("DashboardPage._delete_active EXIT step 1")

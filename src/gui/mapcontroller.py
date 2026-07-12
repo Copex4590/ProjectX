@@ -35,6 +35,7 @@ class MapController(QObject):
         self._location_pick_callback: LocationPickCallback | None = None
         self._pick_host: QDialog | None = None
         self._pick_host_was_modal = False
+        self._show_parent_during_pick = True
         self._pending_pick_host: QWidget | None = None
         self._pending_pick_message: str | None = None
         self._widget = MapWidget()
@@ -68,6 +69,14 @@ class MapController(QObject):
 
         self.navigation_requested.emit(MAP_PAGE_INDEX)
 
+    def set_show_parent_during_pick(self, enabled: bool) -> None:
+
+        self._show_parent_during_pick = bool(enabled)
+
+    def show_parent_during_pick(self) -> bool:
+
+        return self._show_parent_during_pick
+
     def begin_location_pick(
         self,
         callback: LocationPickCallback,
@@ -82,7 +91,6 @@ class MapController(QObject):
             "Click the map to set the location. Press Esc to cancel."
         )
         self._pending_pick_host = host
-        self._widget.clear_pick_marker()
         self.request_show_map()
         QTimer.singleShot(
             0,
@@ -163,7 +171,6 @@ class MapController(QObject):
             self._location_pick_callback = None
             self._set_pick_mode(PickMode.NONE)
             self._widget.end_location_pick()
-            self._widget.clear_pick_marker()
             self.release_application_modality()
 
             if restore_host:
@@ -179,12 +186,24 @@ class MapController(QObject):
     def refresh_observation_points(self) -> None:
 
         with trace_block("MapController.refresh_observation_points"):
-            if self._pick_mode == PickMode.LOCATION:
-                return
-
             trace_enter("MapController.refresh_observation_points.observation_manager.all")
             points = observation_manager.all()
             trace_exit("MapController.refresh_observation_points.observation_manager.all")
+
+            if self._pick_mode == PickMode.LOCATION:
+                if points:
+                    payload = [
+                        {
+                            "id": point.id,
+                            "name": point.name,
+                            "lat": point.latitude,
+                            "lon": point.longitude,
+                            "active": point.active,
+                        }
+                        for point in points
+                    ]
+                    self._widget.set_observation_points(payload)
+                return
 
             if not points:
                 trace_enter("MapController.refresh_observation_points.clear_observation_points")
@@ -366,7 +385,12 @@ class MapController(QObject):
         dialog = self._resolve_pick_dialog(host)
         parent = self._dialog_parent
 
-        if parent is not None and isValid(parent) and not parent.isVisible():
+        if (
+            self._show_parent_during_pick
+            and parent is not None
+            and isValid(parent)
+            and not parent.isVisible()
+        ):
             parent.show()
 
         if dialog is not None and isValid(dialog):

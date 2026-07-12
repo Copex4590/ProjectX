@@ -679,6 +679,29 @@ function enablePickMode(enabled)
         clearPickMarker();
 }
 
+function clearPickMarker()
+{
+    if (pickMarker)
+    {
+        map.removeLayer(pickMarker);
+        pickMarker = null;
+    }
+}
+
+function setPickMarker(lat, lon)
+{
+    clearPickMarker();
+
+    const icon = L.divIcon({
+        className: "",
+        html: "<div class='pick-marker'></div>",
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+    });
+
+    pickMarker = L.marker([lat, lon], { icon: icon }).addTo(map);
+}
+
 function beginLocationPick(message)
 {
     pickEnabled = true;
@@ -705,29 +728,6 @@ function endLocationPick()
 function setPickOverlay(message)
 {
     showPickOverlay(message || "");
-}
-
-function clearPickMarker()
-{
-    if (pickMarker)
-    {
-        map.removeLayer(pickMarker);
-        pickMarker = null;
-    }
-}
-
-function setPickMarker(lat, lon)
-{
-    clearPickMarker();
-
-    const icon = L.divIcon({
-        className: "",
-        html: "<div class='pick-marker'></div>",
-        iconSize: [16, 16],
-        iconAnchor: [8, 8]
-    });
-
-    pickMarker = L.marker([lat, lon], { icon: icon }).addTo(map);
 }
 
 function clearObservationPoint(message)
