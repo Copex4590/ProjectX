@@ -122,6 +122,12 @@
             display: none;
         }
 
+        .map-empty-state.map-empty-state--top {
+            top: 16px;
+            bottom: auto;
+            transform: translateX(-50%);
+        }
+
         .vessel-card {
             --vc-bg: rgba(18, 22, 30, 0.92);
             --vc-border: rgba(255, 255, 255, 0.08);
@@ -484,6 +490,7 @@ initBridge();
 const observationMarkers = {};
 let pickEnabled = false;
 let pickMarker = null;
+let pickOverlayVisible = false;
 
 function observationIcon(active)
 {
@@ -567,7 +574,31 @@ function showEmptyOverlay(message)
     {
         overlay.textContent = "";
         overlay.hidden = true;
+        overlay.classList.remove("map-empty-state--top");
+        pickOverlayVisible = false;
     }
+}
+
+function showPickOverlay(message)
+{
+    const overlay = document.getElementById("empty-state");
+
+    if (!overlay)
+        return;
+
+    overlay.textContent = message || "";
+    overlay.hidden = false;
+    overlay.classList.add("map-empty-state--top");
+    pickOverlayVisible = true;
+}
+
+function dismissPickOverlay()
+{
+    if (!pickOverlayVisible)
+        return;
+
+    pickOverlayVisible = false;
+    showEmptyOverlay("");
 }
 
 function clearObservationPoints(message)
@@ -652,14 +683,14 @@ function beginLocationPick(message)
 {
     pickEnabled = true;
     clearPickMarker();
-    showEmptyOverlay(message || "");
+    showPickOverlay(message || "");
     resetMapToWorldView();
 }
 
 function refreshLocationPickView(message)
 {
     pickEnabled = true;
-    showEmptyOverlay(message || "");
+    showPickOverlay(message || "");
     resetMapToWorldView();
 }
 
@@ -673,7 +704,7 @@ function endLocationPick()
 
 function setPickOverlay(message)
 {
-    showEmptyOverlay(message || "");
+    showPickOverlay(message || "");
 }
 
 function clearPickMarker()
@@ -722,11 +753,25 @@ map.on("click", function(event)
     if (!pickEnabled)
         return;
 
+    dismissPickOverlay();
+
     const latitude = event.latlng.lat;
     const longitude = event.latlng.lng;
 
     setPickMarker(latitude, longitude);
     reportPickLocation(latitude, longitude);
+});
+
+map.on("dragstart", function()
+{
+    if (pickEnabled)
+        dismissPickOverlay();
+});
+
+map.on("zoomstart", function()
+{
+    if (pickEnabled)
+        dismissPickOverlay();
 });
 
 map.on("resize", function()

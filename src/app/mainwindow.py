@@ -168,10 +168,7 @@ class MainWindow(QMainWindow):
         if wizard.result() != FirstRunWizard.DialogCode.Accepted:
             return
 
-        if wizard.open_camera_page:
-            self.pages.setCurrentIndex(3)
-        else:
-            self.pages.setCurrentIndex(0)
+        self.pages.setCurrentIndex(0)
 
     def _connect_cameras(self) -> None:
 
