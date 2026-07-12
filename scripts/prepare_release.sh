@@ -31,7 +31,6 @@ echo "============================================================"
 mkdir -p \
     "$ROOT/release/windows" \
     "$ROOT/release/linux" \
-    "$ROOT/release/checksums" \
     "$ROOT/release/notes" \
     "$ROOT/website/downloads/windows" \
     "$ROOT/website/downloads/linux"
@@ -79,15 +78,26 @@ fi
 echo "Generating checksums..."
 bash "$ROOT/scripts/generate_release_checksums.sh"
 
-if [[ ! -f "$ROOT/release/checksums/SHA256SUMS" ]]; then
-    echo "[FAIL] Checksum generation did not produce release/checksums/SHA256SUMS"
-    exit 1
+LINUX_SUMS="$ROOT/release/linux/SHA256SUMS"
+if [[ -f "$LINUX_SUMS" ]]; then
+    if grep -Fq "ProjectX.AppImage" "$LINUX_SUMS" && grep -Fq "ProjectX.deb" "$LINUX_SUMS"; then
+        echo "[OK] release/linux/SHA256SUMS includes AppImage and .deb"
+    else
+        echo "[WARN] release/linux/SHA256SUMS incomplete (build Linux packages first)"
+    fi
+else
+    echo "[WARN] release/linux/SHA256SUMS missing (run ./scripts/build_linux_release.sh)"
 fi
-grep -Fq "$(basename "$WIN_RELEASE")" "$ROOT/release/checksums/SHA256SUMS" || {
-    echo "[FAIL] SHA256SUMS missing Windows installer entry"
-    exit 1
-}
-echo "[OK] SHA256SUMS includes Windows installer"
+
+WIN_SUMS="$ROOT/release/windows/SHA256SUMS"
+if [[ -f "$WIN_SUMS" ]]; then
+    grep -Fq "$(basename "$WIN_RELEASE")" "$WIN_SUMS" && echo "[OK] release/windows/SHA256SUMS includes Windows installer" || {
+        echo "[FAIL] release/windows/SHA256SUMS missing Windows installer entry"
+        exit 1
+    }
+else
+    echo "[WARN] release/windows/SHA256SUMS missing (run generate_release_checksums.sh after Windows build)"
+fi
 
 BUILD_PYTHON="$("$PYTHON" - <<'PY'
 import sys

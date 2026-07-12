@@ -47,7 +47,6 @@ for path in \
     release/README.md \
     release/windows \
     release/linux \
-    release/checksums \
     release/notes; do
     [[ -e "$ROOT/$path" ]] && ok "Present: $path" || fail "Missing: $path"
 done
@@ -173,31 +172,38 @@ done
 
 echo ""
 echo "--- Checksums ---"
-if [[ -f "$ROOT/release/checksums/SHA256SUMS" ]]; then
-    ok "Combined checksum file present"
-else
-    warn "release/checksums/SHA256SUMS missing (run ./scripts/generate_release_checksums.sh)"
-fi
-
-CHECK_OK=1
-for rel in "${ARTIFACT_PATHS[@]}"; do
-    [[ -f "$ROOT/$rel" ]] || continue
-    base="$(basename "$rel")"
-    sum_file="$ROOT/release/checksums/${base}.sha256"
-    if [[ ! -f "$sum_file" ]]; then
-        warn "Missing checksum file: release/checksums/${base}.sha256"
-        CHECK_OK=0
-        continue
-    fi
-    expected="$(awk '{print $1}' "$sum_file")"
-    actual="$(sha256sum "$ROOT/$rel" | awk '{print $1}')"
-    if [[ "$expected" == "$actual" ]]; then
-        ok "Checksum matches: $base"
+for sums_path in release/linux/SHA256SUMS release/windows/SHA256SUMS; do
+    if [[ -f "$ROOT/$sums_path" ]]; then
+        ok "Checksum file present: $sums_path"
     else
-        fail "Checksum mismatch: $base"
-        CHECK_OK=0
+        warn "Checksum file missing: $sums_path (run ./scripts/generate_release_checksums.sh)"
     fi
 done
+
+CHECK_OK=1
+verify_sums_file() {
+    local sums_file="$1"
+    local artifact_dir="$2"
+    [[ -f "$sums_file" ]] || return 0
+    while IFS= read -r line; do
+        [[ -n "$line" ]] || continue
+        local hash base artifact actual
+        hash="$(awk '{print $1}' <<< "$line")"
+        base="$(awk '{print $NF}' <<< "$line")"
+        artifact="${artifact_dir}/${base}"
+        [[ -f "$artifact" ]] || continue
+        actual="$(sha256sum "$artifact" | awk '{print $1}')"
+        if [[ "$hash" == "$actual" ]]; then
+            ok "Checksum matches: $base"
+        else
+            fail "Checksum mismatch: $base"
+            CHECK_OK=0
+        fi
+    done < "$sums_file"
+}
+
+verify_sums_file "$ROOT/release/linux/SHA256SUMS" "$ROOT/release/linux"
+verify_sums_file "$ROOT/release/windows/SHA256SUMS" "$ROOT/release/windows"
 [[ "$CHECK_OK" -eq 1 && "$ARTIFACTS_PRESENT" -gt 0 ]] || true
 
 echo ""
@@ -224,6 +230,11 @@ check("linux", website["linux"]["file"], manifest["packages"]["linux"]["primary"
 secondary = website["linux"].get("secondary_file")
 if secondary:
     check("linux", secondary, manifest["packages"]["linux"]["secondary"]["website_directory"])
+linux_sums = root / manifest["packages"]["linux"]["primary"]["website_directory"] / "SHA256SUMS"
+if linux_sums.exists():
+    print(f"[OK] Website download ready: {linux_sums}")
+else:
+    print(f"[WARN] Website download missing: {linux_sums}")
 PY
 
 echo ""

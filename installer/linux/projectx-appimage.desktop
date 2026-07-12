@@ -1,11 +1,12 @@
 [Desktop Entry]
 Type=Application
+Version=1.0
 Name=Project X
-Comment=Danube vessel monitoring platform
+GenericName=Maritime Monitoring
+Comment=Professional Maritime Monitoring Platform
 Exec=AppRun
 Icon=projectx
 Terminal=false
-Categories=Utility;Science;Education;
+Categories=Science;
 StartupWMClass=ProjectX
-Keywords=vessel;AIS;monitoring;Danube;
-X-AppImage-Version=1.0
+Keywords=maritime;vessel;AIS;monitoring;Danube;ships;Project X;

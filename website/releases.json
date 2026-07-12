@@ -6,6 +6,7 @@
   "windows": {
     "version": "0.3.0-alpha",
     "file": "ProjectX-Setup.exe",
+    "checksum_file": "SHA256SUMS",
     "platform": "Windows 10+",
     "format": "Inno Setup installer",
     "architecture": "64-bit",
@@ -13,10 +14,11 @@
   },
   "linux": {
     "version": "0.3.0-alpha",
-    "file": "ProjectX-0.3.0-alpha-x86_64.AppImage",
-    "secondary_file": "projectx_0.3.0-alpha_amd64.deb",
-    "platform": "Linux x86_64",
-    "format": "AppImage",
+    "file": "ProjectX.deb",
+    "secondary_file": "ProjectX.AppImage",
+    "checksum_file": "SHA256SUMS",
+    "platform": "Linux Mint / Ubuntu / Debian x86_64",
+    "format": "Debian package",
     "architecture": "x86_64",
     "size": "TBD"
   }

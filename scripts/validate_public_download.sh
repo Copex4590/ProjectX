@@ -257,19 +257,19 @@ for path in artifacts:
     else:
         fail(f"Package missing: {path.relative_to(root)}")
 
-if (root / "release/checksums/SHA256SUMS").exists():
-    pass_("Combined checksum file exists: release/checksums/SHA256SUMS")
+if (root / "release/linux/SHA256SUMS").exists():
+    pass_("Linux checksum file exists: release/linux/SHA256SUMS")
 else:
-    fail("Checksum file missing: release/checksums/SHA256SUMS")
+    fail("Linux checksum file missing: release/linux/SHA256SUMS")
 
-for path in artifacts:
-    if not path.exists():
-        continue
-    sum_file = root / "release" / "checksums" / f"{path.name}.sha256"
-    if sum_file.exists():
-        pass_(f"Per-file checksum exists: {sum_file.relative_to(root)}")
-    else:
-        fail(f"Per-file checksum missing: {sum_file.relative_to(root)}")
+linux_sums = root / "release/linux/SHA256SUMS"
+if linux_sums.exists():
+    text = linux_sums.read_text(encoding="utf-8")
+    for name in ("ProjectX.AppImage", "ProjectX.deb"):
+        if name in text:
+            pass_(f"SHA256SUMS lists {name}")
+        else:
+            fail(f"SHA256SUMS missing entry for {name}")
 
 sys.exit(1 if failed else 0)
 PY

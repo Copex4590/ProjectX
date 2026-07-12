@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>projectx.desktop</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Proprietary</project_license>
+  <name>Project X</name>
+  <summary>Professional Maritime Monitoring Platform</summary>
+  <description>
+    <p>
+      Project X helps you monitor vessels with live AIS data, interactive maps,
+      camera views, timeline playback, and alerts — designed for everyday use on
+      Linux Mint, Ubuntu, and Debian.
+    </p>
+    <p>
+      Install the recommended Debian package for a menu entry, desktop integration,
+      and clean uninstall from Software Manager.
+    </p>
+  </description>
+  <launchable type="desktop-id">projectx.desktop</launchable>
+  <url type="homepage">https://github.com/Copex4590/ProjectX</url>
+  <developer_name>Project X</developer_name>
+  <categories>
+    <category>Science</category>
+    <category>Network</category>
+    <category>Utility</category>
+  </categories>
+  <keywords>
+    <keyword>maritime</keyword>
+    <keyword>vessel</keyword>
+    <keyword>AIS</keyword>
+    <keyword>monitoring</keyword>
+    <keyword>Danube</keyword>
+  </keywords>
+  <content_rating type="oars-1.1"/>
+</component>

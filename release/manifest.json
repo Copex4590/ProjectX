@@ -20,32 +20,30 @@
       "website_directory": "website/downloads/windows",
       "format": "Inno Setup installer",
       "architecture": "x86_64",
-      "sha256_file": "release/checksums/ProjectX-Setup.exe.sha256"
+      "checksum_file": "SHA256SUMS"
     },
     "linux": {
       "primary": {
-        "file": "ProjectX-0.3.0-alpha-x86_64.AppImage",
-        "directory": "release/linux",
-        "website_directory": "website/downloads/linux",
-        "format": "AppImage",
-        "architecture": "x86_64",
-        "sha256_file": "release/checksums/ProjectX-0.3.0-alpha-x86_64.AppImage.sha256"
-      },
-      "secondary": {
-        "file": "projectx_0.3.0-alpha_amd64.deb",
+        "file": "ProjectX.deb",
         "directory": "release/linux",
         "website_directory": "website/downloads/linux",
         "format": "Debian package",
         "architecture": "amd64",
-        "sha256_file": "release/checksums/projectx_0.3.0-alpha_amd64.deb.sha256"
+        "checksum_file": "SHA256SUMS"
+      },
+      "secondary": {
+        "file": "ProjectX.AppImage",
+        "directory": "release/linux",
+        "website_directory": "website/downloads/linux",
+        "format": "AppImage (portable)",
+        "architecture": "x86_64",
+        "checksum_file": "SHA256SUMS"
       }
     }
   },
   "checksum_files": [
-    "release/checksums/SHA256SUMS",
-    "release/checksums/ProjectX-Setup.exe.sha256",
-    "release/checksums/ProjectX-0.3.0-alpha-x86_64.AppImage.sha256",
-    "release/checksums/projectx_0.3.0-alpha_amd64.deb.sha256"
+    "release/linux/SHA256SUMS",
+    "release/windows/SHA256SUMS"
   ],
   "release_notes": [
     "release/notes/0.3.0-alpha.md",

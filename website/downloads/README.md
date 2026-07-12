@@ -2,16 +2,17 @@
 
 Installers are organized by platform:
 
-| Directory | Platform | Config key |
-|-----------|----------|------------|
-| `windows/` | Windows installer | `releases.json` → `windows.file` (`ProjectX-Setup.exe`) |
-| `linux/` | Linux AppImage (+ optional .deb) | `releases.json` → `linux.file` |
+| Directory | Platform | Public files |
+|-----------|----------|--------------|
+| `windows/` | Windows installer | `ProjectX-Setup.exe`, `SHA256SUMS` |
+| `linux/` | Linux release | `ProjectX.deb` (recommended), `ProjectX.AppImage`, `SHA256SUMS` |
 
 ## Publish a new release
 
-1. Copy installers into `windows/` and/or `linux/`.
-2. Update `website/releases.json` (`latest`, platform versions, filenames, sizes).
-3. Add `website/releases/<version>.md` release notes.
-4. Run `website/verify_releases.sh` locally.
+1. Build packages with `scripts/build_linux_release.sh` and/or `scripts/build_windows.bat`.
+2. Run `./scripts/prepare_release.sh` to sync artifacts and checksums.
+3. Update `website/releases.json` (`latest`, platform versions, sizes).
+4. Add `website/releases/<version>.md` release notes.
+5. Run `website/verify_releases.sh` locally.
 
-No HTML editing is required.
+No HTML editing is required. Do not link to or upload `installer/linux/` for public downloads.

@@ -76,7 +76,42 @@ Data flows are read-only at the GUI layer except for rule management and playbac
 
 ## Installation
 
-### Linux
+### Which file should I download?
+
+| Your system | Download | Why |
+|-------------|----------|-----|
+| **Linux Mint, Ubuntu, Debian** | `ProjectX.deb` | **Recommended.** Menu entry, Software Manager / GDebi install, clean uninstall. |
+| **Linux (portable, no install)** | `ProjectX.AppImage` | Advanced. Single file; you must mark it executable; no automatic menu entry. |
+| **Windows 10+** | `ProjectX-Setup.exe` | Standard installer. |
+| **Any platform (optional)** | `SHA256SUMS` | Verify download integrity only — not required to install. |
+
+### Linux (official release — `.deb` recommended)
+
+Download `ProjectX.deb` from the [Project X website](https://github.com/Copex4590/ProjectX) download page or [GitHub Releases](https://github.com/Copex4590/ProjectX/releases).
+
+**Linux Mint / Ubuntu / Debian (recommended):**
+
+Double-click `ProjectX.deb` to open GDebi, or:
+
+```bash
+sudo dpkg -i ProjectX.deb
+sudo apt-get install -f
+```
+
+Launch **Project X** from the applications menu. Uninstall with Software Manager or `sudo dpkg -r projectx`.
+
+**Portable AppImage (advanced — no system install):**
+
+```bash
+chmod +x ProjectX.AppImage
+./ProjectX.AppImage
+```
+
+The AppImage does not add a menu shortcut automatically. Delete the file to remove it.
+
+Optional: verify downloads with `SHA256SUMS`. See [docs/LINUX_INSTALLER.md](docs/LINUX_INSTALLER.md) for full details.
+
+### Development (from source)
 
 ```bash
 git clone https://github.com/Copex4590/ProjectX.git
@@ -88,7 +123,13 @@ cd src
 python3 main.py
 ```
 
-### Windows
+See [installer/README.md](installer/README.md) for packaging and Windows build metadata.
+
+### Windows (official release)
+
+Download `ProjectX-Setup.exe` from the Project X website or GitHub Releases. See [docs/WINDOWS_INSTALLER.md](docs/WINDOWS_INSTALLER.md).
+
+### Windows (development from source)
 
 ```powershell
 git clone https://github.com/Copex4590/ProjectX.git
@@ -102,18 +143,7 @@ python main.py
 
 Requires Qt WebEngine (included with PySide6). For external playback, install `mpv` or `vlc` and ensure they are on PATH.
 
-### Desktop installer (Linux)
-
-```bash
-chmod +x installer/linux/install.sh
-installer/linux/install.sh --launch
-```
-
-Installs Project X to `~/.local/share/projectx`, creates a desktop shortcut, and adds an applications menu entry with the official icon.
-
-See [installer/README.md](installer/README.md) for Windows packaging and build metadata.
-
-### macOS
+### macOS (development from source)
 
 ```bash
 git clone https://github.com/Copex4590/ProjectX.git
@@ -267,7 +297,7 @@ The **Hungary** pack (`hungary/`) ships with placeholder stream URLs. The Pack M
 6. Inspector GUI / CLI tool
 7. Production playback backends (VLC, Qt, Browser)
 8. Configurable deployment paths and automated test suite
-9. Cross-platform packaging (AppImage, installer) — **Linux installer available** (`installer/linux/`)
+9. Cross-platform packaging (AppImage, Windows installer) — **Linux AppImage and `.deb` available** via official release builds
 
 ## Branding
 

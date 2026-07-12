@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# Project X — Verify Linux release packages (SAVE-077)
+# Project X — Verify Linux release packages (SAVE-077 / SAVE-085)
 # ============================================================================
 
 set -euo pipefail
@@ -8,23 +8,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-PYTHON="${PROJECTX_PYTHON:-python3}"
 RELEASE_DIR="${ROOT}/release/linux"
-CHECKSUM_DIR="${ROOT}/release/checksums"
+APPIMAGE="${RELEASE_DIR}/ProjectX.AppImage"
+DEB="${RELEASE_DIR}/ProjectX.deb"
+SUMS="${RELEASE_DIR}/SHA256SUMS"
 FAILED=0
-
-read_names() {
-    VERSION="$("$PYTHON" - <<'PY'
-from pathlib import Path
-import sys
-sys.path.insert(0, str(Path("src").resolve()))
-from version import PROJECT_VERSION
-print(PROJECT_VERSION)
-PY
-)"
-    APPIMAGE="${RELEASE_DIR}/ProjectX-${VERSION}-x86_64.AppImage"
-    DEB="${RELEASE_DIR}/projectx_${VERSION}_amd64.deb"
-}
 
 fail() {
     echo "[FAIL] $*"
@@ -35,8 +23,7 @@ ok() {
     echo "[OK] $*"
 }
 
-echo "Verifying Linux release packages under ${RELEASE_DIR}..."
-read_names
+echo "Verifying Linux public release under ${RELEASE_DIR}..."
 
 if [[ ! -f "$APPIMAGE" ]]; then
     fail "AppImage not found: $APPIMAGE (run ./scripts/build_linux_release.sh)"
@@ -72,6 +59,18 @@ else
     fail "Desktop file missing Exec=AppRun"
 fi
 
+if grep -q '^Name=Project X' squashfs-root/projectx.desktop; then
+    ok "Desktop menu name is Project X"
+else
+    fail "Desktop file Name is not 'Project X'"
+fi
+
+if grep -q '^Comment=Professional Maritime Monitoring Platform' squashfs-root/projectx.desktop; then
+    ok "Desktop short description configured"
+else
+    fail "Desktop file Comment missing expected short description"
+fi
+
 if grep -q '^Icon=projectx' squashfs-root/projectx.desktop; then
     ok "Desktop icon entry configured"
 else
@@ -83,38 +82,101 @@ if [[ -f "$DEB" ]]; then
     dpkg-deb -x "$DEB" "$DEB_EXTRACT"
     [[ -x "$DEB_EXTRACT/opt/projectx/projectx" ]] && ok ".deb contains application" || fail ".deb missing application"
     [[ -f "$DEB_EXTRACT/usr/share/applications/projectx.desktop" ]] && ok ".deb contains menu entry" || fail ".deb missing desktop file"
-    [[ -f "$DEB_EXTRACT/usr/share/icons/hicolor/256x256/apps/projectx.png" ]] && ok ".deb contains icon" || fail ".deb missing icon"
     [[ -x "$DEB_EXTRACT/usr/bin/projectx" ]] && ok ".deb contains usr/bin launcher" || fail ".deb missing usr/bin/projectx"
+    [[ -f "$DEB_EXTRACT/usr/share/metainfo/projectx.appdata.xml" ]] && ok ".deb contains AppStream metadata" || fail ".deb missing AppStream metadata"
+
+    if grep -q '^Name=Project X' "$DEB_EXTRACT/usr/share/applications/projectx.desktop"; then
+        ok ".deb menu entry displays Project X"
+    else
+        fail ".deb desktop Name is not 'Project X'"
+    fi
+
+    if grep -q '^Comment=Professional Maritime Monitoring Platform' "$DEB_EXTRACT/usr/share/applications/projectx.desktop"; then
+        ok ".deb short description configured"
+    else
+        fail ".deb desktop Comment missing expected short description"
+    fi
+
+    for icon_size in 16 22 24 32 48 64 128 256 512; do
+        icon_path="$DEB_EXTRACT/usr/share/icons/hicolor/${icon_size}x${icon_size}/apps/projectx.png"
+        if [[ -f "$icon_path" ]]; then
+            ok ".deb icon installed: ${icon_size}x${icon_size}"
+        else
+            fail ".deb missing icon size: ${icon_size}x${icon_size}"
+        fi
+    done
+
+    if grep -q '<name>Project X</name>' "$DEB_EXTRACT/usr/share/metainfo/projectx.appdata.xml"; then
+        ok "AppStream title is Project X"
+    else
+        fail "AppStream metadata missing Project X title"
+    fi
+
+    if grep -q 'Professional Maritime Monitoring Platform' "$DEB_EXTRACT/usr/share/metainfo/projectx.appdata.xml"; then
+        ok "AppStream summary configured"
+    else
+        fail "AppStream metadata missing expected summary"
+    fi
+
+    CONTROL="$(dpkg-deb -f "$DEB" Description)"
+    if echo "$CONTROL" | head -n1 | grep -q '^Project X$'; then
+        ok "Package title for software managers: Project X"
+    else
+        fail "Package Description first line is not 'Project X'"
+    fi
+
+    if echo "$CONTROL" | grep -q 'Professional Maritime Monitoring Platform'; then
+        ok "Package description includes user-oriented summary"
+    else
+        fail "Package Description missing user-oriented summary"
+    fi
+
+    PKG_NAME="$(dpkg-deb -f "$DEB" Package)"
+    if [[ "$PKG_NAME" == "projectx" ]]; then
+        ok "Uninstall package name: projectx (sudo dpkg -r projectx)"
+    else
+        fail "Unexpected package name for uninstall: $PKG_NAME"
+    fi
+
     rm -rf "$DEB_EXTRACT"
 else
     fail ".deb package not found: $DEB"
 fi
 
-WEB_COPY="${ROOT}/website/downloads/linux/$(basename "$APPIMAGE")"
-[[ -f "$WEB_COPY" ]] && ok "Website download copy: $WEB_COPY" || fail "Website copy missing: $WEB_COPY"
+WEB_APPIMAGE="${ROOT}/website/downloads/linux/ProjectX.AppImage"
+[[ -f "$WEB_APPIMAGE" ]] && ok "Website AppImage copy present" || fail "Website copy missing: $WEB_APPIMAGE"
 
-DEB_WEB_COPY="${ROOT}/website/downloads/linux/$(basename "$DEB")"
-if [[ -f "$DEB" ]]; then
-    [[ -f "$DEB_WEB_COPY" ]] && ok "Website .deb copy: $DEB_WEB_COPY" || fail "Website .deb copy missing: $DEB_WEB_COPY"
-fi
+WEB_DEB="${ROOT}/website/downloads/linux/ProjectX.deb"
+[[ -f "$WEB_DEB" ]] && ok "Website .deb copy present" || fail "Website copy missing: $WEB_DEB"
 
-COMBINED_SUMS="${CHECKSUM_DIR}/SHA256SUMS"
-if [[ -f "$COMBINED_SUMS" ]]; then
-    ok "SHA256SUMS present: $COMBINED_SUMS"
-    grep -Fq "$(basename "$APPIMAGE")" "$COMBINED_SUMS" && ok "SHA256SUMS lists AppImage" || fail "SHA256SUMS missing AppImage entry"
-    if [[ -f "$DEB" ]]; then
-        grep -Fq "$(basename "$DEB")" "$COMBINED_SUMS" && ok "SHA256SUMS lists .deb" || fail "SHA256SUMS missing .deb entry"
-        [[ -f "${CHECKSUM_DIR}/$(basename "$DEB").sha256" ]] && ok "Per-file checksum: $(basename "$DEB").sha256" || fail "Missing checksum sidecar: $(basename "$DEB").sha256"
-    fi
-    [[ -f "${CHECKSUM_DIR}/$(basename "$APPIMAGE").sha256" ]] && ok "Per-file checksum: $(basename "$APPIMAGE").sha256" || fail "Missing checksum sidecar: $(basename "$APPIMAGE").sha256"
+WEB_SUMS="${ROOT}/website/downloads/linux/SHA256SUMS"
+[[ -f "$WEB_SUMS" ]] && ok "Website SHA256SUMS copy present" || fail "Website copy missing: $WEB_SUMS"
+
+if [[ -f "$SUMS" ]]; then
+    ok "SHA256SUMS present: ${SUMS#${ROOT}/}"
+    grep -Fq "ProjectX.AppImage" "$SUMS" && ok "SHA256SUMS lists AppImage" || fail "SHA256SUMS missing AppImage entry"
+    grep -Fq "ProjectX.deb" "$SUMS" && ok "SHA256SUMS lists .deb" || fail "SHA256SUMS missing .deb entry"
+
+    while IFS= read -r base; do
+        [[ -n "$base" ]] || continue
+        artifact="${RELEASE_DIR}/${base}"
+        [[ -f "$artifact" ]] || continue
+        expected="$(grep -F "  ${base}" "$SUMS" | awk '{print $1}' | head -n1)"
+        actual="$(sha256sum "$artifact" | awk '{print $1}')"
+        if [[ "$expected" == "$actual" ]]; then
+            ok "Checksum matches: $base"
+        else
+            fail "Checksum mismatch: $base"
+        fi
+    done < <(grep -F '  ' "$SUMS" | awk '{print $NF}')
 else
-    fail "SHA256SUMS missing: $COMBINED_SUMS"
+    fail "SHA256SUMS missing: $SUMS"
 fi
 
 echo ""
 if [[ "$FAILED" -eq 0 ]]; then
     echo "Verification complete."
-    echo "Manual: on Linux Mint, run AppImage or sudo dpkg -i .deb, confirm menu icon and First Run Wizard."
+    echo "Manual: on Linux Mint, run AppImage or sudo dpkg -i ProjectX.deb, confirm menu icon and First Run Wizard."
     exit 0
 fi
 

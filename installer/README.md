@@ -46,20 +46,24 @@ Full Windows workflow: **`BUILD_WINDOWS.md`**
 Full Linux release workflow: **`docs/LINUX_INSTALLER.md`**  
 Public release workflow: **`RELEASE_PROCESS.md`**
 
-## Linux release packages (SAVE-077)
+## Linux release packages (SAVE-077 / SAVE-085)
 
-Build official AppImage and `.deb` packages:
+Build official public Linux release (AppImage + `.deb` + SHA256SUMS):
 
 ```bash
 chmod +x scripts/build_linux_release.sh scripts/verify_linux_release.sh
 ./scripts/build_linux_release.sh
 ```
 
-Output: `release/linux/` and copies under `website/downloads/linux/`
+Output: `release/linux/` (`ProjectX.deb`, `ProjectX.AppImage`, `SHA256SUMS`) and copies under `website/downloads/linux/`
 
-See **`docs/LINUX_INSTALLER.md`** for installation and verification.
+**Recommended for end users:** `ProjectX.deb` (Linux Mint / Debian). Menu entry displays **Project X** with summary *Professional Maritime Monitoring Platform*. **AppImage** is portable/advanced only.
 
-## Linux installer (development / source tree)
+The `.deb` package includes AppStream metadata for Software Manager, multi-size hicolor icons, optional desktop shortcut and post-install launch (debconf / defaults), and clean uninstall via `sudo dpkg -r projectx`.
+
+## Developer install (source tree — not for public release)
+
+For local development only. **Never distribute `installer/linux/` to end users.**
 
 Installs Project X to `~/.local/share/projectx`, creates a launcher, desktop shortcut, and applications menu entry.
 

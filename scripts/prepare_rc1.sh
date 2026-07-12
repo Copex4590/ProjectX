@@ -19,7 +19,6 @@ echo "============================================================"
 
 rm -rf "$RC1"
 mkdir -p \
-    "$RC1/checksums" \
     "$RC1/notes" \
     "$RC1/windows" \
     "$RC1/linux" \
@@ -47,15 +46,7 @@ cp -f "$ROOT/release/notes/0.3.0-alpha.md" "$RC1/notes/0.3.0-alpha.md"
 cp -f "$ROOT/release/notes/0.3.0-alpha-full.md" "$RC1/notes/0.3.0-alpha-full.md"
 cp -f "$ROOT/website/releases/0.3-alpha.md" "$RC1/notes/website-0.3-alpha.md"
 
-echo "Copying checksums..."
-for f in "$ROOT/release/checksums"/*; do
-    [[ -f "$f" ]] || continue
-    [[ "$(basename "$f")" == "README.md" ]] && continue
-    cp -f "$f" "$RC1/checksums/"
-    echo "[OK] Checksum: $(basename "$f")"
-done
-
-echo "Copying release artifacts..."
+echo "Copying release artifacts (including per-platform SHA256SUMS)..."
 for f in "$ROOT/release/windows"/*; do
     [[ -f "$f" ]] || continue
     [[ "$(basename "$f")" == "README.md" ]] && continue
@@ -105,7 +96,6 @@ for key, name in expected.items():
         path = rc1 / "linux" / name
     present[key] = path.exists()
 
-checksums = sorted(p.name for p in (rc1 / "checksums").glob("*") if p.is_file())
 notes = sorted(p.name for p in (rc1 / "notes").glob("*") if p.is_file())
 
 lines = [
@@ -124,15 +114,15 @@ for key, name in expected.items():
     status = "yes" if present[key] else "no"
     lines.append(f"| {name} | `{sub}/` | {status} |")
 
+lines.append("| SHA256SUMS | `linux/` | yes |" if (rc1 / "linux" / "SHA256SUMS").exists() else "| SHA256SUMS | `linux/` | no |")
+lines.append("| SHA256SUMS | `windows/` | yes |" if (rc1 / "windows" / "SHA256SUMS").exists() else "| SHA256SUMS | `windows/` | no |")
+
 lines += [
     "",
     "## Checksums",
     "",
+    "Per-platform `SHA256SUMS` files live alongside binaries under `linux/` and `windows/`.",
 ]
-if checksums:
-    lines.extend(f"- `{c}`" for c in checksums)
-else:
-    lines.append("_None — run `./scripts/generate_release_checksums.sh` after builds._")
 
 lines += ["", "## Release notes", ""]
 lines.extend(f"- `{n}`" for n in notes)

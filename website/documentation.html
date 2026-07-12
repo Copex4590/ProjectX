@@ -80,9 +80,29 @@
                     <p>For development builds, use <code>scripts\build_windows.bat</code> on a native Windows system.</p>
 
                     <h2 id="linux">Linux installation</h2>
-                    <p>Run the Linux installer script or install from source. The desktop installer places files under:</p>
-                    <pre><code>~/.local/share/projectx</code></pre>
-                    <p>A launcher and applications menu entry are created automatically.</p>
+                    <h3>Which file should I download?</h3>
+                    <ul>
+                        <li><strong><code>ProjectX.deb</code> — recommended</strong> for Linux Mint, Ubuntu, and Debian. Installs menu integration and uninstalls cleanly.</li>
+                        <li><strong><code>ProjectX.AppImage</code> — portable / advanced</strong> only if you do not want a system install. Does not add a menu entry automatically.</li>
+                        <li><strong><code>SHA256SUMS</code></strong> — optional integrity check after download.</li>
+                    </ul>
+
+                    <h3>Debian package (recommended for Linux Mint)</h3>
+                    <p>Double-click <code>ProjectX.deb</code> in your file manager to open GDebi, or install from a terminal:</p>
+                    <pre><code>sudo dpkg -i ProjectX.deb
+sudo apt-get install -f</code></pre>
+                    <p>Launch <strong>Project X</strong> from the applications menu (short description: <em>Professional Maritime Monitoring Platform</em>). By default the installer also creates a desktop shortcut and can launch Project X when installation finishes. Uninstall with Software Manager or <code>sudo dpkg -r projectx</code>.</p>
+
+                    <h3>Portable AppImage (advanced)</h3>
+                    <p>Use this only when you need a single portable file and accept manual steps:</p>
+                    <ol>
+                        <li>Download <code>ProjectX.AppImage</code>.</li>
+                        <li>Right-click → Properties → Permissions → enable <strong>Allow executing file as program</strong> (or run <code>chmod +x ProjectX.AppImage</code>).</li>
+                        <li>Double-click to run, or execute <code>./ProjectX.AppImage</code> from a terminal.</li>
+                    </ol>
+                    <p>The AppImage does not install a menu shortcut. To remove it, delete the file. Optional menu integration requires a third-party tool such as AppImageLauncher — it is not built into this release.</p>
+
+                    <p>User configuration is stored under <code>~/.local/share/projectx/</code> at runtime (not in the download folder).</p>
 
                     <h2 id="source">Build from source</h2>
                     <p>Clone the repository and install Python dependencies:</p>

@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+
+if [ -f /usr/share/debconf/confmodule ]; then
+    . /usr/share/debconf/confmodule
+else
+    exit 0
+fi
+
+db_version 2.0
+
+db_input medium projectx/desktop-shortcut || true
+db_input medium projectx/launch-after-install || true
+db_go || true
+
+exit 0

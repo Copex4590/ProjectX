@@ -11,7 +11,6 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 PYTHON="${PROJECTX_PYTHON:-python3}"
-CHECKSUM_DIR="${ROOT}/release/checksums"
 FAILED=0
 
 read_names() {
@@ -24,6 +23,7 @@ PY
 )"
     WIN_RELEASE="${ROOT}/release/windows/${WIN_FILE}"
     WIN_WEBSITE="${ROOT}/website/downloads/windows/${WIN_FILE}"
+    WIN_SUMS="${ROOT}/release/windows/SHA256SUMS"
 }
 
 fail() {
@@ -58,18 +58,10 @@ else
     fi
 fi
 
-COMBINED_SUMS="${CHECKSUM_DIR}/SHA256SUMS"
-if [[ -f "$COMBINED_SUMS" ]]; then
-    ok "SHA256SUMS present: ${COMBINED_SUMS#${ROOT}/}"
-    grep -Fq "$(basename "$WIN_RELEASE")" "$COMBINED_SUMS" && ok "SHA256SUMS lists Windows installer" || fail "SHA256SUMS missing Windows installer entry"
-else
-    fail "SHA256SUMS missing: $COMBINED_SUMS"
-fi
-
-SIDEcar="${CHECKSUM_DIR}/$(basename "$WIN_RELEASE").sha256"
-if [[ -f "$SIDEcar" ]]; then
-    ok "Per-file checksum: $(basename "$SIDEcar")"
-    expected="$(awk '{print $1}' "$SIDEcar")"
+if [[ -f "$WIN_SUMS" ]]; then
+    ok "SHA256SUMS present: ${WIN_SUMS#${ROOT}/}"
+    grep -Fq "$(basename "$WIN_RELEASE")" "$WIN_SUMS" && ok "SHA256SUMS lists Windows installer" || fail "SHA256SUMS missing Windows installer entry"
+    expected="$(grep -F "  $(basename "$WIN_RELEASE")" "$WIN_SUMS" | awk '{print $1}' | head -n1)"
     actual="$(sha256sum "$WIN_RELEASE" | awk '{print $1}')"
     if [[ "$expected" == "$actual" ]]; then
         ok "Checksum matches Windows installer"
@@ -77,7 +69,14 @@ if [[ -f "$SIDEcar" ]]; then
         fail "Checksum mismatch for Windows installer"
     fi
 else
-    fail "Missing checksum sidecar: ${SIDEcar#${ROOT}/}"
+    fail "SHA256SUMS missing: $WIN_SUMS"
+fi
+
+WEB_SUMS="${ROOT}/website/downloads/windows/SHA256SUMS"
+if [[ -f "$WEB_SUMS" ]]; then
+    ok "Website SHA256SUMS copy present"
+else
+    fail "Website copy missing: $WEB_SUMS"
 fi
 
 echo ""

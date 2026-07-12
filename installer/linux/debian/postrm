@@ -1,0 +1,70 @@
+#!/bin/sh
+set -e
+
+refresh_desktop_integration() {
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database /usr/share/applications 2>/dev/null || true
+    fi
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
+    fi
+}
+
+installing_user_home() {
+    user="$1"
+    if [ -z "$user" ] || [ "$user" = "root" ]; then
+        return 1
+    fi
+    getent passwd "$user" | cut -d: -f6
+}
+
+user_desktop_dir() {
+    user="$1"
+    home="$2"
+    if [ -z "$home" ] || [ ! -d "$home" ]; then
+        return 1
+    fi
+    if [ -f "$home/.config/user-dirs.dirs" ]; then
+        # shellcheck disable=SC1090
+        . "$home/.config/user-dirs.dirs"
+        eval "dir=\$XDG_DESKTOP_DIR"
+        if [ -n "${dir:-}" ]; then
+            echo "$dir"
+            return 0
+        fi
+    fi
+    echo "$home/Desktop"
+}
+
+remove_desktop_shortcut() {
+    user="$1"
+    home="$(installing_user_home "$user")"
+    desktop_dir="$(user_desktop_dir "$user" "$home")"
+    if [ -n "$desktop_dir" ]; then
+        rm -f "${desktop_dir}/Project X.desktop"
+    fi
+    rm -f "${home}/Desktop/Project X.desktop" 2>/dev/null || true
+}
+
+read_install_user() {
+    if [ -f /var/lib/projectx/install-user ]; then
+        cat /var/lib/projectx/install-user
+        return 0
+    fi
+    if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+        echo "$SUDO_USER"
+    fi
+}
+
+case "$1" in
+    remove|purge)
+        refresh_desktop_integration
+        install_user="$(read_install_user)"
+        if [ -n "$install_user" ]; then
+            remove_desktop_shortcut "$install_user"
+        fi
+        rm -rf /var/lib/projectx
+        ;;
+esac
+
+exit 0
