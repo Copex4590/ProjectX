@@ -84,6 +84,25 @@ class PreferencesManager:
         current.ais_configured = bool(configured)
         return self.save(Preferences.from_dict(current.to_dict()))
 
+    def set_ais_enabled_providers(
+        self,
+        providers: list[str],
+        *,
+        legacy_provider: str | None = None,
+    ) -> Preferences:
+
+        current = self.get()
+        current.ais_enabled_providers = [
+            str(item).strip().lower()
+            for item in providers
+            if str(item).strip()
+        ]
+
+        if legacy_provider is not None:
+            current.ais_provider = str(legacy_provider).strip().lower()
+
+        return self.save(Preferences.from_dict(current.to_dict()))
+
     def set_rtl_configuration(
         self,
         *,

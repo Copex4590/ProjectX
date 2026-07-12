@@ -1,4 +1,5 @@
 import json
+import logging
 import math
 import os
 import subprocess
@@ -8,13 +9,18 @@ from datetime import datetime
 
 import websocket
 
+from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
 from database import registry
 from debug.obs_freeze_trace import trace_block
 from engines.ais import AISNmeaDecoder, AISRtlClient
+from engines.ais.ais_catcher_launcher import is_port_open
 from engines.ais.ais_protocol import AISProtocol
+from engines.ais.hybrid_ais_engine import hybrid_ais_engine
 from engines.base_engine import BaseEngine
 from events import eventbus
 from models.ship import Ship
+
+logger = logging.getLogger(__name__)
 
 CAMERA_LAT = 47.501539
 CAMERA_LON = 19.039856
@@ -85,12 +91,26 @@ class HybridEngine(BaseEngine):
 
     def on_start(self):
 
-        self.rtl_thread = threading.Thread(
-            target=self.rtl_worker,
+        self.ais_thread = threading.Thread(
+            target=self.aisstream_worker,
             daemon=True,
         )
+        self.ais_thread.start()
 
-        self.rtl_thread.start()
+        if is_port_open(AIS_CATCHER_HOST, AIS_CATCHER_PORT):
+            self.rtl_thread = threading.Thread(
+                target=self.rtl_worker,
+                daemon=True,
+            )
+            self.rtl_thread.start()
+            return
+
+        logger.warning(
+            "AIS-Catcher unavailable on %s:%s — RTL AIS provider disabled",
+            AIS_CATCHER_HOST,
+            AIS_CATCHER_PORT,
+        )
+        eventbus.publish("rtl.status", status="offline")
 
     def on_stop(self):
 
@@ -381,9 +401,7 @@ class HybridEngine(BaseEngine):
             ),
         )
 
-        registry.add(ship)
-        with trace_block(f"HybridEngine.eventbus.publish ship.updated mmsi={ship.mmsi}"):
-            eventbus.publish("ship.updated", ship=ship)
+        hybrid_ais_engine.publish_ship(ship)
 
         if should_print:
             print()
@@ -531,18 +549,23 @@ class HybridEngine(BaseEngine):
         print("📡 Kapcsolódás AIS-catcherhez...")
 
         self._rtl_client = AISRtlClient()
-        self._rtl_client.connect("localhost", 10110)
+
+        try:
+            self._rtl_client.connect(AIS_CATCHER_HOST, AIS_CATCHER_PORT)
+        except OSError as error:
+            logger.warning(
+                "RTL AIS connection failed on %s:%s: %s",
+                AIS_CATCHER_HOST,
+                AIS_CATCHER_PORT,
+                error,
+            )
+            eventbus.publish("rtl.status", status="offline")
+            return
 
         print("✅ Kapcsolódva")
         eventbus.publish("rtl.status", status="connected")
 
         decoder = AISNmeaDecoder()
-
-        self.ais_thread = threading.Thread(
-            target=self.aisstream_worker,
-            daemon=True,
-        )
-        self.ais_thread.start()
 
         print("📡 Várakozás hajóadatokra...")
 

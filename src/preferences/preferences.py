@@ -42,6 +42,7 @@ class Preferences:
     vessel_card_layout: str = DEFAULT_VESSEL_CARD_LAYOUT
     first_run_completed: bool = False
     ais_provider: str = DEFAULT_AIS_PROVIDER
+    ais_enabled_providers: list[str] | None = None
     aisstream_api_key: str = ""
     ais_local_host: str = DEFAULT_AIS_LOCAL_HOST
     ais_local_port: int = DEFAULT_AIS_LOCAL_PORT
@@ -62,6 +63,7 @@ class Preferences:
             "vessel_card_layout": self.vessel_card_layout,
             "first_run_completed": self.first_run_completed,
             "ais_provider": self.ais_provider,
+            "ais_enabled_providers": list(self.ais_enabled_providers or []),
             "aisstream_api_key": self.aisstream_api_key,
             "ais_local_host": self.ais_local_host,
             "ais_local_port": self.ais_local_port,
@@ -102,6 +104,16 @@ class Preferences:
             data.get("ais_provider", DEFAULT_AIS_PROVIDER)
         ).strip().lower() or DEFAULT_AIS_PROVIDER
 
+        raw_enabled = data.get("ais_enabled_providers")
+        if isinstance(raw_enabled, list):
+            ais_enabled_providers = [
+                str(item).strip().lower()
+                for item in raw_enabled
+                if str(item).strip()
+            ]
+        else:
+            ais_enabled_providers = None
+
         try:
             ais_local_port = int(data.get("ais_local_port", DEFAULT_AIS_LOCAL_PORT))
         except (TypeError, ValueError):
@@ -120,6 +132,7 @@ class Preferences:
             vessel_card_layout=layout,
             first_run_completed=first_run_completed,
             ais_provider=ais_provider,
+            ais_enabled_providers=ais_enabled_providers,
             aisstream_api_key=str(data.get("aisstream_api_key", "")).strip(),
             ais_local_host=str(
                 data.get("ais_local_host", DEFAULT_AIS_LOCAL_HOST)
@@ -173,6 +186,7 @@ class Preferences:
                 migrated.get("language_selected", False)
             )
         migrated.setdefault("ais_provider", DEFAULT_AIS_PROVIDER)
+        migrated.setdefault("ais_enabled_providers", None)
         migrated.setdefault("aisstream_api_key", "")
         migrated.setdefault("ais_local_host", DEFAULT_AIS_LOCAL_HOST)
 

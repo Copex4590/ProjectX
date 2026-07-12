@@ -6,9 +6,9 @@
 from threading import Thread
 
 from core.logger import logger
-from database import registry
 from engines.ais.ais_client import AISClient
 from engines.ais.ais_parser import AISParser
+from engines.ais.hybrid_ais_engine import hybrid_ais_engine
 from engines.base_engine import BaseEngine
 from events import eventbus
 from preferences import preferences_manager
@@ -97,12 +97,7 @@ class AISStreamEngine(BaseEngine):
                 if ship is None:
                     continue
 
-                registry.add(ship)
-
-                eventbus.publish(
-                    "ship.updated",
-                    ship=ship
-                )
+                hybrid_ais_engine.publish_ship(ship)
 
             except Exception:
 

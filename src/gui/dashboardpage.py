@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from database import registry
 from ais import ais_manager
+from ais.providers import AISProviderType, normalize_provider_type
 from camera import camera_manager
 from debug.obs_freeze_trace import (
     begin_delete_trace_session,
@@ -83,6 +84,13 @@ _LAYOUT_LABELS = {
     "detailed": "Detailed",
     "media": "Media",
 }
+
+_PROVIDER_DISPLAY_ORDER = (
+    AISProviderType.AISSTREAM,
+    AISProviderType.LOCAL,
+    AISProviderType.MARINE_TRAFFIC,
+    AISProviderType.AISHUB,
+)
 
 
 class InfoCard(QFrame):
@@ -747,9 +755,9 @@ class DashboardPage(QWidget):
         self._add_camera_button.setText(tr("Add Camera"))
         self._logbook_title.setText(tr("Vessel Logbook"))
         self._import_logbook_button.setText(tr("Import Legacy Logbook"))
-        self._ais_title.setText(tr("AIS Source"))
-        self._ais_provider_caption.setText(tr("Provider"))
-        self._ais_config_caption.setText(tr("Status"))
+        self._ais_title.setText(tr("AIS Providers"))
+        self._ais_provider_caption.setText(tr("Mode"))
+        self._ais_config_caption.setText(tr("Providers"))
         self._ais_connection_caption.setText(tr("Connection"))
         self._ais_configure_button.setText(tr("Configure"))
         self._ais_test_button.setText(tr("Test"))
@@ -767,7 +775,7 @@ class DashboardPage(QWidget):
         self._add_camera_button.setToolTip(
             tr("Add a camera to the active observation point")
         )
-        self._ais_configure_button.setToolTip(tr("Configure AIS data source"))
+        self._ais_configure_button.setToolTip(tr("Configure AIS providers"))
         self._ais_test_button.setToolTip(tr("Test AIS connection"))
         self._rtl_setup_button.setToolTip(tr("Open RTL-SDR setup wizard"))
         self._rtl_test_button.setToolTip(tr("Run a short RTL reception test"))
@@ -894,18 +902,105 @@ class DashboardPage(QWidget):
                 self._cameras_list.addWidget(row_widget)
             trace_exit("DashboardPage.refresh_cameras.build_rows")
 
+    def _enabled_ais_providers(self) -> list[AISProviderType]:
+
+        preferences = preferences_manager.get()
+        enabled_values = preferences.ais_enabled_providers
+
+        if enabled_values is None:
+            provider = normalize_provider_type(preferences.ais_provider)
+
+            if provider == AISProviderType.HYBRID:
+                return [
+                    AISProviderType.AISSTREAM,
+                    AISProviderType.LOCAL,
+                ]
+
+            if provider == AISProviderType.LATER:
+                return []
+
+            return [provider]
+
+        return [
+            normalize_provider_type(value)
+            for value in enabled_values
+        ]
+
+    @staticmethod
+    def _provider_connection_status(provider: AISProviderType) -> str:
+
+        if provider == AISProviderType.AISSTREAM:
+            return ais_manager.ais_connection_status()
+
+        if provider == AISProviderType.LOCAL:
+            return ais_manager.rtl_connection_status()
+
+        return "offline"
+
+    def _ais_dashboard_connected(self) -> bool:
+
+        enabled = self._enabled_ais_providers()
+
+        if not enabled:
+            return False
+
+        return any(
+            self._provider_connection_status(provider) == "connected"
+            for provider in enabled
+        )
+
+    @staticmethod
+    def _provider_display_label(provider: AISProviderType) -> str:
+
+        if provider == AISProviderType.AISSTREAM:
+            return tr("AISStream")
+
+        if provider == AISProviderType.LOCAL:
+            return tr("RTL-SDR")
+
+        if provider == AISProviderType.MARINE_TRAFFIC:
+            return tr("MarineTraffic")
+
+        if provider == AISProviderType.AISHUB:
+            return tr("AISHub")
+
+        return provider.value
+
+    def _ais_mode_label(self, enabled_count: int) -> str:
+
+        if enabled_count <= 0:
+            return tr("Not configured")
+
+        if enabled_count == 1:
+            return tr("Single Provider")
+
+        if enabled_count == 2:
+            return tr("Hybrid")
+
+        return tr("Multi Provider")
+
+    def _ais_providers_display(self, enabled: list[AISProviderType]) -> str:
+
+        if not enabled:
+            return tr("None")
+
+        enabled_set = set(enabled)
+        labels = [
+            self._provider_display_label(provider)
+            for provider in _PROVIDER_DISPLAY_ORDER
+            if provider in enabled_set
+        ]
+        return "\n".join(labels)
+
     def refresh_ais(self, *_) -> None:
 
-        self._ais_provider_value.setText(ais_manager.provider_name())
+        enabled = self._enabled_ais_providers()
 
-        if ais_manager.is_configured():
-            self._ais_config_value.setText(tr("Configured"))
-            self._ais_config_value.setStyleSheet("color: #66bb6a; font-weight: 600;")
-        else:
-            self._ais_config_value.setText(tr("Not configured"))
-            self._ais_config_value.setStyleSheet("color: #9aa4af; font-weight: 600;")
+        self._ais_provider_value.setText(self._ais_mode_label(len(enabled)))
+        self._ais_config_value.setText(self._ais_providers_display(enabled))
+        self._ais_config_value.setStyleSheet("color: white; font-weight: 600;")
 
-        if ais_manager.is_connected():
+        if self._ais_dashboard_connected():
             self._ais_connection_value.setText(tr("Connected"))
             self._ais_connection_value.setStyleSheet("color: #66bb6a; font-weight: 600;")
             self.ais.value.setText(tr("Connected"))
@@ -931,7 +1026,7 @@ class DashboardPage(QWidget):
         if not ais_manager.is_configured():
             QMessageBox.information(
                 self,
-                tr("AIS Source"),
+                tr("AIS Providers"),
                 tr("AIS source is not configured yet."),
             )
             return
@@ -941,14 +1036,14 @@ class DashboardPage(QWidget):
         if result.success:
             QMessageBox.information(
                 self,
-                tr("AIS Source"),
+                tr("AIS Providers"),
                 f"✓ {tr(result.message)}",
             )
             return
 
         QMessageBox.warning(
             self,
-            tr("AIS Source"),
+            tr("AIS Providers"),
             tr(result.message),
         )
 
