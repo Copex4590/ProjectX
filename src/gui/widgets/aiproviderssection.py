@@ -18,19 +18,15 @@ from ais.provider_manager import ConfiguredProvider, provider_manager
 from ais.providers import AISProviderType, normalize_provider_type
 from core.logger import logger
 from gui.i18n_support import bind_language_refresh
+from gui.providers import open_provider_window
+from gui.theme import BG_HEADER, BORDER, TEXT, TEXT_MUTED, card_stylesheet
 from i18n import tr
 from rtl import rtl_manager
 
-_CARD_STYLE = """
-    QFrame {
-        background: #252a31;
-        border: 1px solid #3d4a5c;
-        border-radius: 10px;
-    }
-"""
+_CARD_STYLE = card_stylesheet()
 
-_ENTRY_STYLE = """
-    QPushButton {
+_ENTRY_STYLE = f"""
+    QPushButton {{
         background: transparent;
         color: white;
         font-weight: 600;
@@ -38,29 +34,29 @@ _ENTRY_STYLE = """
         border: none;
         border-radius: 6px;
         padding: 6px 4px;
-    }
-    QPushButton:hover {
-        background: #2a3548;
-    }
+    }}
+    QPushButton:hover {{
+        background: {BG_HEADER};
+    }}
 """
 
-_ADD_PROVIDER_STYLE = """
-    QPushButton {
+_ADD_PROVIDER_STYLE = f"""
+    QPushButton {{
         background: transparent;
-        color: #9aa4af;
+        color: {TEXT_MUTED};
         text-align: left;
         border: none;
         border-radius: 6px;
         padding: 6px 4px;
-    }
-    QPushButton:hover {
-        background: #2a3548;
+    }}
+    QPushButton:hover {{
+        background: {BG_HEADER};
         color: white;
-    }
+    }}
 """
 
-_HEADER_STYLE = """
-    QPushButton {
+_HEADER_STYLE = f"""
+    QPushButton {{
         background: transparent;
         color: white;
         font-size: 16pt;
@@ -68,10 +64,10 @@ _HEADER_STYLE = """
         text-align: left;
         border: none;
         padding: 0;
-    }
-    QPushButton:hover {
-        color: #d5dbe3;
-    }
+    }}
+    QPushButton:hover {{
+        color: {TEXT};
+    }}
 """
 
 
@@ -104,7 +100,7 @@ class AISProvidersSection(QFrame):
 
         self._separator = QFrame()
         self._separator.setFrameShape(QFrame.Shape.HLine)
-        self._separator.setStyleSheet("color: #3d4a5c;")
+        self._separator.setStyleSheet(f"color: {BORDER};")
         content_layout.addWidget(self._separator)
 
         self._add_provider_button = QPushButton()
@@ -186,6 +182,7 @@ class AISProvidersSection(QFrame):
     def _on_provider_clicked(self, provider: ConfiguredProvider) -> None:
 
         logger.info("Provider clicked: %s", provider.display_name)
+        open_provider_window(provider.provider_id, self.window())
 
     def _on_add_provider(self) -> None:
 

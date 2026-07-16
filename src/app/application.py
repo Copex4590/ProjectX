@@ -18,6 +18,7 @@ from app.paths import ensure_runtime_data_dirs
 from branding.assets import app_icon
 from gui.languagewelcome_dialog import run_language_welcome_if_needed
 from gui.splashscreen import create_splash_screen
+from gui.theme import global_stylesheet
 from i18n import tr
 from version import PROJECT_NAME, PROJECT_VERSION
 
@@ -99,6 +100,7 @@ class Application:
         self.qt.setApplicationVersion(PROJECT_VERSION)
         self.qt.setOrganizationName("Project X")
         self.qt.setWindowIcon(app_icon())
+        self.qt.setStyleSheet(global_stylesheet())
         _log_startup_phase("QApplication created")
 
         if not run_language_welcome_if_needed():

@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from gui.i18n_support import bind_language_refresh
+from gui.theme import wizard_shell_stylesheet
 from i18n import language_manager, tr
 from preferences import SUPPORTED_LANGUAGES, preferences_manager
 
@@ -43,32 +44,7 @@ class LanguageWelcomeDialog(QDialog):
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("""
-            QDialog {
-                background: #1d2127;
-            }
-
-            QLabel {
-                color: #d5dbe3;
-            }
-
-            QRadioButton {
-                color: #d5dbe3;
-                font-size: 11pt;
-            }
-
-            QPushButton {
-                background: #243651;
-                color: white;
-                border: 1px solid #2d5a8e;
-                border-radius: 6px;
-                padding: 8px 20px;
-            }
-
-            QPushButton:hover {
-                background: #2d4a6f;
-            }
-        """)
+        self.setStyleSheet(wizard_shell_stylesheet())
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 24, 24, 24)

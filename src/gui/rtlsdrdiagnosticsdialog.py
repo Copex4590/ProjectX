@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from gui.i18n_support import bind_language_refresh
+from gui.theme import wizard_shell_stylesheet
 from i18n import tr
 from rtl import rtl_manager
 
@@ -81,14 +82,7 @@ class RTLSdrDiagnosticsDialog(QDialog):
         self._button_box.rejected.connect(self.reject)
         self._button_box.accepted.connect(self.accept)
 
-        self.setStyleSheet("""
-            QDialog {
-                background: #252a31;
-            }
-            QLabel {
-                color: #d5dbe3;
-            }
-        """)
+        self.setStyleSheet(wizard_shell_stylesheet())
 
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()

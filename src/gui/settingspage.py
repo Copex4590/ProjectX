@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 
 from gui.settings.cameradiagnosticspanel import CameraDiagnosticsPanel
 from gui.settings.playbacksettings import PlaybackSettingsPage
+from gui.theme import BG_BASE, BG_DEEP, BORDER, TEXT, TEXT_MUTED, settings_panel_stylesheet
 from i18n import language_manager, tr
 from preferences import (
     SUPPORTED_LANGUAGES,
@@ -65,7 +66,7 @@ class SettingsPage(QWidget):
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("background: #1d2127;")
+        self.setStyleSheet(f"background: {BG_DEEP};")
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -77,7 +78,7 @@ class SettingsPage(QWidget):
         outer_layout.addWidget(scroll)
 
         content = QWidget()
-        content.setStyleSheet("background: #1d2127;")
+        content.setStyleSheet(f"background: {BG_DEEP};")
         scroll.setWidget(content)
 
         layout = QVBoxLayout(content)
@@ -92,32 +93,32 @@ class SettingsPage(QWidget):
         layout.addWidget(self.title_label)
 
         personalization = QFrame()
-        personalization.setStyleSheet("""
-            QFrame {
-                background: #252a31;
-                border: 1px solid #3d4a5c;
+        personalization.setStyleSheet(f"""
+            QFrame {{
+                background: {BG_BASE};
+                border: 1px solid {BORDER};
                 border-radius: 10px;
-            }
+            }}
 
-            QLabel[role="section"] {
-                color: #d5dbe3;
+            QLabel[role="section"] {{
+                color: {TEXT};
                 font-size: 12pt;
                 font-weight: 600;
-            }
+            }}
 
-            QLabel[role="field"] {
-                color: #9aa4af;
+            QLabel[role="field"] {{
+                color: {TEXT_MUTED};
                 font-size: 10pt;
                 font-weight: 600;
-            }
+            }}
 
-            QComboBox {
-                background: #1d2127;
+            QComboBox {{
+                background: {BG_DEEP};
                 color: white;
-                border: 1px solid #3d4a5c;
+                border: 1px solid {BORDER};
                 border-radius: 6px;
                 padding: 6px 8px;
-            }
+            }}
         """)
         personalization_layout = QVBoxLayout(personalization)
         personalization_layout.setContentsMargins(16, 16, 16, 16)
@@ -154,105 +155,12 @@ class SettingsPage(QWidget):
         layout.addWidget(personalization)
 
         self.playback_settings = PlaybackSettingsPage()
-        self.playback_settings.setStyleSheet("""
-            QFrame {
-                background: #252a31;
-                border: 1px solid #3d4a5c;
-                border-radius: 10px;
-                padding: 4px;
-            }
-
-            QLabel[role="section"] {
-                color: #d5dbe3;
-                font-size: 12pt;
-                font-weight: 600;
-            }
-
-            QLabel[role="field"] {
-                color: #9aa4af;
-                font-size: 10pt;
-                font-weight: 600;
-            }
-
-            QLabel[role="caption"] {
-                color: #7d8794;
-                font-size: 9pt;
-            }
-
-            QComboBox, QLineEdit {
-                background: #1d2127;
-                color: white;
-                border: 1px solid #3d4a5c;
-                border-radius: 6px;
-                padding: 6px 8px;
-            }
-
-            QPushButton {
-                background: #1976d2;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 6px;
-            }
-        """)
+        self.playback_settings.setStyleSheet(settings_panel_stylesheet())
         layout.addWidget(self.playback_settings)
 
         self.camera_diagnostics = CameraDiagnosticsPanel()
         self.camera_diagnostics.setMinimumHeight(320)
-        self.camera_diagnostics.setStyleSheet("""
-            QFrame {
-                background: #252a31;
-                border: 1px solid #3d4a5c;
-                border-radius: 10px;
-                padding: 4px;
-            }
-
-            QLabel[role="section"] {
-                color: #d5dbe3;
-                font-size: 12pt;
-                font-weight: 600;
-            }
-
-            QLabel[role="summary-title"] {
-                color: #9aa4af;
-                font-size: 9pt;
-                font-weight: 600;
-            }
-
-            QLabel[role="summary-value"] {
-                color: white;
-                font-size: 16pt;
-                font-weight: bold;
-            }
-
-            QComboBox, QPushButton {
-                background: #1d2127;
-                color: white;
-                border: 1px solid #3d4a5c;
-                border-radius: 6px;
-                padding: 6px 8px;
-            }
-
-            QPushButton {
-                background: #1976d2;
-                border: none;
-                padding: 8px 12px;
-            }
-
-            QTableWidget {
-                background: #1d2127;
-                color: white;
-                border: 1px solid #3d4a5c;
-                gridline-color: #3d4a5c;
-            }
-
-            QHeaderView::section {
-                background: #2a3548;
-                color: #d5dbe3;
-                border: 1px solid #3d4a5c;
-                padding: 6px;
-            }
-        """)
+        self.camera_diagnostics.setStyleSheet(settings_panel_stylesheet(include_table=True))
         layout.addWidget(self.camera_diagnostics)
 
         layout.addStretch()

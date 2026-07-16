@@ -1096,3 +1096,1611 @@
 [001096] t=673.384625 thr=MainThread EXIT MainWindow->DashboardPage.refresh_ais(rtl)
 [001097] t=673.384684 thr=MainThread ENTER MainWindow->DashboardPage.refresh_rtl
 [001098] t=673.384796 thr=MainThread EXIT MainWindow->DashboardPage.refresh_rtl
+[000001] t=2492.098224 thr=MainThread ENTER ObservationManager._lock.acquire caller=_load thr=MainThread id=136655857647744 owner=none
+[000002] t=2492.098321 thr=MainThread EXIT ObservationManager._lock.acquire caller=_load thr=MainThread id=136655857647744 owner=acquired
+[000003] t=2492.098497 thr=MainThread ENTER ObservationManager._find_active
+[000004] t=2492.098539 thr=MainThread EXIT ObservationManager._find_active
+[000005] t=2492.098575 thr=MainThread ENTER ObservationManager._find_reference_unlocked
+[000006] t=2492.098601 thr=MainThread EXIT ObservationManager._find_reference_unlocked
+[000007] t=2492.098628 thr=MainThread ENTER ObservationManager._find_active
+[000008] t=2492.098652 thr=MainThread EXIT ObservationManager._find_active
+[000009] t=2492.098675 thr=MainThread ENTER ObservationManager._lock.release caller=_load thr=MainThread id=136655857647744
+[000010] t=2492.098717 thr=MainThread EXIT ObservationManager._lock.release caller=_load thr=MainThread id=136655857647744
+[000011] t=2492.377039 thr=MainThread ENTER ObservationManager.all
+[000012] t=2492.377167 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=none
+[000013] t=2492.377222 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=acquired
+[000014] t=2492.377261 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000015] t=2492.377292 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000016] t=2492.377320 thr=MainThread EXIT ObservationManager.all
+[000017] t=2492.435434 thr=MainThread ENTER DashboardPage.refresh_observation
+[000018] t=2492.435605 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.all
+[000019] t=2492.435700 thr=MainThread ENTER ObservationManager.all
+[000020] t=2492.435773 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=none
+[000021] t=2492.435832 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=acquired
+[000022] t=2492.435893 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000023] t=2492.435958 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000024] t=2492.436029 thr=MainThread EXIT ObservationManager.all
+[000025] t=2492.436075 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.all
+[000026] t=2492.436118 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.active
+[000027] t=2492.436159 thr=MainThread ENTER ObservationManager.active
+[000028] t=2492.436204 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=none
+[000029] t=2492.436247 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=acquired
+[000030] t=2492.436286 thr=MainThread ENTER ObservationManager._find_active
+[000031] t=2492.436324 thr=MainThread EXIT ObservationManager._find_active
+[000032] t=2492.436362 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000033] t=2492.436400 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000034] t=2492.436437 thr=MainThread EXIT ObservationManager.active
+[000035] t=2492.436473 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.active
+[000036] t=2492.436510 thr=MainThread ENTER DashboardPage.refresh_observation._populate_selector
+[000037] t=2492.436559 thr=MainThread ENTER DashboardPage._populate_selector
+[000038] t=2492.436596 thr=MainThread ENTER DashboardPage._populate_selector.blockSignals
+[000039] t=2492.436634 thr=MainThread EXIT DashboardPage._populate_selector.blockSignals
+[000040] t=2492.436669 thr=MainThread ENTER DashboardPage._populate_selector.clear
+[000041] t=2492.436704 thr=MainThread EXIT DashboardPage._populate_selector.clear
+[000042] t=2492.436739 thr=MainThread ENTER DashboardPage._populate_selector.add_items
+[000043] t=2492.436772 thr=MainThread EXIT DashboardPage._populate_selector.add_items
+[000044] t=2492.436804 thr=MainThread ENTER DashboardPage._populate_selector.unblockSignals
+[000045] t=2492.436838 thr=MainThread EXIT DashboardPage._populate_selector.unblockSignals
+[000046] t=2492.436871 thr=MainThread EXIT DashboardPage._populate_selector
+[000047] t=2492.436907 thr=MainThread EXIT DashboardPage.refresh_observation._populate_selector
+[000048] t=2492.436944 thr=MainThread ENTER DashboardPage.refresh_observation.update_labels
+[000049] t=2492.437125 thr=MainThread EXIT DashboardPage.refresh_observation.update_labels
+[000050] t=2492.437197 thr=MainThread ENTER DashboardPage.refresh_observation.refresh_cameras
+[000051] t=2492.437244 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000052] t=2492.437284 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000053] t=2492.437324 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000054] t=2492.437360 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000055] t=2492.437397 thr=MainThread ENTER ObservationManager.active
+[000056] t=2492.437436 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=none
+[000057] t=2492.437490 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=acquired
+[000058] t=2492.437530 thr=MainThread ENTER ObservationManager._find_active
+[000059] t=2492.437573 thr=MainThread EXIT ObservationManager._find_active
+[000060] t=2492.437615 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000061] t=2492.437673 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000062] t=2492.437711 thr=MainThread EXIT ObservationManager.active
+[000063] t=2492.437749 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000064] t=2492.437799 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000065] t=2492.437842 thr=MainThread EXIT DashboardPage.refresh_observation.refresh_cameras
+[000066] t=2492.437882 thr=MainThread EXIT DashboardPage.refresh_observation
+[000067] t=2492.437923 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000068] t=2492.437960 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000069] t=2492.437997 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000070] t=2492.438040 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000071] t=2492.438075 thr=MainThread ENTER ObservationManager.active
+[000072] t=2492.438113 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=none
+[000073] t=2492.438151 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=acquired
+[000074] t=2492.438185 thr=MainThread ENTER ObservationManager._find_active
+[000075] t=2492.438216 thr=MainThread EXIT ObservationManager._find_active
+[000076] t=2492.438240 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000077] t=2492.438265 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000078] t=2492.438321 thr=MainThread EXIT ObservationManager.active
+[000079] t=2492.438359 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000080] t=2492.438402 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000081] t=2492.439929 thr=MainThread ENTER DashboardPage.refresh_observation
+[000082] t=2492.440019 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.all
+[000083] t=2492.440075 thr=MainThread ENTER ObservationManager.all
+[000084] t=2492.440112 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=none
+[000085] t=2492.440142 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=acquired
+[000086] t=2492.440170 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000087] t=2492.440195 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000088] t=2492.440220 thr=MainThread EXIT ObservationManager.all
+[000089] t=2492.440245 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.all
+[000090] t=2492.440267 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.active
+[000091] t=2492.440289 thr=MainThread ENTER ObservationManager.active
+[000092] t=2492.440313 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=none
+[000093] t=2492.440337 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=acquired
+[000094] t=2492.440360 thr=MainThread ENTER ObservationManager._find_active
+[000095] t=2492.440382 thr=MainThread EXIT ObservationManager._find_active
+[000096] t=2492.440407 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000097] t=2492.440431 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000098] t=2492.440454 thr=MainThread EXIT ObservationManager.active
+[000099] t=2492.440475 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.active
+[000100] t=2492.440499 thr=MainThread ENTER DashboardPage.refresh_observation._populate_selector
+[000101] t=2492.440524 thr=MainThread ENTER DashboardPage._populate_selector
+[000102] t=2492.440546 thr=MainThread ENTER DashboardPage._populate_selector.blockSignals
+[000103] t=2492.440570 thr=MainThread EXIT DashboardPage._populate_selector.blockSignals
+[000104] t=2492.440592 thr=MainThread ENTER DashboardPage._populate_selector.clear
+[000105] t=2492.440615 thr=MainThread EXIT DashboardPage._populate_selector.clear
+[000106] t=2492.440636 thr=MainThread ENTER DashboardPage._populate_selector.add_items
+[000107] t=2492.440657 thr=MainThread EXIT DashboardPage._populate_selector.add_items
+[000108] t=2492.440677 thr=MainThread ENTER DashboardPage._populate_selector.unblockSignals
+[000109] t=2492.440699 thr=MainThread EXIT DashboardPage._populate_selector.unblockSignals
+[000110] t=2492.440723 thr=MainThread EXIT DashboardPage._populate_selector
+[000111] t=2492.440748 thr=MainThread EXIT DashboardPage.refresh_observation._populate_selector
+[000112] t=2492.440770 thr=MainThread ENTER DashboardPage.refresh_observation.update_labels
+[000113] t=2492.440860 thr=MainThread EXIT DashboardPage.refresh_observation.update_labels
+[000114] t=2492.440908 thr=MainThread ENTER DashboardPage.refresh_observation.refresh_cameras
+[000115] t=2492.440940 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000116] t=2492.440965 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000117] t=2492.440989 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000118] t=2492.441018 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000119] t=2492.441041 thr=MainThread ENTER ObservationManager.active
+[000120] t=2492.441069 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=none
+[000121] t=2492.441097 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=acquired
+[000122] t=2492.441124 thr=MainThread ENTER ObservationManager._find_active
+[000123] t=2492.441149 thr=MainThread EXIT ObservationManager._find_active
+[000124] t=2492.441177 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000125] t=2492.441201 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000126] t=2492.441223 thr=MainThread EXIT ObservationManager.active
+[000127] t=2492.441246 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000128] t=2492.441272 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000129] t=2492.441297 thr=MainThread EXIT DashboardPage.refresh_observation.refresh_cameras
+[000130] t=2492.441319 thr=MainThread EXIT DashboardPage.refresh_observation
+[000131] t=2492.441344 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000132] t=2492.441367 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000133] t=2492.441389 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000134] t=2492.441412 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000135] t=2492.441433 thr=MainThread ENTER ObservationManager.active
+[000136] t=2492.441456 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=none
+[000137] t=2492.441479 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=acquired
+[000138] t=2492.441501 thr=MainThread ENTER ObservationManager._find_active
+[000139] t=2492.441523 thr=MainThread EXIT ObservationManager._find_active
+[000140] t=2492.441546 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000141] t=2492.441571 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000142] t=2492.441592 thr=MainThread EXIT ObservationManager.active
+[000143] t=2492.441614 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000144] t=2492.441636 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000145] t=2493.267083 thr=MainThread ENTER MapPage._map_updates_enabled
+[000146] t=2493.267302 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000147] t=2493.267456 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=False
+[000148] t=2493.267544 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000149] t=2493.267596 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=False
+[000150] t=2493.267639 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000151] t=2493.267692 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000152] t=2493.267734 thr=MainThread EXIT MapPage._map_updates_enabled
+[000153] t=2493.267782 thr=MainThread ENTER MapController.refresh_observation_points
+[000154] t=2493.267824 thr=MainThread ENTER MapController.refresh_observation_points.observation_manager.all
+[000155] t=2493.267866 thr=MainThread ENTER ObservationManager.all
+[000156] t=2493.267915 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=none
+[000157] t=2493.267973 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=acquired
+[000158] t=2493.268038 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000159] t=2493.268086 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000160] t=2493.268133 thr=MainThread EXIT ObservationManager.all
+[000161] t=2493.268176 thr=MainThread EXIT MapController.refresh_observation_points.observation_manager.all
+[000162] t=2493.268215 thr=MainThread ENTER MapController.refresh_observation_points.clear_observation_points
+[000163] t=2493.268268 thr=MainThread ENTER MapWidget.clear_observation_points
+[000164] t=2493.268321 thr=MainThread ENTER MapWidget._apply_empty_state
+[000165] t=2493.268366 thr=MainThread EXIT MapWidget._apply_empty_state
+[000166] t=2493.268409 thr=MainThread EXIT MapWidget.clear_observation_points
+[000167] t=2493.268457 thr=MainThread EXIT MapController.refresh_observation_points.clear_observation_points
+[000168] t=2493.268499 thr=MainThread EXIT MapController.refresh_observation_points
+[000169] t=2493.270054 thr=MainThread ENTER VesselsPage.refresh
+[000170] t=2493.270433 thr=MainThread EXIT VesselsPage.refresh
+[000171] t=2493.342630 thr=MainThread ENTER ObservationManager.active
+[000172] t=2493.342767 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=none
+[000173] t=2493.342846 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=acquired
+[000174] t=2493.342899 thr=MainThread ENTER ObservationManager._find_active
+[000175] t=2493.342943 thr=MainThread EXIT ObservationManager._find_active
+[000176] t=2493.342981 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000177] t=2493.343014 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000178] t=2493.343042 thr=MainThread EXIT ObservationManager.active
+[000179] t=2493.343066 thr=MainThread ENTER ObservationManager.all
+[000180] t=2493.343091 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=none
+[000181] t=2493.343117 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=acquired
+[000182] t=2493.343144 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000183] t=2493.343170 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000184] t=2493.343193 thr=MainThread EXIT ObservationManager.all
+[000185] t=2493.352668 thr=MainThread ENTER MapPage.hideEvent
+[000186] t=2493.352767 thr=MainThread ENTER MapPage._stop_ship_timers
+[000187] t=2493.352819 thr=MainThread EXIT MapPage._stop_ship_timers
+[000188] t=2493.352857 thr=MainThread EXIT MapPage.hideEvent
+[000189] t=2493.388753 thr=MainThread ENTER MapPage._map_updates_enabled
+[000190] t=2493.388867 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000191] t=2493.388918 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=False
+[000192] t=2493.388952 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000193] t=2493.388981 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=False
+[000194] t=2493.389010 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000195] t=2493.389040 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000196] t=2493.389065 thr=MainThread EXIT MapPage._map_updates_enabled
+[000197] t=2493.389388 thr=MainThread ENTER DashboardPage.refresh_observation
+[000198] t=2493.389445 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.all
+[000199] t=2493.389477 thr=MainThread ENTER ObservationManager.all
+[000200] t=2493.389506 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=none
+[000201] t=2493.389535 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=acquired
+[000202] t=2493.389563 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000203] t=2493.389588 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000204] t=2493.389613 thr=MainThread EXIT ObservationManager.all
+[000205] t=2493.389636 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.all
+[000206] t=2493.389657 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.active
+[000207] t=2493.389678 thr=MainThread ENTER ObservationManager.active
+[000208] t=2493.389702 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=none
+[000209] t=2493.389727 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=acquired
+[000210] t=2493.389757 thr=MainThread ENTER ObservationManager._find_active
+[000211] t=2493.389780 thr=MainThread EXIT ObservationManager._find_active
+[000212] t=2493.389803 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000213] t=2493.389829 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000214] t=2493.389853 thr=MainThread EXIT ObservationManager.active
+[000215] t=2493.389876 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.active
+[000216] t=2493.389900 thr=MainThread ENTER DashboardPage.refresh_observation._populate_selector
+[000217] t=2493.389927 thr=MainThread ENTER DashboardPage._populate_selector
+[000218] t=2493.389949 thr=MainThread ENTER DashboardPage._populate_selector.blockSignals
+[000219] t=2493.389973 thr=MainThread EXIT DashboardPage._populate_selector.blockSignals
+[000220] t=2493.389995 thr=MainThread ENTER DashboardPage._populate_selector.clear
+[000221] t=2493.390021 thr=MainThread EXIT DashboardPage._populate_selector.clear
+[000222] t=2493.390042 thr=MainThread ENTER DashboardPage._populate_selector.add_items
+[000223] t=2493.390063 thr=MainThread EXIT DashboardPage._populate_selector.add_items
+[000224] t=2493.390084 thr=MainThread ENTER DashboardPage._populate_selector.unblockSignals
+[000225] t=2493.390105 thr=MainThread EXIT DashboardPage._populate_selector.unblockSignals
+[000226] t=2493.390125 thr=MainThread EXIT DashboardPage._populate_selector
+[000227] t=2493.390147 thr=MainThread EXIT DashboardPage.refresh_observation._populate_selector
+[000228] t=2493.390169 thr=MainThread ENTER DashboardPage.refresh_observation.update_labels
+[000229] t=2493.390273 thr=MainThread EXIT DashboardPage.refresh_observation.update_labels
+[000230] t=2493.390319 thr=MainThread ENTER DashboardPage.refresh_observation.refresh_cameras
+[000231] t=2493.390349 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000232] t=2493.390374 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000233] t=2493.390399 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000234] t=2493.390422 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000235] t=2493.390445 thr=MainThread ENTER ObservationManager.active
+[000236] t=2493.390471 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=none
+[000237] t=2493.390497 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=acquired
+[000238] t=2493.390520 thr=MainThread ENTER ObservationManager._find_active
+[000239] t=2493.390543 thr=MainThread EXIT ObservationManager._find_active
+[000240] t=2493.390567 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000241] t=2493.390590 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000242] t=2493.390613 thr=MainThread EXIT ObservationManager.active
+[000243] t=2493.390634 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000244] t=2493.390659 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000245] t=2493.390683 thr=MainThread EXIT DashboardPage.refresh_observation.refresh_cameras
+[000246] t=2493.390717 thr=MainThread EXIT DashboardPage.refresh_observation
+[000247] t=2493.390749 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000248] t=2493.390773 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000249] t=2493.390800 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000250] t=2493.390824 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000251] t=2493.390846 thr=MainThread ENTER ObservationManager.active
+[000252] t=2493.390870 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=none
+[000253] t=2493.390895 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=acquired
+[000254] t=2493.390923 thr=MainThread ENTER ObservationManager._find_active
+[000255] t=2493.390946 thr=MainThread EXIT ObservationManager._find_active
+[000256] t=2493.390969 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000257] t=2493.390992 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000258] t=2493.391021 thr=MainThread EXIT ObservationManager.active
+[000259] t=2493.391044 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000260] t=2493.391068 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000261] t=2493.391693 thr=MainThread ENTER VesselsPage.refresh
+[000262] t=2493.391779 thr=MainThread EXIT VesselsPage.refresh
+[000263] t=2493.399374 thr=MainThread ENTER MapController.maybe_prompt_reference_selection
+[000264] t=2493.400176 thr=MainThread ENTER MapController.maybe_prompt_reference_selection.needs_reference_selection
+[000265] t=2493.400239 thr=MainThread ENTER ObservationManager.needs_reference_selection
+[000266] t=2493.400277 thr=MainThread ENTER ObservationManager._lock.acquire caller=needs_reference_selection thr=MainThread id=136655857647744 owner=none
+[000267] t=2493.400311 thr=MainThread EXIT ObservationManager._lock.acquire caller=needs_reference_selection thr=MainThread id=136655857647744 owner=acquired
+[000268] t=2493.400341 thr=MainThread ENTER ObservationManager._lock.release caller=needs_reference_selection thr=MainThread id=136655857647744
+[000269] t=2493.400369 thr=MainThread EXIT ObservationManager._lock.release caller=needs_reference_selection thr=MainThread id=136655857647744
+[000270] t=2493.400395 thr=MainThread EXIT ObservationManager.needs_reference_selection
+[000271] t=2493.400422 thr=MainThread EXIT MapController.maybe_prompt_reference_selection.needs_reference_selection
+[000272] t=2493.400446 thr=MainThread EXIT MapController.maybe_prompt_reference_selection
+[000273] t=2493.709646 thr=MainThread ENTER EventBus.publish event=engine.started
+[000274] t=2493.709907 thr=MainThread EXIT EventBus.publish event=engine.started
+[000275] t=2493.710426 thr=MainThread ENTER EventBus.publish event=rtl.status
+[000276] t=2493.710542 thr=MainThread ENTER EventBus.publish.rtl.status->AISManager._on_rtl_status
+[000277] t=2493.710593 thr=MainThread EXIT EventBus.publish.rtl.status->AISManager._on_rtl_status
+[000278] t=2493.710644 thr=MainThread ENTER EventBus.publish.rtl.status->RTLManager._on_rtl_status
+[000279] t=2493.710867 thr=MainThread EXIT EventBus.publish.rtl.status->RTLManager._on_rtl_status
+[000280] t=2493.710918 thr=MainThread ENTER EventBus.publish.rtl.status->EventBridge._on_rtl_status
+[000281] t=2493.710952 thr=MainThread ENTER EventBridge._on_rtl_status
+[000282] t=2493.710994 thr=MainThread EXIT EventBridge._on_rtl_status
+[000283] t=2493.711034 thr=MainThread EXIT EventBus.publish.rtl.status->EventBridge._on_rtl_status
+[000284] t=2493.711063 thr=MainThread EXIT EventBus.publish event=rtl.status
+[000285] t=2493.726798 thr=MainThread ENTER MapPage.showEvent
+[000286] t=2493.726967 thr=MainThread ENTER MapController.on_map_page_visible
+[000287] t=2493.727070 thr=MainThread EXIT MapController.on_map_page_visible
+[000288] t=2493.727142 thr=MainThread EXIT MapPage.showEvent
+[000289] t=2493.727204 thr=MainThread ENTER MapPage._start_ship_timers
+[000290] t=2493.727265 thr=MainThread ENTER MapPage._map_updates_enabled
+[000291] t=2493.727315 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000292] t=2493.727376 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000293] t=2493.727426 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000294] t=2493.727478 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000295] t=2493.727525 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000296] t=2493.727581 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000297] t=2493.727632 thr=MainThread EXIT MapPage._map_updates_enabled
+[000298] t=2493.727703 thr=MainThread EXIT MapPage._start_ship_timers
+[000299] t=2493.727773 thr=MainThread ENTER MapPage._update_ship_markers
+[000300] t=2493.727823 thr=MainThread ENTER MapPage._map_updates_enabled
+[000301] t=2493.727866 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000302] t=2493.727915 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000303] t=2493.727956 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000304] t=2493.727998 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000305] t=2493.728052 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000306] t=2493.728095 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000307] t=2493.728135 thr=MainThread EXIT MapPage._map_updates_enabled
+[000308] t=2493.728188 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000309] t=2493.728230 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000310] t=2493.728275 thr=MainThread EXIT MapPage._publish_ships.registry.all count=0
+[000311] t=2493.728316 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000312] t=2493.728355 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000313] t=2493.728394 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000314] t=2493.728461 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=2
+[000315] t=2493.728506 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000316] t=2493.728549 thr=MainThread ENTER MapController.update_ships bytes=2
+[000317] t=2493.728593 thr=MainThread ENTER MapWidget.update_ships bytes=2
+[000318] t=2493.728630 thr=MainThread EXIT MapWidget.update_ships bytes=2
+[000319] t=2493.728668 thr=MainThread EXIT MapController.update_ships bytes=2
+[000320] t=2493.728705 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000321] t=2493.728741 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000322] t=2493.728780 thr=MainThread EXIT MapPage._update_ship_markers
+[000323] t=2493.728821 thr=MainThread ENTER MapPage._schedule_ships_full label=MapPage.showEvent->_update_ships_full
+[000324] t=2493.728877 thr=MainThread SCHEDULE QTimer.singleShot delay_ms=0 label=MapPage.showEvent->_update_ships_full
+[000325] t=2493.728927 thr=MainThread EXIT MapPage._schedule_ships_full label=MapPage.showEvent->_update_ships_full
+[000326] t=2493.729109 thr=MainThread ENTER ObservationManager.all
+[000327] t=2493.729186 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=none
+[000328] t=2493.729237 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=acquired
+[000329] t=2493.729285 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000330] t=2493.729327 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000331] t=2493.729367 thr=MainThread EXIT ObservationManager.all
+[000332] t=2493.746525 thr=MainThread ENTER MainWindow->DashboardPage.refresh_ais(rtl)
+[000333] t=2493.747444 thr=MainThread EXIT MainWindow->DashboardPage.refresh_ais(rtl)
+[000334] t=2493.747582 thr=MainThread ENTER MainWindow->DashboardPage.refresh_rtl
+[000335] t=2493.748022 thr=MainThread EXIT MainWindow->DashboardPage.refresh_rtl
+[000336] t=2493.748216 thr=MainThread ENTER MapPage.showEvent->_update_ships_full
+[000337] t=2493.748290 thr=MainThread ENTER MapPage._schedule_ships_full.callback label=MapPage.showEvent->_update_ships_full generation=1
+[000338] t=2493.748346 thr=MainThread ENTER MapPage._update_ships_full
+[000339] t=2493.748393 thr=MainThread ENTER MapPage._map_updates_enabled
+[000340] t=2493.748433 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000341] t=2493.748477 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000342] t=2493.748513 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000343] t=2493.748549 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000344] t=2493.748592 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000345] t=2493.748631 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000346] t=2493.748667 thr=MainThread EXIT MapPage._map_updates_enabled
+[000347] t=2493.748711 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship
+[000348] t=2493.748748 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000349] t=2493.748787 thr=MainThread EXIT MapPage._publish_ships.registry.all count=0
+[000350] t=2493.748822 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000351] t=2493.748856 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000352] t=2493.748891 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000353] t=2493.748938 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=2
+[000354] t=2493.748976 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000355] t=2493.749022 thr=MainThread ENTER MapController.update_ships bytes=2
+[000356] t=2493.749062 thr=MainThread ENTER MapWidget.update_ships bytes=2
+[000357] t=2493.749099 thr=MainThread EXIT MapWidget.update_ships bytes=2
+[000358] t=2493.749134 thr=MainThread EXIT MapController.update_ships bytes=2
+[000359] t=2493.749168 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000360] t=2493.749201 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship
+[000361] t=2493.749237 thr=MainThread EXIT MapPage._update_ships_full
+[000362] t=2493.749275 thr=MainThread EXIT MapPage._schedule_ships_full.callback label=MapPage.showEvent->_update_ships_full generation=1
+[000363] t=2493.749311 thr=MainThread EXIT MapPage.showEvent->_update_ships_full
+[000364] t=2493.840648 thr=MainThread ENTER MapController._set_pick_mode PickMode.NONE->PickMode.LOCATION
+[000365] t=2493.840987 thr=MainThread ENTER MapPage._on_pick_mode_changed mode=PickMode.LOCATION
+[000366] t=2493.841141 thr=MainThread ENTER MapPage._stop_ship_timers
+[000367] t=2493.841246 thr=MainThread EXIT MapPage._stop_ship_timers
+[000368] t=2493.841332 thr=MainThread EXIT MapPage._on_pick_mode_changed mode=PickMode.LOCATION
+[000369] t=2493.841428 thr=MainThread EXIT MapController._set_pick_mode PickMode.LOCATION
+[000370] t=2493.850268 thr=MainThread ENTER MapController.begin_location_pick->QTimer._start_pick_session
+[000371] t=2493.857449 thr=MainThread EXIT MapController.begin_location_pick->QTimer._start_pick_session
+[000372] t=2494.129187 thr=MainThread ENTER MapWidget._run_js len=109
+[000373] t=2494.129386 thr=MainThread EXIT MapWidget._run_js len=109
+[000374] t=2494.129448 thr=MainThread ENTER MapWidget._apply_empty_state
+[000375] t=2494.129489 thr=MainThread MapWidget._apply_empty_state skipped pick_overlay
+[000376] t=2494.129520 thr=MainThread EXIT MapWidget._apply_empty_state
+[000377] t=2494.129557 thr=MainThread ENTER MapPage._on_map_ready
+[000378] t=2494.129630 thr=MainThread ENTER MapPage._map_updates_enabled
+[000379] t=2494.129666 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000380] t=2494.129703 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000381] t=2494.129728 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000382] t=2494.129752 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000383] t=2494.129776 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000384] t=2494.129802 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.LOCATION
+[000385] t=2494.129826 thr=MainThread EXIT MapPage._map_updates_enabled
+[000386] t=2494.129853 thr=MainThread ENTER MapController.refresh_observation_points
+[000387] t=2494.129878 thr=MainThread ENTER MapController.refresh_observation_points.observation_manager.all
+[000388] t=2494.129903 thr=MainThread ENTER ObservationManager.all
+[000389] t=2494.129929 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=none
+[000390] t=2494.129955 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=acquired
+[000391] t=2494.129987 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000392] t=2494.130019 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000393] t=2494.130043 thr=MainThread EXIT ObservationManager.all
+[000394] t=2494.130066 thr=MainThread EXIT MapController.refresh_observation_points.observation_manager.all
+[000395] t=2494.130089 thr=MainThread EXIT MapController.refresh_observation_points
+[000396] t=2494.130111 thr=MainThread EXIT MapPage._on_map_ready
+[000397] t=2494.210445 thr=Thread-1 (aisstream_worker) ENTER HybridEngine.aisstream_worker.subscribe_message
+[000398] t=2494.210942 thr=Thread-1 (aisstream_worker) ENTER AISProtocol.subscribe_message
+[000399] t=2494.211215 thr=Thread-1 (aisstream_worker) ENTER AISProtocol.active_observation_bounding_boxes
+[000400] t=2494.211406 thr=Thread-1 (aisstream_worker) ENTER AISProtocol.active_observation_bounding_boxes.reference
+[000401] t=2494.211586 thr=Thread-1 (aisstream_worker) ENTER ObservationManager.reference
+[000402] t=2494.211759 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._lock.acquire caller=reference thr=Thread-1 (aisstream_worker) id=136652412405440 owner=none
+[000403] t=2494.211936 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._lock.acquire caller=reference thr=Thread-1 (aisstream_worker) id=136652412405440 owner=acquired
+[000404] t=2494.212459 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._find_reference_unlocked
+[000405] t=2494.212870 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._find_reference_unlocked
+[000406] t=2494.213099 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._lock.release caller=reference thr=Thread-1 (aisstream_worker) id=136652412405440
+[000407] t=2494.213277 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._lock.release caller=reference thr=Thread-1 (aisstream_worker) id=136652412405440
+[000408] t=2494.213436 thr=Thread-1 (aisstream_worker) EXIT ObservationManager.reference
+[000409] t=2494.213586 thr=Thread-1 (aisstream_worker) EXIT AISProtocol.active_observation_bounding_boxes.reference
+[000410] t=2494.213725 thr=Thread-1 (aisstream_worker) ENTER AISProtocol.active_observation_bounding_boxes.active
+[000411] t=2494.213869 thr=Thread-1 (aisstream_worker) ENTER ObservationManager.active
+[000412] t=2494.214042 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._lock.acquire caller=active thr=Thread-1 (aisstream_worker) id=136652412405440 owner=none
+[000413] t=2494.214203 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._lock.acquire caller=active thr=Thread-1 (aisstream_worker) id=136652412405440 owner=acquired
+[000414] t=2494.214344 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._find_active
+[000415] t=2494.214479 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._find_active
+[000416] t=2494.214612 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._lock.release caller=active thr=Thread-1 (aisstream_worker) id=136652412405440
+[000417] t=2494.214757 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._lock.release caller=active thr=Thread-1 (aisstream_worker) id=136652412405440
+[000418] t=2494.214891 thr=Thread-1 (aisstream_worker) EXIT ObservationManager.active
+[000419] t=2494.215045 thr=Thread-1 (aisstream_worker) EXIT AISProtocol.active_observation_bounding_boxes.active
+[000420] t=2494.215182 thr=Thread-1 (aisstream_worker) ENTER AISProtocol.active_observation_bounding_boxes.return_default
+[000421] t=2494.215312 thr=Thread-1 (aisstream_worker) EXIT AISProtocol.active_observation_bounding_boxes.return_default
+[000422] t=2494.215436 thr=Thread-1 (aisstream_worker) EXIT AISProtocol.active_observation_bounding_boxes
+[000423] t=2494.215569 thr=Thread-1 (aisstream_worker) EXIT AISProtocol.subscribe_message
+[000424] t=2494.215701 thr=Thread-1 (aisstream_worker) EXIT HybridEngine.aisstream_worker.subscribe_message
+[000425] t=2494.216242 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish event=ais.status
+[000426] t=2494.216486 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ais.status->AISManager._on_ais_status
+[000427] t=2494.216654 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ais.status->AISManager._on_ais_status
+[000428] t=2494.216880 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ais.status->EventBridge._on_ais_status
+[000429] t=2494.217044 thr=Thread-1 (aisstream_worker) ENTER EventBridge._on_ais_status
+[000430] t=2494.217253 thr=Thread-1 (aisstream_worker) EXIT EventBridge._on_ais_status
+[000431] t=2494.217414 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ais.status->EventBridge._on_ais_status
+[000432] t=2494.217563 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish event=ais.status
+[000433] t=2494.218063 thr=MainThread ENTER MainWindow->DashboardPage.refresh_ais
+[000434] t=2494.220844 thr=MainThread EXIT MainWindow->DashboardPage.refresh_ais
+[000435] t=2501.181179 thr=MainThread ENTER MapPage.hideEvent
+[000436] t=2501.181352 thr=MainThread ENTER MapPage._stop_ship_timers
+[000437] t=2501.181433 thr=MainThread EXIT MapPage._stop_ship_timers
+[000438] t=2501.181484 thr=MainThread EXIT MapPage.hideEvent
+[000439] t=2504.546793 thr=MainThread ENTER MapPage.showEvent
+[000440] t=2504.547383 thr=MainThread ENTER MapController.on_map_page_visible
+[000441] t=2504.547676 thr=MainThread ENTER MapWidget._run_js len=115
+[000442] t=2504.547947 thr=MainThread EXIT MapWidget._run_js len=115
+[000443] t=2504.548724 thr=MainThread EXIT MapController.on_map_page_visible
+[000444] t=2504.549070 thr=MainThread EXIT MapPage.showEvent
+[000445] t=2504.549278 thr=MainThread ENTER MapPage._start_ship_timers
+[000446] t=2504.549453 thr=MainThread ENTER MapPage._map_updates_enabled
+[000447] t=2504.549602 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000448] t=2504.549766 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000449] t=2504.549900 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000450] t=2504.550061 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000451] t=2504.550249 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000452] t=2504.550489 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.LOCATION
+[000453] t=2504.550720 thr=MainThread EXIT MapPage._map_updates_enabled
+[000454] t=2504.550931 thr=MainThread MapPage._start_ship_timers skipped
+[000455] t=2504.551166 thr=MainThread EXIT MapPage._start_ship_timers
+[000456] t=2504.551391 thr=MainThread ENTER MapPage._update_ship_markers
+[000457] t=2504.551623 thr=MainThread ENTER MapPage._map_updates_enabled
+[000458] t=2504.551840 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000459] t=2504.552262 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000460] t=2504.552927 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000461] t=2504.553407 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000462] t=2504.553744 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000463] t=2504.554085 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.LOCATION
+[000464] t=2504.554378 thr=MainThread EXIT MapPage._map_updates_enabled
+[000465] t=2504.554663 thr=MainThread MapPage._update_ship_markers skipped
+[000466] t=2504.554940 thr=MainThread EXIT MapPage._update_ship_markers
+[000467] t=2504.555566 thr=MainThread ENTER MapPage._schedule_ships_full label=MapPage.showEvent->_update_ships_full
+[000468] t=2504.555902 thr=MainThread SCHEDULE QTimer.singleShot delay_ms=0 label=MapPage.showEvent->_update_ships_full
+[000469] t=2504.556123 thr=MainThread EXIT MapPage._schedule_ships_full label=MapPage.showEvent->_update_ships_full
+[000470] t=2504.557247 thr=MainThread ENTER MapPage.showEvent->_update_ships_full
+[000471] t=2504.557679 thr=MainThread ENTER MapPage._schedule_ships_full.callback label=MapPage.showEvent->_update_ships_full generation=2
+[000472] t=2504.557922 thr=MainThread ENTER MapPage._update_ships_full
+[000473] t=2504.558146 thr=MainThread ENTER MapPage._map_updates_enabled
+[000474] t=2504.558313 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000475] t=2504.558493 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000476] t=2504.558637 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000477] t=2504.558779 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000478] t=2504.558910 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000479] t=2504.559071 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.LOCATION
+[000480] t=2504.559205 thr=MainThread EXIT MapPage._map_updates_enabled
+[000481] t=2504.559358 thr=MainThread MapPage._update_ships_full skipped
+[000482] t=2504.559498 thr=MainThread EXIT MapPage._update_ships_full
+[000483] t=2504.559635 thr=MainThread EXIT MapPage._schedule_ships_full.callback label=MapPage.showEvent->_update_ships_full generation=2
+[000484] t=2504.559767 thr=MainThread EXIT MapPage.showEvent->_update_ships_full
+[000485] t=2504.600355 thr=MainThread ENTER MapController.on_map_page_visible->refresh(50ms)
+[000486] t=2504.600765 thr=MainThread ENTER MapWidget._run_js len=115
+[000487] t=2504.601034 thr=MainThread EXIT MapWidget._run_js len=115
+[000488] t=2504.601179 thr=MainThread EXIT MapController.on_map_page_visible->refresh(50ms)
+[000489] t=2504.601326 thr=MainThread ENTER MapController.on_map_page_visible->focus(50ms)
+[000490] t=2504.602174 thr=MainThread EXIT MapController.on_map_page_visible->focus(50ms)
+[000491] t=2504.700592 thr=MainThread ENTER MapController.on_map_page_visible->refresh(150ms)
+[000492] t=2504.701151 thr=MainThread ENTER MapWidget._run_js len=115
+[000493] t=2504.701483 thr=MainThread EXIT MapWidget._run_js len=115
+[000494] t=2504.701681 thr=MainThread EXIT MapController.on_map_page_visible->refresh(150ms)
+[000495] t=2504.701887 thr=MainThread ENTER MapController.on_map_page_visible->focus(150ms)
+[000496] t=2504.702806 thr=MainThread EXIT MapController.on_map_page_visible->focus(150ms)
+[000497] t=2506.586198 thr=MainThread ENTER MapPage.hideEvent
+[000498] t=2506.586618 thr=MainThread ENTER MapPage._stop_ship_timers
+[000499] t=2506.586893 thr=MainThread EXIT MapPage._stop_ship_timers
+[000500] t=2506.587127 thr=MainThread EXIT MapPage.hideEvent
+[000501] t=2515.332515 thr=MainThread ENTER ObservationManager.active
+[000502] t=2515.333081 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=none
+[000503] t=2515.333345 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136655857647744 owner=acquired
+[000504] t=2515.333531 thr=MainThread ENTER ObservationManager._find_active
+[000505] t=2515.333690 thr=MainThread EXIT ObservationManager._find_active
+[000506] t=2515.333838 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000507] t=2515.333980 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136655857647744
+[000508] t=2515.334144 thr=MainThread EXIT ObservationManager.active
+[000509] t=2515.334286 thr=MainThread ENTER ObservationManager.all
+[000510] t=2515.334431 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=none
+[000511] t=2515.334578 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136655857647744 owner=acquired
+[000512] t=2515.334730 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000513] t=2515.334871 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136655857647744
+[000514] t=2515.335019 thr=MainThread EXIT ObservationManager.all
+[000515] t=2520.782458 thr=MainThread ENTER MapController.cancel_pick_mode restore_host=False
+[000516] t=2520.783071 thr=MainThread ENTER MapController._set_pick_mode PickMode.LOCATION->PickMode.NONE
+[000517] t=2520.783424 thr=MainThread ENTER MapPage._on_pick_mode_changed mode=PickMode.NONE
+[000518] t=2520.783675 thr=MainThread ENTER MapPage._start_ship_timers
+[000519] t=2520.783870 thr=MainThread ENTER MapPage._map_updates_enabled
+[000520] t=2520.784055 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000521] t=2520.784245 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=False
+[000522] t=2520.784401 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000523] t=2520.784550 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=False
+[000524] t=2520.784686 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000525] t=2520.784829 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000526] t=2520.784977 thr=MainThread EXIT MapPage._map_updates_enabled
+[000527] t=2520.785147 thr=MainThread MapPage._start_ship_timers skipped
+[000528] t=2520.785289 thr=MainThread EXIT MapPage._start_ship_timers
+[000529] t=2520.785436 thr=MainThread EXIT MapPage._on_pick_mode_changed mode=PickMode.NONE
+[000530] t=2520.785690 thr=MainThread EXIT MapController._set_pick_mode PickMode.NONE
+[000531] t=2520.785881 thr=MainThread ENTER MapWidget._run_js len=18
+[000532] t=2520.786137 thr=MainThread EXIT MapWidget._run_js len=18
+[000533] t=2520.786327 thr=MainThread EXIT MapController.cancel_pick_mode restore_host=False
+[000534] t=2520.786501 thr=MainThread ENTER EventBus.publish event=engine.stopped
+[000535] t=2520.786647 thr=MainThread EXIT EventBus.publish event=engine.stopped
+[000536] t=2521.406064 thr=MainThread ENTER EventBus.publish event=rtl.status
+[000537] t=2521.406748 thr=MainThread ENTER EventBus.publish.rtl.status->AISManager._on_rtl_status
+[000538] t=2521.407030 thr=MainThread EXIT EventBus.publish.rtl.status->AISManager._on_rtl_status
+[000539] t=2521.407209 thr=MainThread ENTER EventBus.publish.rtl.status->RTLManager._on_rtl_status
+[000540] t=2521.407377 thr=MainThread EXIT EventBus.publish.rtl.status->RTLManager._on_rtl_status
+[000541] t=2521.407614 thr=MainThread ENTER EventBus.publish.rtl.status->EventBridge._on_rtl_status
+[000542] t=2521.407772 thr=MainThread ENTER EventBridge._on_rtl_status
+[000543] t=2521.407985 thr=MainThread EXIT EventBridge._on_rtl_status
+[000544] t=2521.408158 thr=MainThread EXIT EventBus.publish.rtl.status->EventBridge._on_rtl_status
+[000545] t=2521.408303 thr=MainThread EXIT EventBus.publish event=rtl.status
+[000546] t=2521.410541 thr=MainThread ENTER MapController._set_pick_mode PickMode.NONE->PickMode.LOCATION
+[000547] t=2521.411079 thr=MainThread ENTER MapPage._on_pick_mode_changed mode=PickMode.LOCATION
+[000548] t=2521.411338 thr=MainThread ENTER MapPage._stop_ship_timers
+[000549] t=2521.411536 thr=MainThread EXIT MapPage._stop_ship_timers
+[000550] t=2521.411710 thr=MainThread EXIT MapPage._on_pick_mode_changed mode=PickMode.LOCATION
+[000551] t=2521.411903 thr=MainThread EXIT MapController._set_pick_mode PickMode.LOCATION
+[000552] t=2521.412284 thr=MainThread ENTER MainWindow->DashboardPage.refresh_ais(rtl)
+[000553] t=2521.414816 thr=MainThread EXIT MainWindow->DashboardPage.refresh_ais(rtl)
+[000554] t=2521.415194 thr=MainThread ENTER MainWindow->DashboardPage.refresh_rtl
+[000555] t=2521.416708 thr=MainThread EXIT MainWindow->DashboardPage.refresh_rtl
+[000001] t=2534.795832 thr=MainThread ENTER ObservationManager._lock.acquire caller=_load thr=MainThread id=136778648846464 owner=none
+[000002] t=2534.795935 thr=MainThread EXIT ObservationManager._lock.acquire caller=_load thr=MainThread id=136778648846464 owner=acquired
+[000003] t=2534.796057 thr=MainThread ENTER ObservationManager._find_active
+[000004] t=2534.796095 thr=MainThread EXIT ObservationManager._find_active
+[000005] t=2534.796121 thr=MainThread ENTER ObservationManager._find_reference_unlocked
+[000006] t=2534.796147 thr=MainThread EXIT ObservationManager._find_reference_unlocked
+[000007] t=2534.796171 thr=MainThread ENTER ObservationManager._find_active
+[000008] t=2534.796191 thr=MainThread EXIT ObservationManager._find_active
+[000009] t=2534.796213 thr=MainThread ENTER ObservationManager._lock.release caller=_load thr=MainThread id=136778648846464
+[000010] t=2534.796246 thr=MainThread EXIT ObservationManager._lock.release caller=_load thr=MainThread id=136778648846464
+[000011] t=2534.964011 thr=MainThread ENTER ObservationManager.all
+[000012] t=2534.964139 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=none
+[000013] t=2534.964189 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=acquired
+[000014] t=2534.964226 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000015] t=2534.964256 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000016] t=2534.964283 thr=MainThread EXIT ObservationManager.all
+[000017] t=2535.005160 thr=MainThread ENTER DashboardPage.refresh_observation
+[000018] t=2535.005284 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.all
+[000019] t=2535.005329 thr=MainThread ENTER ObservationManager.all
+[000020] t=2535.005361 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=none
+[000021] t=2535.005401 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=acquired
+[000022] t=2535.005432 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000023] t=2535.005457 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000024] t=2535.005484 thr=MainThread EXIT ObservationManager.all
+[000025] t=2535.005513 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.all
+[000026] t=2535.005536 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.active
+[000027] t=2535.005559 thr=MainThread ENTER ObservationManager.active
+[000028] t=2535.005586 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=none
+[000029] t=2535.005613 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=acquired
+[000030] t=2535.005638 thr=MainThread ENTER ObservationManager._find_active
+[000031] t=2535.005662 thr=MainThread EXIT ObservationManager._find_active
+[000032] t=2535.005686 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000033] t=2535.005710 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000034] t=2535.005735 thr=MainThread EXIT ObservationManager.active
+[000035] t=2535.005758 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.active
+[000036] t=2535.005781 thr=MainThread ENTER DashboardPage.refresh_observation._populate_selector
+[000037] t=2535.005806 thr=MainThread ENTER DashboardPage._populate_selector
+[000038] t=2535.005828 thr=MainThread ENTER DashboardPage._populate_selector.blockSignals
+[000039] t=2535.005851 thr=MainThread EXIT DashboardPage._populate_selector.blockSignals
+[000040] t=2535.005872 thr=MainThread ENTER DashboardPage._populate_selector.clear
+[000041] t=2535.005894 thr=MainThread EXIT DashboardPage._populate_selector.clear
+[000042] t=2535.005915 thr=MainThread ENTER DashboardPage._populate_selector.add_items
+[000043] t=2535.005936 thr=MainThread EXIT DashboardPage._populate_selector.add_items
+[000044] t=2535.005957 thr=MainThread ENTER DashboardPage._populate_selector.unblockSignals
+[000045] t=2535.005978 thr=MainThread EXIT DashboardPage._populate_selector.unblockSignals
+[000046] t=2535.005998 thr=MainThread EXIT DashboardPage._populate_selector
+[000047] t=2535.006030 thr=MainThread EXIT DashboardPage.refresh_observation._populate_selector
+[000048] t=2535.006053 thr=MainThread ENTER DashboardPage.refresh_observation.update_labels
+[000049] t=2535.006154 thr=MainThread EXIT DashboardPage.refresh_observation.update_labels
+[000050] t=2535.006204 thr=MainThread ENTER DashboardPage.refresh_observation.refresh_cameras
+[000051] t=2535.006234 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000052] t=2535.006263 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000053] t=2535.006287 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000054] t=2535.006309 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000055] t=2535.006333 thr=MainThread ENTER ObservationManager.active
+[000056] t=2535.006358 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=none
+[000057] t=2535.006385 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=acquired
+[000058] t=2535.006408 thr=MainThread ENTER ObservationManager._find_active
+[000059] t=2535.006434 thr=MainThread EXIT ObservationManager._find_active
+[000060] t=2535.006459 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000061] t=2535.006483 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000062] t=2535.006507 thr=MainThread EXIT ObservationManager.active
+[000063] t=2535.006529 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000064] t=2535.006559 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000065] t=2535.006585 thr=MainThread EXIT DashboardPage.refresh_observation.refresh_cameras
+[000066] t=2535.006607 thr=MainThread EXIT DashboardPage.refresh_observation
+[000067] t=2535.006633 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000068] t=2535.006656 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000069] t=2535.006679 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000070] t=2535.006701 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000071] t=2535.006721 thr=MainThread ENTER ObservationManager.active
+[000072] t=2535.006746 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=none
+[000073] t=2535.006770 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=acquired
+[000074] t=2535.006792 thr=MainThread ENTER ObservationManager._find_active
+[000075] t=2535.006816 thr=MainThread EXIT ObservationManager._find_active
+[000076] t=2535.006838 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000077] t=2535.006862 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000078] t=2535.006884 thr=MainThread EXIT ObservationManager.active
+[000079] t=2535.006910 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000080] t=2535.006938 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000081] t=2535.007982 thr=MainThread ENTER DashboardPage.refresh_observation
+[000082] t=2535.008058 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.all
+[000083] t=2535.008100 thr=MainThread ENTER ObservationManager.all
+[000084] t=2535.008136 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=none
+[000085] t=2535.008165 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=acquired
+[000086] t=2535.008194 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000087] t=2535.008219 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000088] t=2535.008243 thr=MainThread EXIT ObservationManager.all
+[000089] t=2535.008266 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.all
+[000090] t=2535.008288 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.active
+[000091] t=2535.008309 thr=MainThread ENTER ObservationManager.active
+[000092] t=2535.008334 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=none
+[000093] t=2535.008359 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=acquired
+[000094] t=2535.008385 thr=MainThread ENTER ObservationManager._find_active
+[000095] t=2535.008407 thr=MainThread EXIT ObservationManager._find_active
+[000096] t=2535.008430 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000097] t=2535.008452 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000098] t=2535.008474 thr=MainThread EXIT ObservationManager.active
+[000099] t=2535.008497 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.active
+[000100] t=2535.008520 thr=MainThread ENTER DashboardPage.refresh_observation._populate_selector
+[000101] t=2535.008543 thr=MainThread ENTER DashboardPage._populate_selector
+[000102] t=2535.008565 thr=MainThread ENTER DashboardPage._populate_selector.blockSignals
+[000103] t=2535.008588 thr=MainThread EXIT DashboardPage._populate_selector.blockSignals
+[000104] t=2535.008609 thr=MainThread ENTER DashboardPage._populate_selector.clear
+[000105] t=2535.008632 thr=MainThread EXIT DashboardPage._populate_selector.clear
+[000106] t=2535.008653 thr=MainThread ENTER DashboardPage._populate_selector.add_items
+[000107] t=2535.008674 thr=MainThread EXIT DashboardPage._populate_selector.add_items
+[000108] t=2535.008695 thr=MainThread ENTER DashboardPage._populate_selector.unblockSignals
+[000109] t=2535.008717 thr=MainThread EXIT DashboardPage._populate_selector.unblockSignals
+[000110] t=2535.008738 thr=MainThread EXIT DashboardPage._populate_selector
+[000111] t=2535.008759 thr=MainThread EXIT DashboardPage.refresh_observation._populate_selector
+[000112] t=2535.008781 thr=MainThread ENTER DashboardPage.refresh_observation.update_labels
+[000113] t=2535.008866 thr=MainThread EXIT DashboardPage.refresh_observation.update_labels
+[000114] t=2535.008906 thr=MainThread ENTER DashboardPage.refresh_observation.refresh_cameras
+[000115] t=2535.008934 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000116] t=2535.008958 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000117] t=2535.008982 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000118] t=2535.009008 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000119] t=2535.009030 thr=MainThread ENTER ObservationManager.active
+[000120] t=2535.009055 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=none
+[000121] t=2535.009080 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=acquired
+[000122] t=2535.009107 thr=MainThread ENTER ObservationManager._find_active
+[000123] t=2535.009129 thr=MainThread EXIT ObservationManager._find_active
+[000124] t=2535.009152 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000125] t=2535.009175 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000126] t=2535.009197 thr=MainThread EXIT ObservationManager.active
+[000127] t=2535.009219 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000128] t=2535.009243 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000129] t=2535.009267 thr=MainThread EXIT DashboardPage.refresh_observation.refresh_cameras
+[000130] t=2535.009291 thr=MainThread EXIT DashboardPage.refresh_observation
+[000131] t=2535.009315 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000132] t=2535.009338 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000133] t=2535.009360 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000134] t=2535.009381 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000135] t=2535.009402 thr=MainThread ENTER ObservationManager.active
+[000136] t=2535.009424 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=none
+[000137] t=2535.009448 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=acquired
+[000138] t=2535.009473 thr=MainThread ENTER ObservationManager._find_active
+[000139] t=2535.009495 thr=MainThread EXIT ObservationManager._find_active
+[000140] t=2535.009517 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000141] t=2535.009539 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000142] t=2535.009561 thr=MainThread EXIT ObservationManager.active
+[000143] t=2535.009583 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000144] t=2535.009606 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000145] t=2535.631492 thr=MainThread ENTER MapPage._map_updates_enabled
+[000146] t=2535.631642 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000147] t=2535.631711 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=False
+[000148] t=2535.631750 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000149] t=2535.631781 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=False
+[000150] t=2535.631807 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000151] t=2535.631841 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000152] t=2535.631868 thr=MainThread EXIT MapPage._map_updates_enabled
+[000153] t=2535.631899 thr=MainThread ENTER MapController.refresh_observation_points
+[000154] t=2535.631927 thr=MainThread ENTER MapController.refresh_observation_points.observation_manager.all
+[000155] t=2535.631956 thr=MainThread ENTER ObservationManager.all
+[000156] t=2535.631988 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=none
+[000157] t=2535.632025 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=acquired
+[000158] t=2535.632059 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000159] t=2535.632085 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000160] t=2535.632110 thr=MainThread EXIT ObservationManager.all
+[000161] t=2535.632133 thr=MainThread EXIT MapController.refresh_observation_points.observation_manager.all
+[000162] t=2535.632155 thr=MainThread ENTER MapController.refresh_observation_points.clear_observation_points
+[000163] t=2535.632183 thr=MainThread ENTER MapWidget.clear_observation_points
+[000164] t=2535.632211 thr=MainThread ENTER MapWidget._apply_empty_state
+[000165] t=2535.632236 thr=MainThread EXIT MapWidget._apply_empty_state
+[000166] t=2535.632259 thr=MainThread EXIT MapWidget.clear_observation_points
+[000167] t=2535.632280 thr=MainThread EXIT MapController.refresh_observation_points.clear_observation_points
+[000168] t=2535.632303 thr=MainThread EXIT MapController.refresh_observation_points
+[000169] t=2535.633216 thr=MainThread ENTER VesselsPage.refresh
+[000170] t=2535.633510 thr=MainThread EXIT VesselsPage.refresh
+[000171] t=2535.703689 thr=MainThread ENTER ObservationManager.active
+[000172] t=2535.703813 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=none
+[000173] t=2535.703862 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=acquired
+[000174] t=2535.703895 thr=MainThread ENTER ObservationManager._find_active
+[000175] t=2535.703920 thr=MainThread EXIT ObservationManager._find_active
+[000176] t=2535.703945 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000177] t=2535.703969 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000178] t=2535.703992 thr=MainThread EXIT ObservationManager.active
+[000179] t=2535.704023 thr=MainThread ENTER ObservationManager.all
+[000180] t=2535.704048 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=none
+[000181] t=2535.704079 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=acquired
+[000182] t=2535.704105 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000183] t=2535.704129 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000184] t=2535.704152 thr=MainThread EXIT ObservationManager.all
+[000185] t=2535.713174 thr=MainThread ENTER MapPage.hideEvent
+[000186] t=2535.713297 thr=MainThread ENTER MapPage._stop_ship_timers
+[000187] t=2535.713349 thr=MainThread EXIT MapPage._stop_ship_timers
+[000188] t=2535.713384 thr=MainThread EXIT MapPage.hideEvent
+[000189] t=2535.748835 thr=MainThread ENTER MapPage._map_updates_enabled
+[000190] t=2535.748952 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000191] t=2535.749009 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=False
+[000192] t=2535.749047 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000193] t=2535.749077 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=False
+[000194] t=2535.749102 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000195] t=2535.749131 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000196] t=2535.749155 thr=MainThread EXIT MapPage._map_updates_enabled
+[000197] t=2535.749471 thr=MainThread ENTER DashboardPage.refresh_observation
+[000198] t=2535.749525 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.all
+[000199] t=2535.749555 thr=MainThread ENTER ObservationManager.all
+[000200] t=2535.749584 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=none
+[000201] t=2535.749612 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=acquired
+[000202] t=2535.749640 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000203] t=2535.749665 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000204] t=2535.749688 thr=MainThread EXIT ObservationManager.all
+[000205] t=2535.749711 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.all
+[000206] t=2535.749733 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.active
+[000207] t=2535.749755 thr=MainThread ENTER ObservationManager.active
+[000208] t=2535.749779 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=none
+[000209] t=2535.749804 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=acquired
+[000210] t=2535.749827 thr=MainThread ENTER ObservationManager._find_active
+[000211] t=2535.749849 thr=MainThread EXIT ObservationManager._find_active
+[000212] t=2535.749872 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000213] t=2535.749899 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000214] t=2535.749921 thr=MainThread EXIT ObservationManager.active
+[000215] t=2535.749944 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.active
+[000216] t=2535.749967 thr=MainThread ENTER DashboardPage.refresh_observation._populate_selector
+[000217] t=2535.749991 thr=MainThread ENTER DashboardPage._populate_selector
+[000218] t=2535.750018 thr=MainThread ENTER DashboardPage._populate_selector.blockSignals
+[000219] t=2535.750042 thr=MainThread EXIT DashboardPage._populate_selector.blockSignals
+[000220] t=2535.750062 thr=MainThread ENTER DashboardPage._populate_selector.clear
+[000221] t=2535.750085 thr=MainThread EXIT DashboardPage._populate_selector.clear
+[000222] t=2535.750106 thr=MainThread ENTER DashboardPage._populate_selector.add_items
+[000223] t=2535.750127 thr=MainThread EXIT DashboardPage._populate_selector.add_items
+[000224] t=2535.750154 thr=MainThread ENTER DashboardPage._populate_selector.unblockSignals
+[000225] t=2535.750175 thr=MainThread EXIT DashboardPage._populate_selector.unblockSignals
+[000226] t=2535.750195 thr=MainThread EXIT DashboardPage._populate_selector
+[000227] t=2535.750218 thr=MainThread EXIT DashboardPage.refresh_observation._populate_selector
+[000228] t=2535.750241 thr=MainThread ENTER DashboardPage.refresh_observation.update_labels
+[000229] t=2535.750345 thr=MainThread EXIT DashboardPage.refresh_observation.update_labels
+[000230] t=2535.750386 thr=MainThread ENTER DashboardPage.refresh_observation.refresh_cameras
+[000231] t=2535.750415 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000232] t=2535.750438 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000233] t=2535.750461 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000234] t=2535.750483 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000235] t=2535.750505 thr=MainThread ENTER ObservationManager.active
+[000236] t=2535.750528 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=none
+[000237] t=2535.750552 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=acquired
+[000238] t=2535.750576 thr=MainThread ENTER ObservationManager._find_active
+[000239] t=2535.750598 thr=MainThread EXIT ObservationManager._find_active
+[000240] t=2535.750620 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000241] t=2535.750644 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000242] t=2535.750665 thr=MainThread EXIT ObservationManager.active
+[000243] t=2535.750686 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000244] t=2535.750711 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000245] t=2535.750735 thr=MainThread EXIT DashboardPage.refresh_observation.refresh_cameras
+[000246] t=2535.750759 thr=MainThread EXIT DashboardPage.refresh_observation
+[000247] t=2535.750783 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000248] t=2535.750805 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000249] t=2535.750832 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000250] t=2535.750854 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000251] t=2535.750876 thr=MainThread ENTER ObservationManager.active
+[000252] t=2535.750900 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=none
+[000253] t=2535.750924 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=136778648846464 owner=acquired
+[000254] t=2535.750947 thr=MainThread ENTER ObservationManager._find_active
+[000255] t=2535.750971 thr=MainThread EXIT ObservationManager._find_active
+[000256] t=2535.750994 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000257] t=2535.751021 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=136778648846464
+[000258] t=2535.751044 thr=MainThread EXIT ObservationManager.active
+[000259] t=2535.751067 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000260] t=2535.751091 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000261] t=2535.751693 thr=MainThread ENTER VesselsPage.refresh
+[000262] t=2535.751782 thr=MainThread EXIT VesselsPage.refresh
+[000263] t=2535.760063 thr=MainThread ENTER MapController.maybe_prompt_reference_selection
+[000264] t=2535.760150 thr=MainThread ENTER MapController.maybe_prompt_reference_selection.needs_reference_selection
+[000265] t=2535.760199 thr=MainThread ENTER ObservationManager.needs_reference_selection
+[000266] t=2535.760235 thr=MainThread ENTER ObservationManager._lock.acquire caller=needs_reference_selection thr=MainThread id=136778648846464 owner=none
+[000267] t=2535.760267 thr=MainThread EXIT ObservationManager._lock.acquire caller=needs_reference_selection thr=MainThread id=136778648846464 owner=acquired
+[000268] t=2535.760298 thr=MainThread ENTER ObservationManager._lock.release caller=needs_reference_selection thr=MainThread id=136778648846464
+[000269] t=2535.760323 thr=MainThread EXIT ObservationManager._lock.release caller=needs_reference_selection thr=MainThread id=136778648846464
+[000270] t=2535.760348 thr=MainThread EXIT ObservationManager.needs_reference_selection
+[000271] t=2535.760372 thr=MainThread EXIT MapController.maybe_prompt_reference_selection.needs_reference_selection
+[000272] t=2535.760396 thr=MainThread EXIT MapController.maybe_prompt_reference_selection
+[000273] t=2536.174604 thr=MainThread ENTER EventBus.publish event=engine.started
+[000274] t=2536.174897 thr=MainThread EXIT EventBus.publish event=engine.started
+[000275] t=2536.175477 thr=MainThread ENTER EventBus.publish event=rtl.status
+[000276] t=2536.175552 thr=MainThread ENTER EventBus.publish.rtl.status->AISManager._on_rtl_status
+[000277] t=2536.175596 thr=MainThread EXIT EventBus.publish.rtl.status->AISManager._on_rtl_status
+[000278] t=2536.175628 thr=MainThread ENTER EventBus.publish.rtl.status->RTLManager._on_rtl_status
+[000279] t=2536.175655 thr=MainThread EXIT EventBus.publish.rtl.status->RTLManager._on_rtl_status
+[000280] t=2536.175700 thr=MainThread ENTER EventBus.publish.rtl.status->EventBridge._on_rtl_status
+[000281] t=2536.175729 thr=MainThread ENTER EventBridge._on_rtl_status
+[000282] t=2536.175769 thr=MainThread EXIT EventBridge._on_rtl_status
+[000283] t=2536.175796 thr=MainThread EXIT EventBus.publish.rtl.status->EventBridge._on_rtl_status
+[000284] t=2536.175821 thr=MainThread EXIT EventBus.publish event=rtl.status
+[000285] t=2536.239472 thr=MainThread ENTER MapPage.showEvent
+[000286] t=2536.239649 thr=MainThread ENTER MapController.on_map_page_visible
+[000287] t=2536.239703 thr=MainThread EXIT MapController.on_map_page_visible
+[000288] t=2536.239735 thr=MainThread EXIT MapPage.showEvent
+[000289] t=2536.239764 thr=MainThread ENTER MapPage._start_ship_timers
+[000290] t=2536.239790 thr=MainThread ENTER MapPage._map_updates_enabled
+[000291] t=2536.239816 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000292] t=2536.239848 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000293] t=2536.239873 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000294] t=2536.239897 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000295] t=2536.239920 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000296] t=2536.239946 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000297] t=2536.239970 thr=MainThread EXIT MapPage._map_updates_enabled
+[000298] t=2536.240007 thr=MainThread EXIT MapPage._start_ship_timers
+[000299] t=2536.240034 thr=MainThread ENTER MapPage._update_ship_markers
+[000300] t=2536.240058 thr=MainThread ENTER MapPage._map_updates_enabled
+[000301] t=2536.240081 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000302] t=2536.240105 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000303] t=2536.240128 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000304] t=2536.240150 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000305] t=2536.240172 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000306] t=2536.240195 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000307] t=2536.240217 thr=MainThread EXIT MapPage._map_updates_enabled
+[000308] t=2536.240247 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000309] t=2536.240270 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000310] t=2536.240297 thr=MainThread EXIT MapPage._publish_ships.registry.all count=0
+[000311] t=2536.240320 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000312] t=2536.240342 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000313] t=2536.240363 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000314] t=2536.240407 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=2
+[000315] t=2536.240432 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000316] t=2536.240459 thr=MainThread ENTER MapController.update_ships bytes=2
+[000317] t=2536.240485 thr=MainThread ENTER MapWidget.update_ships bytes=2
+[000318] t=2536.240508 thr=MainThread EXIT MapWidget.update_ships bytes=2
+[000319] t=2536.240530 thr=MainThread EXIT MapController.update_ships bytes=2
+[000320] t=2536.240552 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000321] t=2536.240574 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000322] t=2536.240597 thr=MainThread EXIT MapPage._update_ship_markers
+[000323] t=2536.240621 thr=MainThread ENTER MapPage._schedule_ships_full label=MapPage.showEvent->_update_ships_full
+[000324] t=2536.240656 thr=MainThread SCHEDULE QTimer.singleShot delay_ms=0 label=MapPage.showEvent->_update_ships_full
+[000325] t=2536.240687 thr=MainThread EXIT MapPage._schedule_ships_full label=MapPage.showEvent->_update_ships_full
+[000326] t=2536.240854 thr=MainThread ENTER ObservationManager.all
+[000327] t=2536.240910 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=none
+[000328] t=2536.240939 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=acquired
+[000329] t=2536.240968 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000330] t=2536.240992 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000331] t=2536.241021 thr=MainThread EXIT ObservationManager.all
+[000332] t=2536.250042 thr=MainThread ENTER MainWindow->DashboardPage.refresh_ais(rtl)
+[000333] t=2536.250670 thr=MainThread EXIT MainWindow->DashboardPage.refresh_ais(rtl)
+[000334] t=2536.250766 thr=MainThread ENTER MainWindow->DashboardPage.refresh_rtl
+[000335] t=2536.251065 thr=MainThread EXIT MainWindow->DashboardPage.refresh_rtl
+[000336] t=2536.251213 thr=MainThread ENTER MapPage.showEvent->_update_ships_full
+[000337] t=2536.251262 thr=MainThread ENTER MapPage._schedule_ships_full.callback label=MapPage.showEvent->_update_ships_full generation=1
+[000338] t=2536.251299 thr=MainThread ENTER MapPage._update_ships_full
+[000339] t=2536.251330 thr=MainThread ENTER MapPage._map_updates_enabled
+[000340] t=2536.251357 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000341] t=2536.251386 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000342] t=2536.251411 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000343] t=2536.251435 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000344] t=2536.251457 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000345] t=2536.251484 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000346] t=2536.251511 thr=MainThread EXIT MapPage._map_updates_enabled
+[000347] t=2536.251539 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship
+[000348] t=2536.251563 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000349] t=2536.251590 thr=MainThread EXIT MapPage._publish_ships.registry.all count=0
+[000350] t=2536.251614 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000351] t=2536.251636 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000352] t=2536.251658 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000353] t=2536.251692 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=2
+[000354] t=2536.251717 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000355] t=2536.251742 thr=MainThread ENTER MapController.update_ships bytes=2
+[000356] t=2536.251768 thr=MainThread ENTER MapWidget.update_ships bytes=2
+[000357] t=2536.251794 thr=MainThread EXIT MapWidget.update_ships bytes=2
+[000358] t=2536.251818 thr=MainThread EXIT MapController.update_ships bytes=2
+[000359] t=2536.251842 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000360] t=2536.251871 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship
+[000361] t=2536.251895 thr=MainThread EXIT MapPage._update_ships_full
+[000362] t=2536.251922 thr=MainThread EXIT MapPage._schedule_ships_full.callback label=MapPage.showEvent->_update_ships_full generation=1
+[000363] t=2536.251949 thr=MainThread EXIT MapPage.showEvent->_update_ships_full
+[000364] t=2536.306238 thr=MainThread ENTER MapController._set_pick_mode PickMode.NONE->PickMode.LOCATION
+[000365] t=2536.306415 thr=MainThread ENTER MapPage._on_pick_mode_changed mode=PickMode.LOCATION
+[000366] t=2536.306484 thr=MainThread ENTER MapPage._stop_ship_timers
+[000367] t=2536.306532 thr=MainThread EXIT MapPage._stop_ship_timers
+[000368] t=2536.306568 thr=MainThread EXIT MapPage._on_pick_mode_changed mode=PickMode.LOCATION
+[000369] t=2536.306610 thr=MainThread EXIT MapController._set_pick_mode PickMode.LOCATION
+[000370] t=2536.309530 thr=MainThread ENTER MapController.begin_location_pick->QTimer._start_pick_session
+[000371] t=2536.309890 thr=MainThread EXIT MapController.begin_location_pick->QTimer._start_pick_session
+[000372] t=2536.415859 thr=Thread-1 (aisstream_worker) ENTER HybridEngine.aisstream_worker.subscribe_message
+[000373] t=2536.416232 thr=Thread-1 (aisstream_worker) ENTER AISProtocol.subscribe_message
+[000374] t=2536.416402 thr=Thread-1 (aisstream_worker) ENTER AISProtocol.active_observation_bounding_boxes
+[000375] t=2536.416520 thr=Thread-1 (aisstream_worker) ENTER AISProtocol.active_observation_bounding_boxes.reference
+[000376] t=2536.416633 thr=Thread-1 (aisstream_worker) ENTER ObservationManager.reference
+[000377] t=2536.416740 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._lock.acquire caller=reference thr=Thread-1 (aisstream_worker) id=136775366342336 owner=none
+[000378] t=2536.416849 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._lock.acquire caller=reference thr=Thread-1 (aisstream_worker) id=136775366342336 owner=acquired
+[000379] t=2536.416947 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._find_reference_unlocked
+[000380] t=2536.417056 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._find_reference_unlocked
+[000381] t=2536.417148 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._lock.release caller=reference thr=Thread-1 (aisstream_worker) id=136775366342336
+[000382] t=2536.417237 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._lock.release caller=reference thr=Thread-1 (aisstream_worker) id=136775366342336
+[000383] t=2536.417325 thr=Thread-1 (aisstream_worker) EXIT ObservationManager.reference
+[000384] t=2536.417407 thr=Thread-1 (aisstream_worker) EXIT AISProtocol.active_observation_bounding_boxes.reference
+[000385] t=2536.417485 thr=Thread-1 (aisstream_worker) ENTER AISProtocol.active_observation_bounding_boxes.active
+[000386] t=2536.417564 thr=Thread-1 (aisstream_worker) ENTER ObservationManager.active
+[000387] t=2536.417649 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._lock.acquire caller=active thr=Thread-1 (aisstream_worker) id=136775366342336 owner=none
+[000388] t=2536.417743 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._lock.acquire caller=active thr=Thread-1 (aisstream_worker) id=136775366342336 owner=acquired
+[000389] t=2536.417827 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._find_active
+[000390] t=2536.417911 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._find_active
+[000391] t=2536.417991 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._lock.release caller=active thr=Thread-1 (aisstream_worker) id=136775366342336
+[000392] t=2536.418082 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._lock.release caller=active thr=Thread-1 (aisstream_worker) id=136775366342336
+[000393] t=2536.418162 thr=Thread-1 (aisstream_worker) EXIT ObservationManager.active
+[000394] t=2536.418240 thr=Thread-1 (aisstream_worker) EXIT AISProtocol.active_observation_bounding_boxes.active
+[000395] t=2536.418320 thr=Thread-1 (aisstream_worker) ENTER AISProtocol.active_observation_bounding_boxes.return_default
+[000396] t=2536.418415 thr=Thread-1 (aisstream_worker) EXIT AISProtocol.active_observation_bounding_boxes.return_default
+[000397] t=2536.418494 thr=Thread-1 (aisstream_worker) EXIT AISProtocol.active_observation_bounding_boxes
+[000398] t=2536.418571 thr=Thread-1 (aisstream_worker) EXIT AISProtocol.subscribe_message
+[000399] t=2536.418659 thr=Thread-1 (aisstream_worker) EXIT HybridEngine.aisstream_worker.subscribe_message
+[000400] t=2536.418997 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish event=ais.status
+[000401] t=2536.419159 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ais.status->AISManager._on_ais_status
+[000402] t=2536.419264 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ais.status->AISManager._on_ais_status
+[000403] t=2536.419413 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ais.status->EventBridge._on_ais_status
+[000404] t=2536.419509 thr=Thread-1 (aisstream_worker) ENTER EventBridge._on_ais_status
+[000405] t=2536.419640 thr=Thread-1 (aisstream_worker) EXIT EventBridge._on_ais_status
+[000406] t=2536.419963 thr=MainThread ENTER MainWindow->DashboardPage.refresh_ais
+[000407] t=2536.419997 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ais.status->EventBridge._on_ais_status
+[000408] t=2536.421742 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish event=ais.status
+[000409] t=2536.422410 thr=MainThread EXIT MainWindow->DashboardPage.refresh_ais
+[000410] t=2536.498804 thr=MainThread ENTER MapWidget._run_js len=109
+[000411] t=2536.499252 thr=MainThread EXIT MapWidget._run_js len=109
+[000412] t=2536.499433 thr=MainThread ENTER MapWidget._apply_empty_state
+[000413] t=2536.499552 thr=MainThread MapWidget._apply_empty_state skipped pick_overlay
+[000414] t=2536.499645 thr=MainThread EXIT MapWidget._apply_empty_state
+[000415] t=2536.499796 thr=MainThread ENTER MapPage._on_map_ready
+[000416] t=2536.500083 thr=MainThread ENTER MapPage._map_updates_enabled
+[000417] t=2536.500206 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000418] t=2536.500307 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000419] t=2536.500383 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000420] t=2536.500461 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000421] t=2536.500530 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000422] t=2536.500610 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.LOCATION
+[000423] t=2536.500681 thr=MainThread EXIT MapPage._map_updates_enabled
+[000424] t=2536.500760 thr=MainThread ENTER MapController.refresh_observation_points
+[000425] t=2536.500837 thr=MainThread ENTER MapController.refresh_observation_points.observation_manager.all
+[000426] t=2536.500912 thr=MainThread ENTER ObservationManager.all
+[000427] t=2536.500992 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=none
+[000428] t=2536.501093 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=136778648846464 owner=acquired
+[000429] t=2536.501177 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000430] t=2536.501253 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=136778648846464
+[000431] t=2536.501327 thr=MainThread EXIT ObservationManager.all
+[000432] t=2536.501401 thr=MainThread EXIT MapController.refresh_observation_points.observation_manager.all
+[000433] t=2536.501472 thr=MainThread EXIT MapController.refresh_observation_points
+[000434] t=2536.501543 thr=MainThread EXIT MapPage._on_map_ready
+[000435] t=2548.899294 thr=MainThread ENTER MapController.cancel_pick_mode restore_host=False
+[000436] t=2548.899606 thr=MainThread ENTER MapController._set_pick_mode PickMode.LOCATION->PickMode.NONE
+[000437] t=2548.899681 thr=MainThread ENTER MapPage._on_pick_mode_changed mode=PickMode.NONE
+[000438] t=2548.899717 thr=MainThread ENTER MapPage._start_ship_timers
+[000439] t=2548.899747 thr=MainThread ENTER MapPage._map_updates_enabled
+[000440] t=2548.899778 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000441] t=2548.899814 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000442] t=2548.899838 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000443] t=2548.899861 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000444] t=2548.899882 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000445] t=2548.899904 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000446] t=2548.899927 thr=MainThread EXIT MapPage._map_updates_enabled
+[000447] t=2548.899961 thr=MainThread EXIT MapPage._start_ship_timers
+[000448] t=2548.899986 thr=MainThread EXIT MapPage._on_pick_mode_changed mode=PickMode.NONE
+[000449] t=2548.900034 thr=MainThread EXIT MapController._set_pick_mode PickMode.NONE
+[000450] t=2548.900066 thr=MainThread ENTER MapWidget._run_js len=18
+[000451] t=2548.900121 thr=MainThread EXIT MapWidget._run_js len=18
+[000452] t=2548.900154 thr=MainThread EXIT MapController.cancel_pick_mode restore_host=False
+[000453] t=2548.900188 thr=MainThread ENTER EventBus.publish event=engine.stopped
+[000454] t=2548.900214 thr=MainThread EXIT EventBus.publish event=engine.stopped
+[000455] t=2549.521224 thr=MainThread ENTER EventBus.publish event=rtl.status
+[000456] t=2549.521753 thr=MainThread ENTER EventBus.publish.rtl.status->AISManager._on_rtl_status
+[000457] t=2549.521984 thr=MainThread EXIT EventBus.publish.rtl.status->AISManager._on_rtl_status
+[000458] t=2549.522186 thr=MainThread ENTER EventBus.publish.rtl.status->RTLManager._on_rtl_status
+[000459] t=2549.522339 thr=MainThread EXIT EventBus.publish.rtl.status->RTLManager._on_rtl_status
+[000460] t=2549.522563 thr=MainThread ENTER EventBus.publish.rtl.status->EventBridge._on_rtl_status
+[000461] t=2549.522721 thr=MainThread ENTER EventBridge._on_rtl_status
+[000462] t=2549.522932 thr=MainThread EXIT EventBridge._on_rtl_status
+[000463] t=2549.523098 thr=MainThread EXIT EventBus.publish.rtl.status->EventBridge._on_rtl_status
+[000464] t=2549.523237 thr=MainThread EXIT EventBus.publish event=rtl.status
+[000465] t=2549.524528 thr=MainThread ENTER MapPage.hideEvent
+[000466] t=2549.524874 thr=MainThread ENTER MapPage._stop_ship_timers
+[000467] t=2549.525095 thr=MainThread EXIT MapPage._stop_ship_timers
+[000468] t=2549.525275 thr=MainThread EXIT MapPage.hideEvent
+[000469] t=2549.526310 thr=MainThread ENTER MapController._set_pick_mode PickMode.NONE->PickMode.LOCATION
+[000470] t=2549.526819 thr=MainThread ENTER MapPage._on_pick_mode_changed mode=PickMode.LOCATION
+[000471] t=2549.527117 thr=MainThread ENTER MapPage._stop_ship_timers
+[000472] t=2549.527321 thr=MainThread EXIT MapPage._stop_ship_timers
+[000473] t=2549.527492 thr=MainThread EXIT MapPage._on_pick_mode_changed mode=PickMode.LOCATION
+[000474] t=2549.527676 thr=MainThread EXIT MapController._set_pick_mode PickMode.LOCATION
+[000475] t=2549.528330 thr=MainThread ENTER MainWindow->DashboardPage.refresh_ais(rtl)
+[000476] t=2549.531053 thr=MainThread EXIT MainWindow->DashboardPage.refresh_ais(rtl)
+[000477] t=2549.531465 thr=MainThread ENTER MainWindow->DashboardPage.refresh_rtl
+[000478] t=2549.532972 thr=MainThread EXIT MainWindow->DashboardPage.refresh_rtl
+[000001] t=2589.538844 thr=MainThread ENTER ObservationManager._lock.acquire caller=_load thr=MainThread id=131771988918400 owner=none
+[000002] t=2589.538991 thr=MainThread EXIT ObservationManager._lock.acquire caller=_load thr=MainThread id=131771988918400 owner=acquired
+[000003] t=2589.549136 thr=MainThread ENTER ObservationManager._find_active
+[000004] t=2589.549187 thr=MainThread EXIT ObservationManager._find_active
+[000005] t=2589.549218 thr=MainThread ENTER ObservationManager._find_reference_unlocked
+[000006] t=2589.549247 thr=MainThread EXIT ObservationManager._find_reference_unlocked
+[000007] t=2589.549271 thr=MainThread ENTER ObservationManager._find_active
+[000008] t=2589.549293 thr=MainThread EXIT ObservationManager._find_active
+[000009] t=2589.549324 thr=MainThread ENTER ObservationManager._lock.release caller=_load thr=MainThread id=131771988918400
+[000010] t=2589.549347 thr=MainThread EXIT ObservationManager._lock.release caller=_load thr=MainThread id=131771988918400
+[000011] t=2589.711338 thr=MainThread ENTER ObservationManager.all
+[000012] t=2589.711498 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=none
+[000013] t=2589.711555 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=acquired
+[000014] t=2589.711593 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000015] t=2589.711624 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000016] t=2589.711649 thr=MainThread EXIT ObservationManager.all
+[000017] t=2589.752766 thr=MainThread ENTER DashboardPage.refresh_observation
+[000018] t=2589.752876 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.all
+[000019] t=2589.752922 thr=MainThread ENTER ObservationManager.all
+[000020] t=2589.752956 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=none
+[000021] t=2589.752987 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=acquired
+[000022] t=2589.753021 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000023] t=2589.753047 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000024] t=2589.753072 thr=MainThread EXIT ObservationManager.all
+[000025] t=2589.753097 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.all
+[000026] t=2589.753120 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.active
+[000027] t=2589.753142 thr=MainThread ENTER ObservationManager.active
+[000028] t=2589.753170 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=none
+[000029] t=2589.753195 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=acquired
+[000030] t=2589.753220 thr=MainThread ENTER ObservationManager._find_active
+[000031] t=2589.753244 thr=MainThread EXIT ObservationManager._find_active
+[000032] t=2589.753266 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000033] t=2589.753289 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000034] t=2589.753312 thr=MainThread EXIT ObservationManager.active
+[000035] t=2589.753334 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.active
+[000036] t=2589.753357 thr=MainThread ENTER DashboardPage.refresh_observation._populate_selector
+[000037] t=2589.753381 thr=MainThread ENTER DashboardPage._populate_selector
+[000038] t=2589.753403 thr=MainThread ENTER DashboardPage._populate_selector.blockSignals
+[000039] t=2589.753426 thr=MainThread EXIT DashboardPage._populate_selector.blockSignals
+[000040] t=2589.753447 thr=MainThread ENTER DashboardPage._populate_selector.clear
+[000041] t=2589.753468 thr=MainThread EXIT DashboardPage._populate_selector.clear
+[000042] t=2589.753488 thr=MainThread ENTER DashboardPage._populate_selector.add_items
+[000043] t=2589.753509 thr=MainThread EXIT DashboardPage._populate_selector.add_items
+[000044] t=2589.753529 thr=MainThread ENTER DashboardPage._populate_selector.unblockSignals
+[000045] t=2589.753550 thr=MainThread EXIT DashboardPage._populate_selector.unblockSignals
+[000046] t=2589.753571 thr=MainThread EXIT DashboardPage._populate_selector
+[000047] t=2589.753593 thr=MainThread EXIT DashboardPage.refresh_observation._populate_selector
+[000048] t=2589.753615 thr=MainThread ENTER DashboardPage.refresh_observation.update_labels
+[000049] t=2589.753712 thr=MainThread EXIT DashboardPage.refresh_observation.update_labels
+[000050] t=2589.753769 thr=MainThread ENTER DashboardPage.refresh_observation.refresh_cameras
+[000051] t=2589.753807 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000052] t=2589.753833 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000053] t=2589.753858 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000054] t=2589.753879 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000055] t=2589.753902 thr=MainThread ENTER ObservationManager.active
+[000056] t=2589.753926 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=none
+[000057] t=2589.753951 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=acquired
+[000058] t=2589.753974 thr=MainThread ENTER ObservationManager._find_active
+[000059] t=2589.753999 thr=MainThread EXIT ObservationManager._find_active
+[000060] t=2589.754028 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000061] t=2589.754052 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000062] t=2589.754076 thr=MainThread EXIT ObservationManager.active
+[000063] t=2589.754098 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000064] t=2589.754127 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000065] t=2589.754151 thr=MainThread EXIT DashboardPage.refresh_observation.refresh_cameras
+[000066] t=2589.754174 thr=MainThread EXIT DashboardPage.refresh_observation
+[000067] t=2589.754198 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000068] t=2589.754221 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000069] t=2589.754243 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000070] t=2589.754264 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000071] t=2589.754284 thr=MainThread ENTER ObservationManager.active
+[000072] t=2589.754307 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=none
+[000073] t=2589.754331 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=acquired
+[000074] t=2589.754353 thr=MainThread ENTER ObservationManager._find_active
+[000075] t=2589.754375 thr=MainThread EXIT ObservationManager._find_active
+[000076] t=2589.754397 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000077] t=2589.754419 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000078] t=2589.754441 thr=MainThread EXIT ObservationManager.active
+[000079] t=2589.754466 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000080] t=2589.754494 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000081] t=2589.755521 thr=MainThread ENTER DashboardPage.refresh_observation
+[000082] t=2589.755587 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.all
+[000083] t=2589.755627 thr=MainThread ENTER ObservationManager.all
+[000084] t=2589.755661 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=none
+[000085] t=2589.755693 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=acquired
+[000086] t=2589.755722 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000087] t=2589.755746 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000088] t=2589.755769 thr=MainThread EXIT ObservationManager.all
+[000089] t=2589.755791 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.all
+[000090] t=2589.755812 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.active
+[000091] t=2589.755832 thr=MainThread ENTER ObservationManager.active
+[000092] t=2589.755857 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=none
+[000093] t=2589.755885 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=acquired
+[000094] t=2589.755907 thr=MainThread ENTER ObservationManager._find_active
+[000095] t=2589.755929 thr=MainThread EXIT ObservationManager._find_active
+[000096] t=2589.755950 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000097] t=2589.755973 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000098] t=2589.755995 thr=MainThread EXIT ObservationManager.active
+[000099] t=2589.756022 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.active
+[000100] t=2589.756045 thr=MainThread ENTER DashboardPage.refresh_observation._populate_selector
+[000101] t=2589.756067 thr=MainThread ENTER DashboardPage._populate_selector
+[000102] t=2589.756088 thr=MainThread ENTER DashboardPage._populate_selector.blockSignals
+[000103] t=2589.756110 thr=MainThread EXIT DashboardPage._populate_selector.blockSignals
+[000104] t=2589.756131 thr=MainThread ENTER DashboardPage._populate_selector.clear
+[000105] t=2589.756153 thr=MainThread EXIT DashboardPage._populate_selector.clear
+[000106] t=2589.756173 thr=MainThread ENTER DashboardPage._populate_selector.add_items
+[000107] t=2589.756194 thr=MainThread EXIT DashboardPage._populate_selector.add_items
+[000108] t=2589.756214 thr=MainThread ENTER DashboardPage._populate_selector.unblockSignals
+[000109] t=2589.756235 thr=MainThread EXIT DashboardPage._populate_selector.unblockSignals
+[000110] t=2589.756255 thr=MainThread EXIT DashboardPage._populate_selector
+[000111] t=2589.756276 thr=MainThread EXIT DashboardPage.refresh_observation._populate_selector
+[000112] t=2589.756297 thr=MainThread ENTER DashboardPage.refresh_observation.update_labels
+[000113] t=2589.756380 thr=MainThread EXIT DashboardPage.refresh_observation.update_labels
+[000114] t=2589.756417 thr=MainThread ENTER DashboardPage.refresh_observation.refresh_cameras
+[000115] t=2589.756444 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000116] t=2589.756467 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000117] t=2589.756490 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000118] t=2589.756512 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000119] t=2589.756533 thr=MainThread ENTER ObservationManager.active
+[000120] t=2589.756557 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=none
+[000121] t=2589.756581 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=acquired
+[000122] t=2589.756608 thr=MainThread ENTER ObservationManager._find_active
+[000123] t=2589.756631 thr=MainThread EXIT ObservationManager._find_active
+[000124] t=2589.756653 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000125] t=2589.756675 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000126] t=2589.756696 thr=MainThread EXIT ObservationManager.active
+[000127] t=2589.756717 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000128] t=2589.756740 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000129] t=2589.756763 thr=MainThread EXIT DashboardPage.refresh_observation.refresh_cameras
+[000130] t=2589.756784 thr=MainThread EXIT DashboardPage.refresh_observation
+[000131] t=2589.756807 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000132] t=2589.756828 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000133] t=2589.756850 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000134] t=2589.756869 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000135] t=2589.756890 thr=MainThread ENTER ObservationManager.active
+[000136] t=2589.756912 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=none
+[000137] t=2589.756938 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=acquired
+[000138] t=2589.756959 thr=MainThread ENTER ObservationManager._find_active
+[000139] t=2589.756979 thr=MainThread EXIT ObservationManager._find_active
+[000140] t=2589.757000 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000141] t=2589.757028 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000142] t=2589.757049 thr=MainThread EXIT ObservationManager.active
+[000143] t=2589.757071 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000144] t=2589.757093 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000145] t=2590.356786 thr=MainThread ENTER MapPage._map_updates_enabled
+[000146] t=2590.356935 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000147] t=2590.357013 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=False
+[000148] t=2590.357053 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000149] t=2590.357085 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=False
+[000150] t=2590.357112 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000151] t=2590.357147 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000152] t=2590.357173 thr=MainThread EXIT MapPage._map_updates_enabled
+[000153] t=2590.357204 thr=MainThread ENTER MapController.refresh_observation_points
+[000154] t=2590.357232 thr=MainThread ENTER MapController.refresh_observation_points.observation_manager.all
+[000155] t=2590.357261 thr=MainThread ENTER ObservationManager.all
+[000156] t=2590.357294 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=none
+[000157] t=2590.357330 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=acquired
+[000158] t=2590.357363 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000159] t=2590.357390 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000160] t=2590.357415 thr=MainThread EXIT ObservationManager.all
+[000161] t=2590.357440 thr=MainThread EXIT MapController.refresh_observation_points.observation_manager.all
+[000162] t=2590.357463 thr=MainThread ENTER MapController.refresh_observation_points.clear_observation_points
+[000163] t=2590.357493 thr=MainThread ENTER MapWidget.clear_observation_points
+[000164] t=2590.357524 thr=MainThread ENTER MapWidget._apply_empty_state
+[000165] t=2590.357550 thr=MainThread EXIT MapWidget._apply_empty_state
+[000166] t=2590.357573 thr=MainThread EXIT MapWidget.clear_observation_points
+[000167] t=2590.357597 thr=MainThread EXIT MapController.refresh_observation_points.clear_observation_points
+[000168] t=2590.357620 thr=MainThread EXIT MapController.refresh_observation_points
+[000169] t=2590.358561 thr=MainThread ENTER VesselsPage.refresh
+[000170] t=2590.358869 thr=MainThread EXIT VesselsPage.refresh
+[000171] t=2590.429186 thr=MainThread ENTER ObservationManager.active
+[000172] t=2590.429337 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=none
+[000173] t=2590.429390 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=acquired
+[000174] t=2590.429425 thr=MainThread ENTER ObservationManager._find_active
+[000175] t=2590.429453 thr=MainThread EXIT ObservationManager._find_active
+[000176] t=2590.429479 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000177] t=2590.429505 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000178] t=2590.429529 thr=MainThread EXIT ObservationManager.active
+[000179] t=2590.429553 thr=MainThread ENTER ObservationManager.all
+[000180] t=2590.429579 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=none
+[000181] t=2590.429610 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=acquired
+[000182] t=2590.429635 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000183] t=2590.429659 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000184] t=2590.429681 thr=MainThread EXIT ObservationManager.all
+[000185] t=2590.438504 thr=MainThread ENTER MapPage.hideEvent
+[000186] t=2590.438600 thr=MainThread ENTER MapPage._stop_ship_timers
+[000187] t=2590.438646 thr=MainThread EXIT MapPage._stop_ship_timers
+[000188] t=2590.438679 thr=MainThread EXIT MapPage.hideEvent
+[000189] t=2590.474717 thr=MainThread ENTER MapPage._map_updates_enabled
+[000190] t=2590.474834 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000191] t=2590.474884 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=False
+[000192] t=2590.474916 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000193] t=2590.474944 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=False
+[000194] t=2590.474968 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000195] t=2590.475005 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000196] t=2590.475035 thr=MainThread EXIT MapPage._map_updates_enabled
+[000197] t=2590.475367 thr=MainThread ENTER DashboardPage.refresh_observation
+[000198] t=2590.475426 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.all
+[000199] t=2590.475457 thr=MainThread ENTER ObservationManager.all
+[000200] t=2590.475487 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=none
+[000201] t=2590.475516 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=acquired
+[000202] t=2590.475545 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000203] t=2590.475570 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000204] t=2590.475594 thr=MainThread EXIT ObservationManager.all
+[000205] t=2590.475618 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.all
+[000206] t=2590.475639 thr=MainThread ENTER DashboardPage.refresh_observation.observation_manager.active
+[000207] t=2590.475661 thr=MainThread ENTER ObservationManager.active
+[000208] t=2590.475684 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=none
+[000209] t=2590.475714 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=acquired
+[000210] t=2590.475739 thr=MainThread ENTER ObservationManager._find_active
+[000211] t=2590.475762 thr=MainThread EXIT ObservationManager._find_active
+[000212] t=2590.475786 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000213] t=2590.475810 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000214] t=2590.475837 thr=MainThread EXIT ObservationManager.active
+[000215] t=2590.475861 thr=MainThread EXIT DashboardPage.refresh_observation.observation_manager.active
+[000216] t=2590.475884 thr=MainThread ENTER DashboardPage.refresh_observation._populate_selector
+[000217] t=2590.475909 thr=MainThread ENTER DashboardPage._populate_selector
+[000218] t=2590.475937 thr=MainThread ENTER DashboardPage._populate_selector.blockSignals
+[000219] t=2590.475959 thr=MainThread EXIT DashboardPage._populate_selector.blockSignals
+[000220] t=2590.475981 thr=MainThread ENTER DashboardPage._populate_selector.clear
+[000221] t=2590.476007 thr=MainThread EXIT DashboardPage._populate_selector.clear
+[000222] t=2590.476030 thr=MainThread ENTER DashboardPage._populate_selector.add_items
+[000223] t=2590.476056 thr=MainThread EXIT DashboardPage._populate_selector.add_items
+[000224] t=2590.476083 thr=MainThread ENTER DashboardPage._populate_selector.unblockSignals
+[000225] t=2590.476106 thr=MainThread EXIT DashboardPage._populate_selector.unblockSignals
+[000226] t=2590.476129 thr=MainThread EXIT DashboardPage._populate_selector
+[000227] t=2590.476152 thr=MainThread EXIT DashboardPage.refresh_observation._populate_selector
+[000228] t=2590.476174 thr=MainThread ENTER DashboardPage.refresh_observation.update_labels
+[000229] t=2590.476279 thr=MainThread EXIT DashboardPage.refresh_observation.update_labels
+[000230] t=2590.476321 thr=MainThread ENTER DashboardPage.refresh_observation.refresh_cameras
+[000231] t=2590.476350 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000232] t=2590.476374 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000233] t=2590.476398 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000234] t=2590.476421 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000235] t=2590.476444 thr=MainThread ENTER ObservationManager.active
+[000236] t=2590.476467 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=none
+[000237] t=2590.476493 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=acquired
+[000238] t=2590.476516 thr=MainThread ENTER ObservationManager._find_active
+[000239] t=2590.476538 thr=MainThread EXIT ObservationManager._find_active
+[000240] t=2590.476560 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000241] t=2590.476583 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000242] t=2590.476606 thr=MainThread EXIT ObservationManager.active
+[000243] t=2590.476628 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000244] t=2590.476653 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000245] t=2590.476678 thr=MainThread EXIT DashboardPage.refresh_observation.refresh_cameras
+[000246] t=2590.476701 thr=MainThread EXIT DashboardPage.refresh_observation
+[000247] t=2590.476725 thr=MainThread ENTER DashboardPage.refresh_cameras
+[000248] t=2590.476749 thr=MainThread ENTER DashboardPage.refresh_cameras.clear_list
+[000249] t=2590.476776 thr=MainThread EXIT DashboardPage.refresh_cameras.clear_list
+[000250] t=2590.476799 thr=MainThread ENTER DashboardPage.refresh_cameras.observation_manager.active
+[000251] t=2590.476822 thr=MainThread ENTER ObservationManager.active
+[000252] t=2590.476846 thr=MainThread ENTER ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=none
+[000253] t=2590.476870 thr=MainThread EXIT ObservationManager._lock.acquire caller=active thr=MainThread id=131771988918400 owner=acquired
+[000254] t=2590.476893 thr=MainThread ENTER ObservationManager._find_active
+[000255] t=2590.476915 thr=MainThread EXIT ObservationManager._find_active
+[000256] t=2590.476939 thr=MainThread ENTER ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000257] t=2590.476962 thr=MainThread EXIT ObservationManager._lock.release caller=active thr=MainThread id=131771988918400
+[000258] t=2590.476985 thr=MainThread EXIT ObservationManager.active
+[000259] t=2590.477014 thr=MainThread EXIT DashboardPage.refresh_cameras.observation_manager.active
+[000260] t=2590.477039 thr=MainThread EXIT DashboardPage.refresh_cameras
+[000261] t=2590.477637 thr=MainThread ENTER VesselsPage.refresh
+[000262] t=2590.477732 thr=MainThread EXIT VesselsPage.refresh
+[000263] t=2590.485976 thr=MainThread ENTER MapController.maybe_prompt_reference_selection
+[000264] t=2590.486065 thr=MainThread ENTER MapController.maybe_prompt_reference_selection.needs_reference_selection
+[000265] t=2590.486114 thr=MainThread ENTER ObservationManager.needs_reference_selection
+[000266] t=2590.486148 thr=MainThread ENTER ObservationManager._lock.acquire caller=needs_reference_selection thr=MainThread id=131771988918400 owner=none
+[000267] t=2590.486183 thr=MainThread EXIT ObservationManager._lock.acquire caller=needs_reference_selection thr=MainThread id=131771988918400 owner=acquired
+[000268] t=2590.486209 thr=MainThread ENTER ObservationManager._lock.release caller=needs_reference_selection thr=MainThread id=131771988918400
+[000269] t=2590.486233 thr=MainThread EXIT ObservationManager._lock.release caller=needs_reference_selection thr=MainThread id=131771988918400
+[000270] t=2590.486258 thr=MainThread EXIT ObservationManager.needs_reference_selection
+[000271] t=2590.486282 thr=MainThread EXIT MapController.maybe_prompt_reference_selection.needs_reference_selection
+[000272] t=2590.486306 thr=MainThread EXIT MapController.maybe_prompt_reference_selection
+[000273] t=2590.949198 thr=MainThread ENTER EventBus.publish event=engine.started
+[000274] t=2590.949492 thr=MainThread EXIT EventBus.publish event=engine.started
+[000275] t=2590.950109 thr=MainThread ENTER EventBus.publish event=rtl.status
+[000276] t=2590.950176 thr=MainThread ENTER EventBus.publish.rtl.status->AISManager._on_rtl_status
+[000277] t=2590.950215 thr=MainThread EXIT EventBus.publish.rtl.status->AISManager._on_rtl_status
+[000278] t=2590.950248 thr=MainThread ENTER EventBus.publish.rtl.status->RTLManager._on_rtl_status
+[000279] t=2590.950274 thr=MainThread EXIT EventBus.publish.rtl.status->RTLManager._on_rtl_status
+[000280] t=2590.950316 thr=MainThread ENTER EventBus.publish.rtl.status->EventBridge._on_rtl_status
+[000281] t=2590.950342 thr=MainThread ENTER EventBridge._on_rtl_status
+[000282] t=2590.950378 thr=MainThread EXIT EventBridge._on_rtl_status
+[000283] t=2590.950404 thr=MainThread EXIT EventBus.publish.rtl.status->EventBridge._on_rtl_status
+[000284] t=2590.950426 thr=MainThread EXIT EventBus.publish event=rtl.status
+[000285] t=2590.952074 thr=MainThread ENTER MapPage.showEvent
+[000286] t=2590.952163 thr=MainThread ENTER MapController.on_map_page_visible
+[000287] t=2590.952206 thr=MainThread EXIT MapController.on_map_page_visible
+[000288] t=2590.952237 thr=MainThread EXIT MapPage.showEvent
+[000289] t=2590.952267 thr=MainThread ENTER MapPage._start_ship_timers
+[000290] t=2590.952294 thr=MainThread ENTER MapPage._map_updates_enabled
+[000291] t=2590.952319 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000292] t=2590.952348 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000293] t=2590.952373 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000294] t=2590.952397 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000295] t=2590.952418 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000296] t=2590.952443 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000297] t=2590.952467 thr=MainThread EXIT MapPage._map_updates_enabled
+[000298] t=2590.952497 thr=MainThread EXIT MapPage._start_ship_timers
+[000299] t=2590.952524 thr=MainThread ENTER MapPage._update_ship_markers
+[000300] t=2590.952549 thr=MainThread ENTER MapPage._map_updates_enabled
+[000301] t=2590.952572 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000302] t=2590.952594 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000303] t=2590.952616 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000304] t=2590.952638 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000305] t=2590.952659 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000306] t=2590.952681 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000307] t=2590.952702 thr=MainThread EXIT MapPage._map_updates_enabled
+[000308] t=2590.952729 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship_marker
+[000309] t=2590.952752 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000310] t=2590.952777 thr=MainThread EXIT MapPage._publish_ships.registry.all count=0
+[000311] t=2590.952799 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000312] t=2590.952820 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000313] t=2590.952847 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000314] t=2590.952881 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=2
+[000315] t=2590.952905 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000316] t=2590.952928 thr=MainThread ENTER MapController.update_ships bytes=2
+[000317] t=2590.952952 thr=MainThread ENTER MapWidget.update_ships bytes=2
+[000318] t=2590.952975 thr=MainThread EXIT MapWidget.update_ships bytes=2
+[000319] t=2590.952997 thr=MainThread EXIT MapController.update_ships bytes=2
+[000320] t=2590.953023 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000321] t=2590.953045 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship_marker
+[000322] t=2590.953068 thr=MainThread EXIT MapPage._update_ship_markers
+[000323] t=2590.953091 thr=MainThread ENTER MapPage._schedule_ships_full label=MapPage.showEvent->_update_ships_full
+[000324] t=2590.953124 thr=MainThread SCHEDULE QTimer.singleShot delay_ms=0 label=MapPage.showEvent->_update_ships_full
+[000325] t=2590.953153 thr=MainThread EXIT MapPage._schedule_ships_full label=MapPage.showEvent->_update_ships_full
+[000326] t=2590.953257 thr=MainThread ENTER ObservationManager.all
+[000327] t=2590.953299 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=none
+[000328] t=2590.953329 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=acquired
+[000329] t=2590.953358 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000330] t=2590.953382 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000331] t=2590.953405 thr=MainThread EXIT ObservationManager.all
+[000332] t=2590.961894 thr=MainThread ENTER MainWindow->DashboardPage.refresh_ais(rtl)
+[000333] t=2590.962454 thr=MainThread EXIT MainWindow->DashboardPage.refresh_ais(rtl)
+[000334] t=2590.962534 thr=MainThread ENTER MainWindow->DashboardPage.refresh_rtl
+[000335] t=2590.962809 thr=MainThread EXIT MainWindow->DashboardPage.refresh_rtl
+[000336] t=2590.962930 thr=MainThread ENTER MapPage.showEvent->_update_ships_full
+[000337] t=2590.962975 thr=MainThread ENTER MapPage._schedule_ships_full.callback label=MapPage.showEvent->_update_ships_full generation=1
+[000338] t=2590.963020 thr=MainThread ENTER MapPage._update_ships_full
+[000339] t=2590.963051 thr=MainThread ENTER MapPage._map_updates_enabled
+[000340] t=2590.963076 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000341] t=2590.963104 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000342] t=2590.963129 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000343] t=2590.963152 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000344] t=2590.963175 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000345] t=2590.963201 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000346] t=2590.963229 thr=MainThread EXIT MapPage._map_updates_enabled
+[000347] t=2590.963259 thr=MainThread ENTER MapPage._publish_ships serializer=_serialize_ship
+[000348] t=2590.963283 thr=MainThread ENTER MapPage._publish_ships.registry.all
+[000349] t=2590.963310 thr=MainThread EXIT MapPage._publish_ships.registry.all count=0
+[000350] t=2590.963332 thr=MainThread ENTER MapPage._publish_ships.serialize_loop
+[000351] t=2590.963354 thr=MainThread EXIT MapPage._publish_ships.serialize_loop
+[000352] t=2590.963376 thr=MainThread ENTER MapPage._publish_ships.json_dumps
+[000353] t=2590.963412 thr=MainThread EXIT MapPage._publish_ships.json_dumps bytes=2
+[000354] t=2590.963476 thr=MainThread ENTER MapPage._publish_ships.update_ships
+[000355] t=2590.963532 thr=MainThread ENTER MapController.update_ships bytes=2
+[000356] t=2590.963560 thr=MainThread ENTER MapWidget.update_ships bytes=2
+[000357] t=2590.963583 thr=MainThread EXIT MapWidget.update_ships bytes=2
+[000358] t=2590.963606 thr=MainThread EXIT MapController.update_ships bytes=2
+[000359] t=2590.963635 thr=MainThread EXIT MapPage._publish_ships.update_ships
+[000360] t=2590.963657 thr=MainThread EXIT MapPage._publish_ships serializer=_serialize_ship
+[000361] t=2590.963680 thr=MainThread EXIT MapPage._update_ships_full
+[000362] t=2590.963703 thr=MainThread EXIT MapPage._schedule_ships_full.callback label=MapPage.showEvent->_update_ships_full generation=1
+[000363] t=2590.963726 thr=MainThread EXIT MapPage.showEvent->_update_ships_full
+[000364] t=2590.973104 thr=MainThread ENTER MapController._set_pick_mode PickMode.NONE->PickMode.LOCATION
+[000365] t=2590.973200 thr=MainThread ENTER MapPage._on_pick_mode_changed mode=PickMode.LOCATION
+[000366] t=2590.973247 thr=MainThread ENTER MapPage._stop_ship_timers
+[000367] t=2590.973283 thr=MainThread EXIT MapPage._stop_ship_timers
+[000368] t=2590.973312 thr=MainThread EXIT MapPage._on_pick_mode_changed mode=PickMode.LOCATION
+[000369] t=2590.973344 thr=MainThread EXIT MapController._set_pick_mode PickMode.LOCATION
+[000370] t=2590.974658 thr=MainThread ENTER MapController.begin_location_pick->QTimer._start_pick_session
+[000371] t=2590.974805 thr=MainThread EXIT MapController.begin_location_pick->QTimer._start_pick_session
+[000372] t=2591.091760 thr=Thread-1 (aisstream_worker) ENTER HybridEngine.aisstream_worker.subscribe_message
+[000373] t=2591.092072 thr=Thread-1 (aisstream_worker) ENTER AISProtocol.subscribe_message
+[000374] t=2591.092197 thr=Thread-1 (aisstream_worker) ENTER AISProtocol.active_observation_bounding_boxes
+[000375] t=2591.092284 thr=Thread-1 (aisstream_worker) ENTER AISProtocol.active_observation_bounding_boxes.reference
+[000376] t=2591.092380 thr=Thread-1 (aisstream_worker) ENTER ObservationManager.reference
+[000377] t=2591.092469 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._lock.acquire caller=reference thr=Thread-1 (aisstream_worker) id=131768875194048 owner=none
+[000378] t=2591.092558 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._lock.acquire caller=reference thr=Thread-1 (aisstream_worker) id=131768875194048 owner=acquired
+[000379] t=2591.092638 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._find_reference_unlocked
+[000380] t=2591.092713 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._find_reference_unlocked
+[000381] t=2591.092790 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._lock.release caller=reference thr=Thread-1 (aisstream_worker) id=131768875194048
+[000382] t=2591.092865 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._lock.release caller=reference thr=Thread-1 (aisstream_worker) id=131768875194048
+[000383] t=2591.092942 thr=Thread-1 (aisstream_worker) EXIT ObservationManager.reference
+[000384] t=2591.093026 thr=Thread-1 (aisstream_worker) EXIT AISProtocol.active_observation_bounding_boxes.reference
+[000385] t=2591.093098 thr=Thread-1 (aisstream_worker) ENTER AISProtocol.active_observation_bounding_boxes.active
+[000386] t=2591.093171 thr=Thread-1 (aisstream_worker) ENTER ObservationManager.active
+[000387] t=2591.093249 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._lock.acquire caller=active thr=Thread-1 (aisstream_worker) id=131768875194048 owner=none
+[000388] t=2591.093326 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._lock.acquire caller=active thr=Thread-1 (aisstream_worker) id=131768875194048 owner=acquired
+[000389] t=2591.093399 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._find_active
+[000390] t=2591.093468 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._find_active
+[000391] t=2591.093537 thr=Thread-1 (aisstream_worker) ENTER ObservationManager._lock.release caller=active thr=Thread-1 (aisstream_worker) id=131768875194048
+[000392] t=2591.093608 thr=Thread-1 (aisstream_worker) EXIT ObservationManager._lock.release caller=active thr=Thread-1 (aisstream_worker) id=131768875194048
+[000393] t=2591.093679 thr=Thread-1 (aisstream_worker) EXIT ObservationManager.active
+[000394] t=2591.093749 thr=Thread-1 (aisstream_worker) EXIT AISProtocol.active_observation_bounding_boxes.active
+[000395] t=2591.093831 thr=Thread-1 (aisstream_worker) ENTER AISProtocol.active_observation_bounding_boxes.return_default
+[000396] t=2591.093897 thr=Thread-1 (aisstream_worker) EXIT AISProtocol.active_observation_bounding_boxes.return_default
+[000397] t=2591.093963 thr=Thread-1 (aisstream_worker) EXIT AISProtocol.active_observation_bounding_boxes
+[000398] t=2591.094039 thr=Thread-1 (aisstream_worker) EXIT AISProtocol.subscribe_message
+[000399] t=2591.094109 thr=Thread-1 (aisstream_worker) EXIT HybridEngine.aisstream_worker.subscribe_message
+[000400] t=2591.094382 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish event=ais.status
+[000401] t=2591.094496 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ais.status->AISManager._on_ais_status
+[000402] t=2591.094578 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ais.status->AISManager._on_ais_status
+[000403] t=2591.094692 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ais.status->EventBridge._on_ais_status
+[000404] t=2591.094768 thr=Thread-1 (aisstream_worker) ENTER EventBridge._on_ais_status
+[000405] t=2591.094868 thr=Thread-1 (aisstream_worker) EXIT EventBridge._on_ais_status
+[000406] t=2591.094941 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ais.status->EventBridge._on_ais_status
+[000407] t=2591.095017 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish event=ais.status
+[000408] t=2591.095765 thr=MainThread ENTER MainWindow->DashboardPage.refresh_ais
+[000409] t=2591.097262 thr=MainThread EXIT MainWindow->DashboardPage.refresh_ais
+[000410] t=2591.159970 thr=MainThread ENTER MapWidget._run_js len=109
+[000411] t=2591.160174 thr=MainThread EXIT MapWidget._run_js len=109
+[000412] t=2591.160239 thr=MainThread ENTER MapWidget._apply_empty_state
+[000413] t=2591.160281 thr=MainThread MapWidget._apply_empty_state skipped pick_overlay
+[000414] t=2591.160312 thr=MainThread EXIT MapWidget._apply_empty_state
+[000415] t=2591.160350 thr=MainThread ENTER MapPage._on_map_ready
+[000416] t=2591.160430 thr=MainThread ENTER MapPage._map_updates_enabled
+[000417] t=2591.160467 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000418] t=2591.160507 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=True
+[000419] t=2591.160535 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000420] t=2591.160562 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=True
+[000421] t=2591.160586 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000422] t=2591.160617 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.LOCATION
+[000423] t=2591.160644 thr=MainThread EXIT MapPage._map_updates_enabled
+[000424] t=2591.160673 thr=MainThread ENTER MapController.refresh_observation_points
+[000425] t=2591.160698 thr=MainThread ENTER MapController.refresh_observation_points.observation_manager.all
+[000426] t=2591.160724 thr=MainThread ENTER ObservationManager.all
+[000427] t=2591.160753 thr=MainThread ENTER ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=none
+[000428] t=2591.160783 thr=MainThread EXIT ObservationManager._lock.acquire caller=all thr=MainThread id=131771988918400 owner=acquired
+[000429] t=2591.160814 thr=MainThread ENTER ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000430] t=2591.160841 thr=MainThread EXIT ObservationManager._lock.release caller=all thr=MainThread id=131771988918400
+[000431] t=2591.160867 thr=MainThread EXIT ObservationManager.all
+[000432] t=2591.160892 thr=MainThread EXIT MapController.refresh_observation_points.observation_manager.all
+[000433] t=2591.160916 thr=MainThread EXIT MapController.refresh_observation_points
+[000434] t=2591.160941 thr=MainThread EXIT MapPage._on_map_ready
+[000435] t=2593.451222 thr=MainThread ENTER MapPage.hideEvent
+[000436] t=2593.451382 thr=MainThread ENTER MapPage._stop_ship_timers
+[000437] t=2593.451457 thr=MainThread EXIT MapPage._stop_ship_timers
+[000438] t=2593.451492 thr=MainThread EXIT MapPage.hideEvent
+[000439] t=2640.366832 thr=Thread-1 (aisstream_worker) ENTER HybridAisEngine.publish_ship mmsi=272136200 source=AIS
+[000440] t=2640.367138 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish event=ship.updated
+[000441] t=2640.367191 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000442] t=2640.496231 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000443] t=2640.496329 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000444] t=2640.496372 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000445] t=2640.496436 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000446] t=2640.496468 thr=Thread-1 (aisstream_worker) ENTER EventBridge._on_ship_updated
+[000447] t=2640.496511 thr=Thread-1 (aisstream_worker) EXIT EventBridge._on_ship_updated
+[000448] t=2640.496580 thr=MainThread ENTER MainWindow->VesselsPage.refresh
+[000449] t=2640.496655 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000450] t=2640.496705 thr=MainThread ENTER VesselsPage.refresh
+[000451] t=2640.496893 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish event=ship.updated
+[000452] t=2640.496899 thr=MainThread EXIT VesselsPage.refresh
+[000453] t=2640.497010 thr=Thread-1 (aisstream_worker) EXIT HybridAisEngine.publish_ship mmsi=272136200 source=AIS
+[000454] t=2640.497070 thr=MainThread EXIT MainWindow->VesselsPage.refresh
+[000455] t=2640.497193 thr=MainThread ENTER MainWindow->DashboardPage.on_ship_updated
+[000456] t=2640.497273 thr=MainThread ENTER DashboardPage.on_ship_updated
+[000457] t=2640.497401 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_ais
+[000458] t=2640.498137 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_ais
+[000459] t=2640.498233 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_rtl
+[000460] t=2640.498545 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_rtl
+[000461] t=2640.498605 thr=MainThread EXIT DashboardPage.on_ship_updated
+[000462] t=2640.498645 thr=MainThread EXIT MainWindow->DashboardPage.on_ship_updated
+[000463] t=2664.191317 thr=Thread-1 (aisstream_worker) ENTER HybridAisEngine.publish_ship mmsi=218032770 source=AIS
+[000464] t=2664.191700 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish event=ship.updated
+[000465] t=2664.192015 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000466] t=2664.200996 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000467] t=2664.201198 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000468] t=2664.201315 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000469] t=2664.201450 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000470] t=2664.201533 thr=Thread-1 (aisstream_worker) ENTER EventBridge._on_ship_updated
+[000471] t=2664.201637 thr=Thread-1 (aisstream_worker) EXIT EventBridge._on_ship_updated
+[000472] t=2664.201711 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000473] t=2664.201783 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish event=ship.updated
+[000474] t=2664.201881 thr=Thread-1 (aisstream_worker) EXIT HybridAisEngine.publish_ship mmsi=218032770 source=AIS
+[000475] t=2664.201992 thr=MainThread ENTER MainWindow->VesselsPage.refresh
+[000476] t=2664.202450 thr=MainThread ENTER VesselsPage.refresh
+[000477] t=2664.203062 thr=MainThread EXIT VesselsPage.refresh
+[000478] t=2664.203522 thr=MainThread EXIT MainWindow->VesselsPage.refresh
+[000479] t=2664.203700 thr=MainThread ENTER MainWindow->DashboardPage.on_ship_updated
+[000480] t=2664.203846 thr=MainThread ENTER DashboardPage.on_ship_updated
+[000481] t=2664.204054 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_ais
+[000482] t=2664.205990 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_ais
+[000483] t=2664.206227 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_rtl
+[000484] t=2664.207095 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_rtl
+[000485] t=2664.207300 thr=MainThread EXIT DashboardPage.on_ship_updated
+[000486] t=2664.207429 thr=MainThread EXIT MainWindow->DashboardPage.on_ship_updated
+[000487] t=2672.786250 thr=Thread-1 (aisstream_worker) ENTER HybridAisEngine.publish_ship mmsi=264163187 source=AIS
+[000488] t=2672.786681 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish event=ship.updated
+[000489] t=2672.786822 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000490] t=2672.797482 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000491] t=2672.797625 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000492] t=2672.797725 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000493] t=2672.797842 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000494] t=2672.797917 thr=Thread-1 (aisstream_worker) ENTER EventBridge._on_ship_updated
+[000495] t=2672.798011 thr=Thread-1 (aisstream_worker) EXIT EventBridge._on_ship_updated
+[000496] t=2672.798098 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000497] t=2672.798166 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish event=ship.updated
+[000498] t=2672.798246 thr=Thread-1 (aisstream_worker) EXIT HybridAisEngine.publish_ship mmsi=264163187 source=AIS
+[000499] t=2672.798334 thr=MainThread ENTER MainWindow->VesselsPage.refresh
+[000500] t=2672.798615 thr=MainThread ENTER VesselsPage.refresh
+[000501] t=2672.798966 thr=MainThread EXIT VesselsPage.refresh
+[000502] t=2672.799145 thr=MainThread EXIT MainWindow->VesselsPage.refresh
+[000503] t=2672.799353 thr=MainThread ENTER MainWindow->DashboardPage.on_ship_updated
+[000504] t=2672.799414 thr=MainThread ENTER DashboardPage.on_ship_updated
+[000505] t=2672.799500 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_ais
+[000506] t=2672.800424 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_ais
+[000507] t=2672.800530 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_rtl
+[000508] t=2672.801050 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_rtl
+[000509] t=2672.801179 thr=MainThread EXIT DashboardPage.on_ship_updated
+[000510] t=2672.801255 thr=MainThread EXIT MainWindow->DashboardPage.on_ship_updated
+[000511] t=2678.603374 thr=Thread-1 (aisstream_worker) ENTER HybridAisEngine.publish_ship mmsi=229065000 source=AIS
+[000512] t=2678.603973 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish event=ship.updated
+[000513] t=2678.604288 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000514] t=2678.619274 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ship.updated->LogbookRecorder._on_ship_updated
+[000515] t=2678.619499 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000516] t=2678.619627 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ship.updated->RTLManager._on_ship_updated
+[000517] t=2678.619783 thr=Thread-1 (aisstream_worker) ENTER EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000518] t=2678.619885 thr=Thread-1 (aisstream_worker) ENTER EventBridge._on_ship_updated
+[000519] t=2678.620014 thr=Thread-1 (aisstream_worker) EXIT EventBridge._on_ship_updated
+[000520] t=2678.620153 thr=MainThread ENTER MainWindow->VesselsPage.refresh
+[000521] t=2678.620175 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish.ship.updated->EventBridge._on_ship_updated
+[000522] t=2678.620558 thr=MainThread ENTER VesselsPage.refresh
+[000523] t=2678.620572 thr=Thread-1 (aisstream_worker) EXIT EventBus.publish event=ship.updated
+[000524] t=2678.620861 thr=Thread-1 (aisstream_worker) EXIT HybridAisEngine.publish_ship mmsi=229065000 source=AIS
+[000525] t=2678.621395 thr=MainThread EXIT VesselsPage.refresh
+[000526] t=2678.621940 thr=MainThread EXIT MainWindow->VesselsPage.refresh
+[000527] t=2678.622220 thr=MainThread ENTER MainWindow->DashboardPage.on_ship_updated
+[000528] t=2678.622395 thr=MainThread ENTER DashboardPage.on_ship_updated
+[000529] t=2678.622591 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_ais
+[000530] t=2678.624276 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_ais
+[000531] t=2678.624469 thr=MainThread ENTER DashboardPage.on_ship_updated.refresh_rtl
+[000532] t=2678.625265 thr=MainThread EXIT DashboardPage.on_ship_updated.refresh_rtl
+[000533] t=2678.625440 thr=MainThread EXIT DashboardPage.on_ship_updated
+[000534] t=2678.625547 thr=MainThread EXIT MainWindow->DashboardPage.on_ship_updated
+[000535] t=2689.135397 thr=MainThread ENTER MapController.cancel_pick_mode restore_host=False
+[000536] t=2689.136092 thr=MainThread ENTER MapController._set_pick_mode PickMode.LOCATION->PickMode.NONE
+[000537] t=2689.136443 thr=MainThread ENTER MapPage._on_pick_mode_changed mode=PickMode.NONE
+[000538] t=2689.136646 thr=MainThread ENTER MapPage._start_ship_timers
+[000539] t=2689.136822 thr=MainThread ENTER MapPage._map_updates_enabled
+[000540] t=2689.136976 thr=MainThread ENTER MapPage._map_updates_enabled._map_page_is_current
+[000541] t=2689.137168 thr=MainThread EXIT MapPage._map_updates_enabled._map_page_is_current result=False
+[000542] t=2689.137309 thr=MainThread ENTER MapPage._map_updates_enabled.isVisible
+[000543] t=2689.137452 thr=MainThread EXIT MapPage._map_updates_enabled.isVisible result=False
+[000544] t=2689.137577 thr=MainThread ENTER MapPage._map_updates_enabled.pick_mode
+[000545] t=2689.137709 thr=MainThread EXIT MapPage._map_updates_enabled.pick_mode result=PickMode.NONE
+[000546] t=2689.137844 thr=MainThread EXIT MapPage._map_updates_enabled
+[000547] t=2689.137982 thr=MainThread MapPage._start_ship_timers skipped
+[000548] t=2689.138137 thr=MainThread EXIT MapPage._start_ship_timers
+[000549] t=2689.138271 thr=MainThread EXIT MapPage._on_pick_mode_changed mode=PickMode.NONE
+[000550] t=2689.138503 thr=MainThread EXIT MapController._set_pick_mode PickMode.NONE
+[000551] t=2689.138714 thr=MainThread ENTER MapWidget._run_js len=18
+[000552] t=2689.138941 thr=MainThread EXIT MapWidget._run_js len=18
+[000553] t=2689.139132 thr=MainThread EXIT MapController.cancel_pick_mode restore_host=False
+[000554] t=2689.139312 thr=MainThread ENTER EventBus.publish event=engine.stopped
+[000555] t=2689.139462 thr=MainThread EXIT EventBus.publish event=engine.stopped
+[000556] t=2689.761729 thr=MainThread ENTER EventBus.publish event=rtl.status
+[000557] t=2689.762438 thr=MainThread ENTER EventBus.publish.rtl.status->AISManager._on_rtl_status
+[000558] t=2689.762830 thr=MainThread EXIT EventBus.publish.rtl.status->AISManager._on_rtl_status
+[000559] t=2689.763068 thr=MainThread ENTER EventBus.publish.rtl.status->RTLManager._on_rtl_status
+[000560] t=2689.763243 thr=MainThread EXIT EventBus.publish.rtl.status->RTLManager._on_rtl_status
+[000561] t=2689.763474 thr=MainThread ENTER EventBus.publish.rtl.status->EventBridge._on_rtl_status
+[000562] t=2689.763644 thr=MainThread ENTER EventBridge._on_rtl_status
+[000563] t=2689.763856 thr=MainThread EXIT EventBridge._on_rtl_status
+[000564] t=2689.764039 thr=MainThread EXIT EventBus.publish.rtl.status->EventBridge._on_rtl_status
+[000565] t=2689.764183 thr=MainThread EXIT EventBus.publish event=rtl.status
+[000566] t=2689.772921 thr=MainThread ENTER MapController._set_pick_mode PickMode.NONE->PickMode.LOCATION
+[000567] t=2689.773465 thr=MainThread ENTER MapPage._on_pick_mode_changed mode=PickMode.LOCATION
+[000568] t=2689.773719 thr=MainThread ENTER MapPage._stop_ship_timers
+[000569] t=2689.773912 thr=MainThread EXIT MapPage._stop_ship_timers
+[000570] t=2689.774104 thr=MainThread EXIT MapPage._on_pick_mode_changed mode=PickMode.LOCATION
+[000571] t=2689.774291 thr=MainThread EXIT MapController._set_pick_mode PickMode.LOCATION
+[000572] t=2689.774658 thr=MainThread ENTER MainWindow->DashboardPage.refresh_ais(rtl)
+[000573] t=2689.777511 thr=MainThread EXIT MainWindow->DashboardPage.refresh_ais(rtl)
+[000574] t=2689.777987 thr=MainThread ENTER MainWindow->DashboardPage.refresh_rtl
+[000575] t=2689.780068 thr=MainThread EXIT MainWindow->DashboardPage.refresh_rtl

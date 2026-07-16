@@ -5,6 +5,7 @@
     <title>Project X Camera Map</title>
 
     <link rel="stylesheet" href="leaflet/leaflet.css">
+    <link rel="stylesheet" href="../theme/colors.css">
     <script src="leaflet/leaflet.js"></script>
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
 
@@ -23,8 +24,8 @@
             align-items: center;
             justify-content: center;
             font-size: 18px;
-            color: #1e88e5;
-            text-shadow: 0 0 6px rgba(30, 136, 229, 0.8);
+            color: var(--px-primary-hover);
+            text-shadow: 0 0 6px rgba(var(--px-primary-hover-rgb), 0.8);
             transform-origin: center center;
         }
     </style>

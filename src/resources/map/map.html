@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>Project X Map</title>
 
-    <link rel="stylesheet" href="leaflet/leaflet.css">
+    <link rel="stylesheet" href="../theme/colors.css">
     <script src="leaflet/leaflet.js"></script>
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
 
@@ -22,7 +22,7 @@
         }
 
         .ship-body {
-            color: #1976d2;
+            color: var(--px-primary-500);
             width: 24px;
             height: 24px;
             display: flex;
@@ -94,9 +94,9 @@
             width: 16px;
             height: 16px;
             border-radius: 50%;
-            background: #1976d2;
+            background: var(--px-primary-500);
             border: 2px solid #ffffff;
-            box-shadow: 0 0 8px rgba(25, 118, 210, 0.75);
+            box-shadow: 0 0 8px rgba(var(--px-primary-500-rgb), 0.75);
         }
 
         .map-empty-state {
@@ -383,9 +383,9 @@
 
         .vessel-card__logbook-btn {
             width: 100%;
-            border: 1px solid #2d5a8e;
+            border: 1px solid var(--px-primary-700);
             border-radius: 6px;
-            background: #243651;
+            background: var(--px-primary-900);
             color: white;
             font-size: 12px;
             font-weight: 600;
@@ -394,7 +394,7 @@
         }
 
         .vessel-card__logbook-btn:hover {
-            background: #2d4a6f;
+            background: var(--px-primary-surface-hover);
         }
     </style>
 </head>

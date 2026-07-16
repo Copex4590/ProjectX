@@ -34,6 +34,7 @@ from camera import (
 from camera.camera import FUTURE_CAMERA_TYPES
 from gui.i18n_support import bind_language_refresh
 from gui.mapcontroller import MapController
+from gui.theme import DANGER, SUCCESS, TEXT_MUTED, wizard_shell_stylesheet
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button, show_wizard_help
 from i18n import tr
 from observation import observation_manager
@@ -223,43 +224,7 @@ class CameraWizard(QDialog):
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("""
-            QDialog {
-                background: #1d2127;
-            }
-
-            QLabel {
-                color: #d5dbe3;
-            }
-
-            QLineEdit, QDoubleSpinBox, QSpinBox {
-                background: #252a31;
-                color: white;
-                border: 1px solid #3d4a5c;
-                border-radius: 6px;
-                padding: 6px 8px;
-            }
-
-            QRadioButton {
-                color: #d5dbe3;
-            }
-
-            QPushButton {
-                background: #243651;
-                color: white;
-                border: 1px solid #2d5a8e;
-                border-radius: 6px;
-                padding: 6px 12px;
-            }
-
-            QPushButton:hover {
-                background: #2d4a6f;
-            }
-
-            QPushButton:disabled {
-                color: #7a8494;
-            }
-        """)
+        self.setStyleSheet(wizard_shell_stylesheet(include_disabled=True))
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
@@ -321,7 +286,7 @@ class CameraWizard(QDialog):
 
         self._name_examples = QLabel()
         self._name_examples.setWordWrap(True)
-        self._name_examples.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        self._name_examples.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10pt;")
         layout.addWidget(self._name_examples)
         layout.addStretch()
         self._stack.addWidget(page)
@@ -364,11 +329,11 @@ class CameraWizard(QDialog):
 
         self._url_hint = QLabel()
         self._url_hint.setWordWrap(True)
-        self._url_hint.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        self._url_hint.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10pt;")
         layout.addWidget(self._url_hint)
 
         self._url_error = QLabel()
-        self._url_error.setStyleSheet("color: #ef5350;")
+        self._url_error.setStyleSheet(f"color: {DANGER};")
         self._url_error.setVisible(False)
         layout.addWidget(self._url_error)
         layout.addStretch()
@@ -397,7 +362,7 @@ class CameraWizard(QDialog):
 
         self._position_hint = QLabel()
         self._position_hint.setWordWrap(True)
-        self._position_hint.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        self._position_hint.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10pt;")
         map_panel_layout.addWidget(self._position_hint)
 
         self._pick_map_button = QPushButton()
@@ -428,7 +393,7 @@ class CameraWizard(QDialog):
 
         self._heading_hint = QLabel()
         self._heading_hint.setWordWrap(True)
-        self._heading_hint.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        self._heading_hint.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10pt;")
         layout.addWidget(self._heading_hint)
         layout.addStretch()
         self._stack.addWidget(page)
@@ -514,12 +479,12 @@ class CameraWizard(QDialog):
 
         self._test_details = QLabel()
         self._test_details.setWordWrap(True)
-        self._test_details.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        self._test_details.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10pt;")
         layout.addWidget(self._test_details)
 
         self._test_hint = QLabel()
         self._test_hint.setWordWrap(True)
-        self._test_hint.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        self._test_hint.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10pt;")
         layout.addWidget(self._test_hint)
         layout.addStretch()
         self._stack.addWidget(page)
@@ -581,7 +546,7 @@ class CameraWizard(QDialog):
         layout.addLayout(self._summary_grid)
 
         self._summary_hint = QLabel()
-        self._summary_hint.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        self._summary_hint.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10pt;")
         layout.addWidget(self._summary_hint)
         layout.addStretch()
         self._stack.addWidget(page)
@@ -843,10 +808,10 @@ class CameraWizard(QDialog):
         if result is None:
             if self._last_test_success is True:
                 self._test_result.setText(tr("✓ Connection successful"))
-                self._test_result.setStyleSheet("color: #66bb6a;")
+                self._test_result.setStyleSheet(f"color: {SUCCESS};")
             elif self._last_test_success is False:
                 self._test_result.setText(tr("✗ Unable to connect"))
-                self._test_result.setStyleSheet("color: #ef5350;")
+                self._test_result.setStyleSheet(f"color: {DANGER};")
             else:
                 self._test_result.setText("")
                 self._test_details.setText("")
@@ -854,10 +819,10 @@ class CameraWizard(QDialog):
 
         if result.success:
             self._test_result.setText(tr("✓ Connection successful"))
-            self._test_result.setStyleSheet("color: #66bb6a;")
+            self._test_result.setStyleSheet(f"color: {SUCCESS};")
         else:
             self._test_result.setText(tr("✗ Unable to connect"))
-            self._test_result.setStyleSheet("color: #ef5350;")
+            self._test_result.setStyleSheet(f"color: {DANGER};")
 
         details = [tr("Stream type") + f": {result.stream_type}"]
 

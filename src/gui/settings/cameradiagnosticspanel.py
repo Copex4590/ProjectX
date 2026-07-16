@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from database.camera_registry import CameraRegistry, camera_registry
-from gui.i18n_support import bind_language_refresh
+from gui.theme import BG_HEADER, TEXT_MUTED, table_stylesheet
 from gui.tableutils import show_empty_table_message
 from i18n import tr
 from engines.camera.diagnostics import (
@@ -132,38 +132,26 @@ class CameraDiagnosticsPanel(QFrame):
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("""
-            QLabel[role="section"] {
+        self.setStyleSheet(f"""
+            QLabel[role="section"] {{
                 color: white;
                 font-size: 14pt;
                 font-weight: bold;
-            }
+            }}
 
-            QLabel[role="summary-title"] {
-                color: #9aa4af;
+            QLabel[role="summary-title"] {{
+                color: {TEXT_MUTED};
                 font-size: 9pt;
                 font-weight: 600;
-            }
+            }}
 
-            QLabel[role="summary-value"] {
+            QLabel[role="summary-value"] {{
                 color: white;
                 font-size: 16pt;
                 font-weight: bold;
-            }
+            }}
 
-            QTableWidget {
-                background: #252a31;
-                color: white;
-                border: 1px solid #3d4a5c;
-                gridline-color: #3d4a5c;
-            }
-
-            QHeaderView::section {
-                background: #2a3548;
-                color: #d5dbe3;
-                border: 1px solid #3d4a5c;
-                padding: 6px;
-            }
+            {table_stylesheet()}
         """)
 
         layout = QVBoxLayout(self)

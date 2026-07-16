@@ -15,6 +15,11 @@ from PySide6.QtWidgets import (
 
 from branding.assets import logo_pixmap
 from gui.i18n_support import bind_language_refresh
+from gui.theme import (
+    ACCENT_GLOW,
+    BG_PANEL,
+    TEXT_MUTED,
+)
 from i18n import tr
 from version import GITHUB_URL, LICENSE_NAME, PROJECT_BUILD, PROJECT_NAME, PROJECT_VERSION
 
@@ -44,23 +49,23 @@ class AboutDialog(QDialog):
 
         self._version_label = QLabel()
         self._version_label.setAlignment(Qt.AlignCenter)
-        self._version_label.setStyleSheet("color: #bbbbbb;")
+        self._version_label.setStyleSheet(f"color: {TEXT_MUTED};")
         layout.addWidget(self._version_label)
 
         self._build_label = QLabel()
         self._build_label.setAlignment(Qt.AlignCenter)
-        self._build_label.setStyleSheet("color: #bbbbbb;")
+        self._build_label.setStyleSheet(f"color: {TEXT_MUTED};")
         layout.addWidget(self._build_label)
 
         self._github_label = QLabel()
         self._github_label.setAlignment(Qt.AlignCenter)
         self._github_label.setOpenExternalLinks(True)
-        self._github_label.setStyleSheet("color: #4FC3F7;")
+        self._github_label.setStyleSheet(f"color: {ACCENT_GLOW};")
         layout.addWidget(self._github_label)
 
         self._license_label = QLabel()
         self._license_label.setAlignment(Qt.AlignCenter)
-        self._license_label.setStyleSheet("color: #9aa4af;")
+        self._license_label.setStyleSheet(f"color: {TEXT_MUTED};")
         layout.addWidget(self._license_label)
 
         self._button_box = QDialogButtonBox(
@@ -69,10 +74,10 @@ class AboutDialog(QDialog):
         layout.addWidget(self._button_box)
         self._button_box.accepted.connect(self.accept)
 
-        self.setStyleSheet("""
-            QDialog {
-                background: #252a31;
-            }
+        self.setStyleSheet(f"""
+            QDialog {{
+                background: {BG_PANEL};
+            }}
         """)
 
         bind_language_refresh(self.refresh_translations)

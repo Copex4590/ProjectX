@@ -2,6 +2,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QLabel, QPushButton, QFrame, QVBoxLayout, QButtonGroup
 
 from branding.assets import logo_pixmap
+from gui.theme import sidebar_stylesheet
 from i18n import language_manager, tr
 from version import PROJECT_NAME
 
@@ -42,31 +43,7 @@ class Sidebar(QFrame):
         self.setFixedWidth(260)
         self._active_page = 0
 
-        self.setStyleSheet("""
-            QFrame {
-                background: #1d2127;
-                border-right: 1px solid #40444b;
-            }
-
-            QPushButton {
-                color: white;
-                background: transparent;
-                border: none;
-                text-align: left;
-                padding: 10px;
-                font-size: 12pt;
-                border-radius: 6px;
-            }
-
-            QPushButton:hover {
-                background: #3b434d;
-            }
-
-            QPushButton:checked {
-                background: #1976d2;
-                font-weight: 600;
-            }
-        """)
+        self.setStyleSheet(sidebar_stylesheet())
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(20, 20, 20, 20)
