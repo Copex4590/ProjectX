@@ -11,6 +11,7 @@ from PySide6.QtCore import Qt, Signal
 from database import registry
 from debug.obs_freeze_trace import trace_block
 from gui.i18n_support import bind_language_refresh
+from gui.theme import ThemeColors, BORDER
 from gui.widgets.emptystate import EmptyStateWidget
 from i18n import tr
 
@@ -37,13 +38,13 @@ class VesselsPage(QWidget):
         self._stack = QStackedWidget()
 
         self.list = QListWidget()
-        self.list.setStyleSheet("""
-            QListWidget{
-                background:#252a31;
-                color:white;
-                border:1px solid #3d4a5c;
-                font-size:12pt;
-            }
+        self.list.setStyleSheet(f"""
+            QListWidget {{
+                background: {ThemeColors.Panel};
+                color: white;
+                border: 1px solid {BORDER};
+                font-size: 12pt;
+            }}
         """)
         self._stack.addWidget(self.list)
 

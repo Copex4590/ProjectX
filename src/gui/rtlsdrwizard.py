@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 )
 
 from gui.i18n_support import bind_language_refresh
+from gui.theme import DANGER, SUCCESS, TEXT_MUTED, wizard_shell_stylesheet
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button, show_wizard_help
 from i18n import tr
 from observation import observation_manager
@@ -114,16 +115,7 @@ class RTLSdrWizard(QDialog):
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("""
-            QDialog { background: #1d2127; }
-            QLabel { color: #d5dbe3; }
-            QRadioButton, QCheckBox { color: #d5dbe3; }
-            QPushButton {
-                background: #243651; color: white;
-                border: 1px solid #2d5a8e; border-radius: 6px; padding: 6px 12px;
-            }
-            QPushButton:hover { background: #2d4a6f; }
-        """)
+        self.setStyleSheet(wizard_shell_stylesheet())
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
@@ -153,7 +145,7 @@ class RTLSdrWizard(QDialog):
         no_layout.addWidget(self._no_receiver_title)
         self._no_receiver_body = QLabel()
         self._no_receiver_body.setWordWrap(True)
-        self._no_receiver_body.setStyleSheet("color: #9aa4af;")
+        self._no_receiver_body.setStyleSheet(f"color: {TEXT_MUTED};")
         no_layout.addWidget(self._no_receiver_body)
         help_row = QHBoxLayout()
         self._no_help_button = QPushButton(tr("What is this?"))
@@ -191,7 +183,7 @@ class RTLSdrWizard(QDialog):
         guide_layout.addWidget(self._guide_title)
         self._guide_body = QLabel()
         self._guide_body.setWordWrap(True)
-        self._guide_body.setStyleSheet("color: #9aa4af;")
+        self._guide_body.setStyleSheet(f"color: {TEXT_MUTED};")
         guide_layout.addWidget(self._guide_body)
         guide_help_row = QHBoxLayout()
         self._guide_help_button = QPushButton(tr("How do I fix common problems?"))
@@ -268,7 +260,7 @@ class RTLSdrWizard(QDialog):
         observation_layout.addWidget(self._observation_title)
         self._observation_body = QLabel()
         self._observation_body.setWordWrap(True)
-        self._observation_body.setStyleSheet("color: #9aa4af;")
+        self._observation_body.setStyleSheet(f"color: {TEXT_MUTED};")
         observation_layout.addWidget(self._observation_body)
         observation_layout.addStretch()
         self._stack.addWidget(observation_page)
@@ -451,7 +443,7 @@ class RTLSdrWizard(QDialog):
 
         if device is None:
             self._receiver_result.setText(tr("Receiver not detected"))
-            self._receiver_result.setStyleSheet("color: #ef5350;")
+            self._receiver_result.setStyleSheet(f"color: {DANGER};")
             return
 
         self._manufacturer_value.setText(device.manufacturer or "—")
@@ -461,10 +453,10 @@ class RTLSdrWizard(QDialog):
 
         if device.detected:
             self._receiver_result.setText(f"✓ {tr('Receiver detected')}")
-            self._receiver_result.setStyleSheet("color: #66bb6a;")
+            self._receiver_result.setStyleSheet(f"color: {SUCCESS};")
         else:
             self._receiver_result.setText(f"✗ {tr('Receiver not detected')}")
-            self._receiver_result.setStyleSheet("color: #ef5350;")
+            self._receiver_result.setStyleSheet(f"color: {DANGER};")
 
     def _refresh_catcher_status(self) -> None:
 
@@ -486,10 +478,10 @@ class RTLSdrWizard(QDialog):
             self._catcher_status_label.setText(
                 f"✓ {tr('AIS-Catcher is running on port')} {rtl_manager.ais_catcher_status().port}"
             )
-            self._catcher_status_label.setStyleSheet("color: #66bb6a;")
+            self._catcher_status_label.setStyleSheet(f"color: {SUCCESS};")
         else:
             self._catcher_status_label.setText(tr("AIS-Catcher could not be started."))
-            self._catcher_status_label.setStyleSheet("color: #ef5350;")
+            self._catcher_status_label.setStyleSheet(f"color: {DANGER};")
 
         self._refresh_catcher_status()
 
@@ -509,7 +501,7 @@ class RTLSdrWizard(QDialog):
 
         if result is None:
             self._reception_result.setText(tr("Reception test failed."))
-            self._reception_result.setStyleSheet("color: #ef5350;")
+            self._reception_result.setStyleSheet(f"color: {DANGER};")
             return
 
         self._reception_messages.setText(str(result.message_count))
@@ -526,12 +518,12 @@ class RTLSdrWizard(QDialog):
 
         if result.success:
             self._reception_result.setText(f"✓ {tr('Reception test successful')}")
-            self._reception_result.setStyleSheet("color: #66bb6a;")
+            self._reception_result.setStyleSheet(f"color: {SUCCESS};")
         else:
             self._reception_result.setText(
                 result.message or tr("No AIS messages received yet.")
             )
-            self._reception_result.setStyleSheet("color: #ef5350;")
+            self._reception_result.setStyleSheet(f"color: {DANGER};")
 
     def showEvent(self, event) -> None:
 

@@ -20,7 +20,16 @@ from PySide6.QtWidgets import (
 )
 
 from gui.i18n_support import bind_language_refresh
-from gui.theme import ACCENT, BG_BASE, TEXT, TEXT_MUTED
+from gui.theme import (
+    ACCENT,
+    BG_BASE,
+    BG_DEEP,
+    TEXT,
+    TEXT_MUTED,
+    TEXT_SOFT,
+    card_stylesheet,
+    primary_button_stylesheet,
+)
 from i18n import tr
 from vessel_statistics.statistics_manager import StatisticsManager, statistics_manager
 
@@ -34,20 +43,14 @@ class SummaryCard(QFrame):
 
         self._title_key = title_key
 
-        self.setStyleSheet("""
-            QFrame {
-                background: #252a31;
-                border: 1px solid #3d4a5c;
-                border-radius: 10px;
-            }
-        """)
+        self.setStyleSheet(card_stylesheet())
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(14, 14, 14, 14)
 
         self.title_label = QLabel(tr(title_key))
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title_label.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        self.title_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10pt;")
 
         self.value_label = QLabel("0")
         self.value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -74,25 +77,21 @@ class TopListPanel(QFrame):
 
         self._title_key = title_key
 
-        self.setStyleSheet("""
-            QFrame {
-                background: #252a31;
-                border: 1px solid #3d4a5c;
-                border-radius: 10px;
-            }
+        self.setStyleSheet(f"""
+            {card_stylesheet()}
 
-            QListWidget {
+            QListWidget {{
                 background: transparent;
                 color: white;
                 border: none;
-            }
+            }}
         """)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
 
         self.heading = QLabel(tr(title_key))
-        self.heading.setStyleSheet("color: #d5dbe3; font-size: 11pt; font-weight: 600;")
+        self.heading.setStyleSheet(f"color: {TEXT}; font-size: 11pt; font-weight: 600;")
         layout.addWidget(self.heading)
 
         self.list_widget = QListWidget()
@@ -133,13 +132,7 @@ class SimpleBarChart(QFrame):
         self._values: list[int] = []
         self._labels: list[str] = []
         self.setMinimumHeight(220)
-        self.setStyleSheet("""
-            QFrame {
-                background: #252a31;
-                border: 1px solid #3d4a5c;
-                border-radius: 10px;
-            }
-        """)
+        self.setStyleSheet(card_stylesheet())
 
     def set_values(self, values: list[int], labels: list[str] | None = None) -> None:
 
@@ -190,7 +183,7 @@ class SimpleBarChart(QFrame):
             y = chart_rect.bottom() - bar_height
             painter.fillRect(x, y, bar_width, bar_height, QColor(ACCENT))
 
-        painter.setPen(QColor("#6b7688"))
+        painter.setPen(QColor(TEXT_SOFT))
         painter.drawLine(
             chart_rect.left(),
             chart_rect.bottom(),
@@ -307,28 +300,22 @@ class StatisticsPage(QWidget):
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("""
-            QWidget {
-                background: #1d2127;
-            }
+        self.setStyleSheet(f"""
+            QWidget {{
+                background: {BG_DEEP};
+            }}
 
-            QLabel[role="title"] {
+            QLabel[role="title"] {{
                 color: white;
                 font-size: 26pt;
                 font-weight: bold;
-            }
+            }}
 
-            QPushButton {
-                background: #1976d2;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 6px;
-            }
+            {primary_button_stylesheet()}
 
-            QCheckBox {
-                color: #d5dbe3;
-            }
+            QCheckBox {{
+                color: {TEXT};
+            }}
         """)
 
         outer_layout = QVBoxLayout(self)
@@ -358,7 +345,7 @@ class StatisticsPage(QWidget):
         controls.addWidget(self.refresh_button)
 
         self.auto_refresh_checkbox = QCheckBox(tr("Auto Refresh"))
-        self.auto_refresh_checkbox.setStyleSheet("color: #d5dbe3;")
+        self.auto_refresh_checkbox.setStyleSheet(f"color: {TEXT};")
         controls.addWidget(self.auto_refresh_checkbox)
         controls.addStretch()
         layout.addLayout(controls)

@@ -20,6 +20,16 @@ from PySide6.QtWidgets import (
 )
 
 from gui.i18n_support import bind_language_refresh
+from gui.theme import (
+    DANGER,
+    SUCCESS,
+    TEXT,
+    TEXT_MUTED,
+    WARNING,
+    card_stylesheet,
+    primary_button_stylesheet,
+    secondary_button_stylesheet,
+)
 from i18n import tr
 from system_health import (
     SubsystemAction,
@@ -79,13 +89,7 @@ class _SubsystemRow(QFrame):
 
         self._health: SubsystemHealth | None = None
 
-        self.setStyleSheet("""
-            QFrame {
-                background: #252a31;
-                border: 1px solid #3d4a5c;
-                border-radius: 8px;
-            }
-        """)
+        self.setStyleSheet(card_stylesheet(radius=8))
 
         layout = QGridLayout(self)
         layout.setContentsMargins(14, 12, 14, 12)
@@ -103,7 +107,7 @@ class _SubsystemRow(QFrame):
         layout.addWidget(self._name_label, 0, 1)
 
         self._state_label = QLabel()
-        self._state_label.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        self._state_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10pt;")
         layout.addWidget(self._state_label, 0, 2)
 
         self._message_label = QLabel()
@@ -112,16 +116,7 @@ class _SubsystemRow(QFrame):
         layout.addWidget(self._message_label, 1, 1, 1, 2)
 
         self._action_button = QPushButton()
-        self._action_button.setStyleSheet("""
-            QPushButton {
-                background: #243651;
-                color: white;
-                border: 1px solid #2d5a8e;
-                border-radius: 6px;
-                padding: 6px 12px;
-            }
-            QPushButton:hover { background: #2d4a6f; }
-        """)
+        self._action_button.setStyleSheet(secondary_button_stylesheet())
         self._action_button.clicked.connect(self._on_action)
         layout.addWidget(self._action_button, 0, 3, 2, 1)
 
@@ -219,7 +214,7 @@ class SystemHealthPage(QWidget):
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("background: #1d2127;")
+        self.setStyleSheet(f"background: {BG_DEEP};")
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(25, 25, 25, 25)
@@ -236,37 +231,18 @@ class SystemHealthPage(QWidget):
         button_row.setSpacing(8)
 
         self._run_check_button = QPushButton()
-        self._run_check_button.setStyleSheet("""
-            QPushButton {
-                background: #1976d2;
-                color: white;
-                border: none;
-                padding: 8px 14px;
-                border-radius: 6px;
-            }
-            QPushButton:hover { background: #1e88e5; }
-            QPushButton:disabled { background: #2d5a8e; color: #9aa4af; }
-        """)
+        self._run_check_button.setStyleSheet(primary_button_stylesheet(padding="8px 14px"))
         button_row.addWidget(self._run_check_button)
 
         self._save_report_button = QPushButton()
-        self._save_report_button.setStyleSheet("""
-            QPushButton {
-                background: #243651;
-                color: white;
-                border: 1px solid #2d5a8e;
-                padding: 8px 14px;
-                border-radius: 6px;
-            }
-            QPushButton:hover { background: #2d4a6f; }
-        """)
+        self._save_report_button.setStyleSheet(secondary_button_stylesheet(padding="8px 14px"))
         button_row.addWidget(self._save_report_button)
         button_row.addStretch()
         outer.addLayout(button_row)
 
         self._summary_label = QLabel()
         self._summary_label.setWordWrap(True)
-        self._summary_label.setStyleSheet("color: #ef5350; font-size: 11pt;")
+        self._summary_label.setStyleSheet(f"color: {DANGER}; font-size: 11pt;")
         self._summary_label.setVisible(False)
         outer.addWidget(self._summary_label)
 
@@ -313,13 +289,13 @@ class SystemHealthPage(QWidget):
         self._summary_label.setText(self._summary_text())
 
         if report.has_errors:
-            self._summary_label.setStyleSheet("color: #ef5350; font-size: 11pt;")
+            self._summary_label.setStyleSheet(f"color: {DANGER}; font-size: 11pt;")
             self._summary_label.setVisible(True)
         elif report.has_warnings:
-            self._summary_label.setStyleSheet("color: #ffb74d; font-size: 11pt;")
+            self._summary_label.setStyleSheet(f"color: {WARNING}; font-size: 11pt;")
             self._summary_label.setVisible(True)
         else:
-            self._summary_label.setStyleSheet("color: #66bb6a; font-size: 11pt;")
+            self._summary_label.setStyleSheet(f"color: {SUCCESS}; font-size: 11pt;")
             self._summary_label.setVisible(True)
 
         while self._rows:

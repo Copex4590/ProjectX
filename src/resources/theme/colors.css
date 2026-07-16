@@ -1,0 +1,27 @@
+/* Project X palette — keep in sync with gui/theme.py ThemeColors */
+
+:root {
+    --px-background: #1d2127;
+    --px-panel: #252a31;
+    --px-panel-hover: #3b434d;
+    --px-border: #3d4a5c;
+    --px-border-active: #4a6fa0;
+
+    --px-primary-900: #243651;
+    --px-primary-700: #2d4a6f;
+    --px-primary-500: #4a6fa0;
+    --px-primary-500-rgb: 74, 111, 160;
+    --px-primary-300: #6d8fb3;
+    --px-primary-100: #9eb3c9;
+    --px-primary-hover: #3d5f85;
+    --px-primary-hover-rgb: 61, 95, 133;
+    --px-primary-active: #355472;
+    --px-primary-surface-hover: #2d4a6f;
+
+    --px-text-primary: #ffffff;
+    --px-text-secondary: #9aa4af;
+
+    --px-success: #66bb6a;
+    --px-warning: #ffb74d;
+    --px-danger: #ef5350;
+}

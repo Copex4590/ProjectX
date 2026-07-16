@@ -35,6 +35,19 @@ from gui.mapcontroller import MapController
 from gui.observationwizard import ObservationWizard
 from gui.settings.cameradiagnosticspanel import CameraDiagnosticsPanel
 from gui.settings.playbacksettings import PlaybackSettingsPage
+from gui.theme import (
+    BG_DEEP,
+    BG_HEADER,
+    BORDER,
+    SUCCESS,
+    TEXT,
+    TEXT_MUTED,
+    TEXT_MUTED,
+    ThemeColors,
+    card_stylesheet,
+    secondary_button_stylesheet,
+    settings_panel_stylesheet,
+)
 from gui.widgets.aiproviderssection import AISProvidersSection
 from gui.wizardhelp import show_wizard_help
 from i18n import language_manager, tr
@@ -46,29 +59,9 @@ from preferences import (
     preferences_manager,
 )
 
-_CARD_STYLE = """
-    QFrame {
-        background: #252a31;
-        border: 1px solid #3d4a5c;
-        border-radius: 10px;
-    }
-"""
+_CARD_STYLE = card_stylesheet()
 
-_BUTTON_STYLE = """
-    QPushButton {
-        background: #243651;
-        color: white;
-        border: 1px solid #2d5a8e;
-        border-radius: 6px;
-        padding: 6px 12px;
-    }
-    QPushButton:hover {
-        background: #2d4a6f;
-    }
-    QPushButton:disabled {
-        color: #7a8494;
-    }
-"""
+_BUTTON_STYLE = secondary_button_stylesheet()
 
 _LANGUAGE_LABELS = {
     "en": "English",
@@ -97,21 +90,15 @@ class InfoCard(QFrame):
 
         self._title_key = title_key
 
-        self.setStyleSheet("""
-            QFrame{
-                background:#252a31;
-                border:1px solid #3d4a5c;
-                border-radius:10px;
-            }
-        """)
+        self.setStyleSheet(card_stylesheet())
 
         layout = QVBoxLayout(self)
 
         self.title = QLabel(tr(title_key))
         self.title.setAlignment(Qt.AlignCenter)
 
-        self.title.setStyleSheet("""
-            color:#bbbbbb;
+        self.title.setStyleSheet(f"""
+            color:{TEXT_MUTED};
             font-size:12pt;
         """)
 
@@ -204,7 +191,7 @@ class DashboardPage(QWidget):
         self._subtitle_label = QLabel()
         self._subtitle_label.setAlignment(Qt.AlignCenter)
         self._subtitle_label.setStyleSheet(
-            "color: #9aa4af; font-size: 11pt; padding-bottom: 4px;"
+            f"color: {TEXT_MUTED}; font-size: 11pt; padding-bottom: 4px;"
         )
         layout.addWidget(self._subtitle_label)
 
@@ -244,7 +231,7 @@ class DashboardPage(QWidget):
 
         self._observation_map_hint = QLabel()
         self._observation_map_hint.setWordWrap(True)
-        self._observation_map_hint.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        self._observation_map_hint.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10pt;")
         observation_layout.addWidget(self._observation_map_hint)
 
         info_grid = QGridLayout()
@@ -262,7 +249,7 @@ class DashboardPage(QWidget):
             self._coords_caption,
             self._status_caption,
         ):
-            caption.setStyleSheet("color: #9aa4af;")
+            caption.setStyleSheet(f"color: {TEXT_MUTED};")
 
         for value in (
             self._name_value,
@@ -330,7 +317,7 @@ class DashboardPage(QWidget):
         cameras_layout.addLayout(self._cameras_list)
 
         self._no_cameras_label = QLabel()
-        self._no_cameras_label.setStyleSheet("color: #9aa4af;")
+        self._no_cameras_label.setStyleSheet(f"color: {TEXT_MUTED};")
         self._no_cameras_label.setVisible(False)
         cameras_layout.addWidget(self._no_cameras_label)
 
@@ -384,7 +371,7 @@ class DashboardPage(QWidget):
             self._ais_config_caption,
             self._ais_connection_caption,
         ):
-            caption.setStyleSheet("color: #9aa4af;")
+            caption.setStyleSheet(f"color: {TEXT_MUTED};")
 
         for value in (
             self._ais_provider_value,
@@ -446,29 +433,29 @@ class DashboardPage(QWidget):
         configuration_layout.addWidget(self._configuration_title)
 
         personalization = QFrame()
-        personalization.setStyleSheet("""
-            QFrame {
-                background: #1d2127;
-                border: 1px solid #3d4a5c;
+        personalization.setStyleSheet(f"""
+            QFrame {{
+                background: {BG_DEEP};
+                border: 1px solid {BORDER};
                 border-radius: 8px;
-            }
-            QLabel[role="section"] {
-                color: #d5dbe3;
+            }}
+            QLabel[role="section"] {{
+                color: {TEXT};
                 font-size: 12pt;
                 font-weight: 600;
-            }
-            QLabel[role="field"] {
-                color: #9aa4af;
+            }}
+            QLabel[role="field"] {{
+                color: {TEXT_MUTED};
                 font-size: 10pt;
                 font-weight: 600;
-            }
-            QComboBox {
-                background: #252a31;
+            }}
+            QComboBox {{
+                background: {ThemeColors.Panel};
                 color: white;
-                border: 1px solid #3d4a5c;
+                border: 1px solid {BORDER};
                 border-radius: 6px;
                 padding: 6px 8px;
-            }
+            }}
         """)
         personalization_layout = QVBoxLayout(personalization)
         personalization_layout.setContentsMargins(16, 16, 16, 16)
@@ -505,93 +492,14 @@ class DashboardPage(QWidget):
         configuration_layout.addWidget(personalization)
 
         self.playback_settings = PlaybackSettingsPage()
-        self.playback_settings.setStyleSheet("""
-            QFrame {
-                background: #1d2127;
-                border: 1px solid #3d4a5c;
-                border-radius: 8px;
-                padding: 4px;
-            }
-            QLabel[role="section"] {
-                color: #d5dbe3;
-                font-size: 12pt;
-                font-weight: 600;
-            }
-            QLabel[role="field"] {
-                color: #9aa4af;
-                font-size: 10pt;
-                font-weight: 600;
-            }
-            QLabel[role="caption"] {
-                color: #7d8794;
-                font-size: 9pt;
-            }
-            QComboBox, QLineEdit {
-                background: #252a31;
-                color: white;
-                border: 1px solid #3d4a5c;
-                border-radius: 6px;
-                padding: 6px 8px;
-            }
-            QPushButton {
-                background: #1976d2;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 6px;
-            }
-        """)
+        self.playback_settings.setStyleSheet(settings_panel_stylesheet(radius=8))
         configuration_layout.addWidget(self.playback_settings)
 
         self.camera_diagnostics = CameraDiagnosticsPanel()
         self.camera_diagnostics.setMinimumHeight(320)
-        self.camera_diagnostics.setStyleSheet("""
-            QFrame {
-                background: #1d2127;
-                border: 1px solid #3d4a5c;
-                border-radius: 8px;
-                padding: 4px;
-            }
-            QLabel[role="section"] {
-                color: #d5dbe3;
-                font-size: 12pt;
-                font-weight: 600;
-            }
-            QLabel[role="summary-title"] {
-                color: #9aa4af;
-                font-size: 9pt;
-                font-weight: 600;
-            }
-            QLabel[role="summary-value"] {
-                color: white;
-                font-size: 16pt;
-                font-weight: bold;
-            }
-            QComboBox, QPushButton {
-                background: #252a31;
-                color: white;
-                border: 1px solid #3d4a5c;
-                border-radius: 6px;
-                padding: 6px 8px;
-            }
-            QPushButton {
-                background: #1976d2;
-                border: none;
-                padding: 8px 12px;
-            }
-            QTableWidget {
-                background: #252a31;
-                color: white;
-                border: 1px solid #3d4a5c;
-                gridline-color: #3d4a5c;
-            }
-            QHeaderView::section {
-                background: #2a3548;
-                color: #d5dbe3;
-                border: 1px solid #3d4a5c;
-                padding: 6px;
-            }
-        """)
+        self.camera_diagnostics.setStyleSheet(
+            settings_panel_stylesheet(include_table=True, radius=8)
+        )
         configuration_layout.addWidget(self.camera_diagnostics)
         layout.addWidget(self._configuration_card)
 
@@ -723,13 +631,13 @@ class DashboardPage(QWidget):
                     f"{active.latitude:.5f}, {active.longitude:.5f}"
                 )
                 self._status_value.setText(tr("Active"))
-                self._status_value.setStyleSheet("color: #66bb6a; font-weight: 600;")
+                self._status_value.setStyleSheet(f"color: {SUCCESS}; font-weight: 600;")
                 has_point = True
             else:
                 self._name_value.setText(tr("No observation point"))
                 self._coords_value.setText(tr("Not available"))
                 self._status_value.setText(tr("Not configured"))
-                self._status_value.setStyleSheet("color: #9aa4af; font-weight: 600;")
+                self._status_value.setStyleSheet(f"color: {TEXT_MUTED}; font-weight: 600;")
                 has_point = False
 
             self._rename_button.setEnabled(has_point)
@@ -782,7 +690,7 @@ class DashboardPage(QWidget):
                 status_text = tr("Enabled") if camera.enabled else tr("Disabled")
                 status_label = QLabel(status_text)
                 status_label.setStyleSheet(
-                    "color: #66bb6a;" if camera.enabled else "color: #9aa4af;"
+                    f"color: {SUCCESS};" if camera.enabled else f"color: {TEXT_MUTED};"
                 )
                 row.addWidget(status_label)
 
@@ -790,18 +698,9 @@ class DashboardPage(QWidget):
                 delete_button = QPushButton(tr("Delete"))
 
                 for button in (edit_button, delete_button):
-                    button.setStyleSheet("""
-                        QPushButton {
-                            background: #243651;
-                            color: white;
-                            border: 1px solid #2d5a8e;
-                            border-radius: 6px;
-                            padding: 4px 10px;
-                        }
-                        QPushButton:hover {
-                            background: #2d4a6f;
-                        }
-                    """)
+                    button.setStyleSheet(
+                        secondary_button_stylesheet(padding="4px 10px")
+                    )
 
                 edit_button.clicked.connect(
                     lambda _checked=False, item=camera: self._edit_camera(item)
@@ -913,13 +812,13 @@ class DashboardPage(QWidget):
         if self._ais_dashboard_connected():
             self._ais_connection_value.setText(tr("Connected"))
             self._ais_connection_value.setStyleSheet(
-                "color: #66bb6a; font-weight: 600;"
+                f"color: {SUCCESS}; font-weight: 600;"
             )
             self.ais.value.setText(tr("Connected"))
         else:
             self._ais_connection_value.setText(tr("Disconnected"))
             self._ais_connection_value.setStyleSheet(
-                "color: #9aa4af; font-weight: 600;"
+                f"color: {TEXT_MUTED}; font-weight: 600;"
             )
             self.ais.value.setText(tr("Disconnected"))
 

@@ -16,6 +16,16 @@ from debug.obs_freeze_trace import trace_block
 from gui.i18n_support import bind_language_refresh
 from gui.mapcontroller import MapController
 from gui.observationwizard import ObservationSetupWidget, _SUBSTEP_MAP, _SUBSTEP_RADIUS
+from gui.theme import (
+    BG_DEEP,
+    BORDER,
+    SUCCESS,
+    TEXT,
+    TEXT_MUTED,
+    card_stylesheet,
+    secondary_button_stylesheet,
+    wizard_shell_stylesheet,
+)
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button
 from i18n import tr
 from preferences import preferences_manager
@@ -39,13 +49,13 @@ class _FirstRunSuccessDialog(QDialog):
         self._title = QLabel()
         self._title.setWordWrap(True)
         self._title.setStyleSheet(
-            "font-size: 14pt; font-weight: bold; color: #e8f5e9;"
+            f"font-size: 14pt; font-weight: bold; color: {SUCCESS};"
         )
         layout.addWidget(self._title)
 
         self._body = QLabel()
         self._body.setWordWrap(True)
-        self._body.setStyleSheet("color: #d5dbe3; font-size: 11pt;")
+        self._body.setStyleSheet(f"color: {TEXT}; font-size: 11pt;")
         layout.addWidget(self._body)
 
         layout.addSpacing(8)
@@ -58,22 +68,12 @@ class _FirstRunSuccessDialog(QDialog):
         button_row.addWidget(self._continue_button)
         layout.addLayout(button_row)
 
-        self.setStyleSheet("""
-            QDialog {
-                background: #1d2127;
-            }
+        self.setStyleSheet(f"""
+            QDialog {{
+                background: {BG_DEEP};
+            }}
 
-            QPushButton {
-                background: #243651;
-                color: white;
-                border: 1px solid #2d5a8e;
-                border-radius: 6px;
-                padding: 8px 20px;
-            }
-
-            QPushButton:hover {
-                background: #2d4a6f;
-            }
+            {secondary_button_stylesheet(padding="8px 20px")}
         """)
 
         self.refresh_translations()
@@ -126,35 +126,7 @@ class FirstRunWizard(QDialog):
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("""
-            QDialog {
-                background: #1d2127;
-            }
-
-            QLabel {
-                color: #d5dbe3;
-            }
-
-            QLineEdit, QDoubleSpinBox {
-                background: #252a31;
-                color: white;
-                border: 1px solid #3d4a5c;
-                border-radius: 6px;
-                padding: 6px 8px;
-            }
-
-            QPushButton {
-                background: #243651;
-                color: white;
-                border: 1px solid #2d5a8e;
-                border-radius: 6px;
-                padding: 6px 12px;
-            }
-
-            QPushButton:hover {
-                background: #2d4a6f;
-            }
-        """)
+        self.setStyleSheet(wizard_shell_stylesheet())
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)

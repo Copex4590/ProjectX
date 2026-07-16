@@ -27,6 +27,7 @@ from ais import AISSTREAM_REGISTER_URL, ais_manager
 from ais.providers import AISProviderType, normalize_provider_type
 from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
 from gui.i18n_support import bind_language_refresh
+from gui.theme import DANGER, SUCCESS, TEXT_MUTED, wizard_shell_stylesheet
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button
 from i18n import tr
 from preferences import preferences_manager
@@ -293,7 +294,7 @@ class AISSetupWidget(QWidget):
 
         self._provider_body = QLabel()
         self._provider_body.setWordWrap(True)
-        self._provider_body.setStyleSheet("color: #9aa4af;")
+        self._provider_body.setStyleSheet(f"color: {TEXT_MUTED};")
         provider_layout.addWidget(self._provider_body)
 
         for provider in _PROVIDER_OPTIONS:
@@ -323,7 +324,7 @@ class AISSetupWidget(QWidget):
 
         self._aisstream_intro_body = QLabel()
         self._aisstream_intro_body.setWordWrap(True)
-        self._aisstream_intro_body.setStyleSheet("color: #9aa4af;")
+        self._aisstream_intro_body.setStyleSheet(f"color: {TEXT_MUTED};")
         aisstream_layout.addWidget(self._aisstream_intro_body)
 
         button_row = QHBoxLayout()
@@ -341,7 +342,7 @@ class AISSetupWidget(QWidget):
         instruction_layout.addWidget(self._instruction_title)
         self._instruction_body = QLabel()
         self._instruction_body.setWordWrap(True)
-        self._instruction_body.setStyleSheet("color: #9aa4af;")
+        self._instruction_body.setStyleSheet(f"color: {TEXT_MUTED};")
         instruction_layout.addWidget(self._instruction_body)
         self._instruction_panel.setVisible(False)
         aisstream_layout.addWidget(self._instruction_panel)
@@ -384,7 +385,7 @@ class AISSetupWidget(QWidget):
         future_layout.addWidget(self._future_title)
         self._future_body = QLabel()
         self._future_body.setWordWrap(True)
-        self._future_body.setStyleSheet("color: #9aa4af;")
+        self._future_body.setStyleSheet(f"color: {TEXT_MUTED};")
         future_layout.addWidget(self._future_body)
         future_layout.addStretch()
         self._configure_stack.addWidget(future_page)
@@ -669,39 +670,7 @@ class AISWizard(QDialog):
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("""
-            QDialog {
-                background: #1d2127;
-            }
-
-            QLabel {
-                color: #d5dbe3;
-            }
-
-            QLineEdit, QSpinBox {
-                background: #252a31;
-                color: white;
-                border: 1px solid #3d4a5c;
-                border-radius: 6px;
-                padding: 6px 8px;
-            }
-
-            QCheckBox {
-                color: #d5dbe3;
-            }
-
-            QPushButton {
-                background: #243651;
-                color: white;
-                border: 1px solid #2d5a8e;
-                border-radius: 6px;
-                padding: 6px 12px;
-            }
-
-            QPushButton:hover {
-                background: #2d4a6f;
-            }
-        """)
+        self.setStyleSheet(wizard_shell_stylesheet())
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)

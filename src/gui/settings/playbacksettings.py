@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 from engines.playback import BackendRegistry, backend_registry
 from engines.playback.backend import PlaybackBackend
 from gui.i18n_support import bind_language_refresh
+from gui.theme import TEXT, TEXT_SOFT, ThemeColors
 from i18n import tr
 from playback.preferences import (
     PlaybackMode,
@@ -177,30 +178,30 @@ class PlaybackSettingsPage(QFrame):
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("""
-            QLabel[role="section"] {
+        self.setStyleSheet(f"""
+            QLabel[role="section"] {{
                 color: white;
                 font-size: 14pt;
                 font-weight: bold;
-            }
+            }}
 
-            QLabel[role="field"] {
-                color: #d5dbe3;
+            QLabel[role="field"] {{
+                color: {TEXT};
                 font-size: 10pt;
                 font-weight: 600;
-            }
+            }}
 
-            QLineEdit {
-                background: #252a31;
+            QLineEdit {{
+                background: {ThemeColors.Panel};
                 color: white;
-                border: 1px solid #3d4a5c;
+                border: 1px solid {ThemeColors.Border};
                 border-radius: 6px;
                 padding: 6px 8px;
-            }
+            }}
 
-            QLineEdit:disabled {
-                color: #7d8794;
-            }
+            QLineEdit:disabled {{
+                color: {TEXT_SOFT};
+            }}
         """)
 
         layout = QVBoxLayout(self)

@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 
 from gui.i18n_support import bind_language_refresh
+from gui.theme import TEXT_MUTED, secondary_button_stylesheet
 from gui.wizardhelp import show_wizard_help
 from i18n import tr
 
@@ -38,23 +39,14 @@ class EmptyStateWidget(QWidget):
         self._message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._message_label.setWordWrap(True)
         self._message_label.setStyleSheet(
-            "color: #9aa4af; font-size: 12pt;"
+            f"color: {TEXT_MUTED}; font-size: 12pt;"
         )
         layout.addWidget(self._message_label)
 
         self._help_button = QPushButton()
-        self._help_button.setStyleSheet("""
-            QPushButton {
-                background: #243651;
-                color: white;
-                border: 1px solid #2d5a8e;
-                border-radius: 6px;
-                padding: 6px 16px;
-            }
-            QPushButton:hover {
-                background: #2d4a6f;
-            }
-        """)
+        self._help_button.setStyleSheet(
+            secondary_button_stylesheet(padding="6px 16px")
+        )
         self._help_button.clicked.connect(self._on_help_clicked)
         layout.addWidget(self._help_button, alignment=Qt.AlignmentFlag.AlignCenter)
 

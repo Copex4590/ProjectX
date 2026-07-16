@@ -40,6 +40,7 @@ from alerts.alert_rule import (
     AlertRule,
 )
 from gui.i18n_support import bind_language_refresh
+from gui.theme import analytics_page_stylesheet, wizard_shell_stylesheet
 from gui.tableutils import show_empty_table_message
 from i18n import tr
 
@@ -153,25 +154,7 @@ class RuleEditorDialog(QDialog):
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("""
-            QDialog, QWidget {
-                background: #1d2127;
-                color: white;
-            }
-
-            QLabel[role="field"] {
-                color: #d5dbe3;
-                font-weight: 600;
-            }
-
-            QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {
-                background: #252a31;
-                color: white;
-                border: 1px solid #3d4a5c;
-                border-radius: 6px;
-                padding: 6px 8px;
-            }
-        """)
+        self.setStyleSheet(wizard_shell_stylesheet())
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -710,47 +693,7 @@ class RulesPage(QWidget):
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("""
-            QLabel[role="title"] {
-                color: white;
-                font-size: 26pt;
-                font-weight: bold;
-            }
-
-            QLabel[role="summary-title"] {
-                color: #9aa4af;
-                font-size: 9pt;
-                font-weight: 600;
-            }
-
-            QLabel[role="summary-value"] {
-                color: white;
-                font-size: 16pt;
-                font-weight: bold;
-            }
-
-            QPushButton {
-                background: #1976d2;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 6px;
-            }
-
-            QTableWidget {
-                background: #252a31;
-                color: white;
-                border: 1px solid #3d4a5c;
-                gridline-color: #3d4a5c;
-            }
-
-            QHeaderView::section {
-                background: #2a3548;
-                color: #d5dbe3;
-                border: 1px solid #3d4a5c;
-                padding: 6px;
-            }
-        """)
+        self.setStyleSheet(analytics_page_stylesheet())
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(25, 25, 25, 25)

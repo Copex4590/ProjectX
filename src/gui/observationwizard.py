@@ -16,6 +16,14 @@ from debug.obs_freeze_trace import trace_block, trace_enter, trace_exit
 from gui.i18n_support import bind_language_refresh
 from gui.map_core import PickMode
 from gui.mapcontroller import MapController
+from gui.theme import (
+    BG_DEEP,
+    BORDER,
+    DANGER,
+    TEXT_MUTED,
+    ThemeColors,
+    wizard_shell_stylesheet,
+)
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button
 from i18n import tr
 from observation import observation_manager
@@ -29,18 +37,18 @@ _SUBSTEP_RADIUS = 2
 _DEFAULT_COVERAGE_RADIUS_KM = 25.0
 _MAP_PICK_CONFIRM_DELAY_MS = 750
 
-_NAME_INPUT_STYLE = """
-    background: #252a31;
+_NAME_INPUT_STYLE = f"""
+    background: {ThemeColors.Panel};
     color: white;
-    border: 1px solid #3d4a5c;
+    border: 1px solid {BORDER};
     border-radius: 6px;
     padding: 6px 8px;
 """
 
-_NAME_INPUT_ERROR_STYLE = """
-    background: #252a31;
+_NAME_INPUT_ERROR_STYLE = f"""
+    background: {ThemeColors.Panel};
     color: white;
-    border: 1px solid #e53935;
+    border: 1px solid {DANGER};
     border-radius: 6px;
     padding: 6px 8px;
 """
@@ -226,7 +234,7 @@ class ObservationSetupWidget(QWidget):
         map_layout.addWidget(self._map_title)
         self._map_help_label = QLabel()
         self._map_help_label.setWordWrap(True)
-        self._map_help_label.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        self._map_help_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10pt;")
         map_layout.addWidget(self._map_help_label)
         self._picked_coords_label = QLabel()
         self._picked_coords_label.setWordWrap(True)
@@ -248,12 +256,12 @@ class ObservationSetupWidget(QWidget):
         name_layout.addLayout(name_form)
         self._name_error = QLabel()
         self._name_error.setWordWrap(True)
-        self._name_error.setStyleSheet("color: #e53935; font-size: 10pt;")
+        self._name_error.setStyleSheet(f"color: {DANGER}; font-size: 10pt;")
         self._name_error.hide()
         name_layout.addWidget(self._name_error)
         self._examples_label = QLabel()
         self._examples_label.setWordWrap(True)
-        self._examples_label.setStyleSheet("color: #9aa4af; font-size: 10pt;")
+        self._examples_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10pt;")
         name_layout.addWidget(self._examples_label)
         name_layout.addStretch()
         self._stack.addWidget(name_page)
@@ -495,23 +503,7 @@ class ObservationWizard(QDialog):
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet("""
-            QDialog {
-                background: #1d2127;
-            }
-
-            QLabel {
-                color: #d5dbe3;
-            }
-
-            QLineEdit, QDoubleSpinBox {
-                background: #252a31;
-                color: white;
-                border: 1px solid #3d4a5c;
-                border-radius: 6px;
-                padding: 6px 8px;
-            }
-        """)
+        self.setStyleSheet(wizard_shell_stylesheet())
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)

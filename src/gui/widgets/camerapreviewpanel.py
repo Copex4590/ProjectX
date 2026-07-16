@@ -4,6 +4,13 @@ from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
 from cameras import camera_manager
 from engines.camera import camera_selection_engine
 from gui.i18n_support import bind_language_refresh
+from gui.theme import (
+    BG_BASE,
+    BG_PANEL,
+    BORDER,
+    BORDER_STRONG,
+    TEXT_MUTED,
+)
 from i18n import tr
 from models.ship import Ship
 from playback.live_camera_workflow import live_camera_workflow
@@ -50,51 +57,51 @@ class CameraPreviewPanel(QFrame):
         self.setMinimumWidth(300)
         self.setMaximumWidth(360)
 
-        self.setStyleSheet("""
-            QFrame#CameraPreviewPanel {
-                background: #353b44;
-                border: 1px solid #2d5a8e;
+        self.setStyleSheet(f"""
+            QFrame#CameraPreviewPanel {{
+                background: {BG_PANEL};
+                border: 1px solid {BORDER_STRONG};
                 border-radius: 10px;
-            }
+            }}
 
-            QLabel {
+            QLabel {{
                 color: white;
-            }
+            }}
 
-            QLabel[role="title"] {
+            QLabel[role="title"] {{
                 font-size: 14pt;
                 font-weight: bold;
-            }
+            }}
 
-            QLabel[role="caption"] {
-                color: #9aa4af;
+            QLabel[role="caption"] {{
+                color: {TEXT_MUTED};
                 font-size: 9pt;
                 font-weight: 600;
-            }
+            }}
 
-            QLabel[role="value"] {
+            QLabel[role="value"] {{
                 font-size: 11pt;
                 font-weight: 500;
-            }
+            }}
 
-            QLabel[role="empty"] {
-                color: #9aa4af;
+            QLabel[role="empty"] {{
+                color: {TEXT_MUTED};
                 font-size: 12pt;
                 font-weight: 600;
-            }
+            }}
 
-            QLabel[role="error"] {
+            QLabel[role="error"] {{
                 color: #f0a8a8;
                 font-size: 10pt;
                 font-weight: 500;
-            }
+            }}
 
-            QFrame#videoHost {
-                background: #252a31;
-                border: 1px solid #3d4a5c;
+            QFrame#videoHost {{
+                background: {BG_BASE};
+                border: 1px solid {BORDER};
                 border-radius: 6px;
                 min-height: 180px;
-            }
+            }}
         """)
 
         self.setObjectName("CameraPreviewPanel")
