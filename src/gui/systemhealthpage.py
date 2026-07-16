@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 
 from gui.i18n_support import bind_language_refresh
 from gui.theme import (
+    BG_DEEP,
     DANGER,
     SUCCESS,
     TEXT,

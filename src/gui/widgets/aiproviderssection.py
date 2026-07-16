@@ -19,56 +19,19 @@ from ais.providers import AISProviderType, normalize_provider_type
 from core.logger import logger
 from gui.i18n_support import bind_language_refresh
 from gui.providers import open_provider_window
-from gui.theme import BG_HEADER, BORDER, TEXT, TEXT_MUTED, card_stylesheet
+from gui.theme import (
+    DASHBOARD_CARD_PADDING,
+    DASHBOARD_LIST_SPACING,
+    DASHBOARD_SECTION_SPACING,
+    dashboard_card_stylesheet,
+    dashboard_provider_add_stylesheet,
+    dashboard_provider_entry_stylesheet,
+    dashboard_provider_header_stylesheet,
+)
 from i18n import tr
 from rtl import rtl_manager
 
-_CARD_STYLE = card_stylesheet()
-
-_ENTRY_STYLE = f"""
-    QPushButton {{
-        background: transparent;
-        color: white;
-        font-weight: 600;
-        text-align: left;
-        border: none;
-        border-radius: 6px;
-        padding: 6px 4px;
-    }}
-    QPushButton:hover {{
-        background: {BG_HEADER};
-    }}
-"""
-
-_ADD_PROVIDER_STYLE = f"""
-    QPushButton {{
-        background: transparent;
-        color: {TEXT_MUTED};
-        text-align: left;
-        border: none;
-        border-radius: 6px;
-        padding: 6px 4px;
-    }}
-    QPushButton:hover {{
-        background: {BG_HEADER};
-        color: white;
-    }}
-"""
-
-_HEADER_STYLE = f"""
-    QPushButton {{
-        background: transparent;
-        color: white;
-        font-size: 16pt;
-        font-weight: bold;
-        text-align: left;
-        border: none;
-        padding: 0;
-    }}
-    QPushButton:hover {{
-        color: {TEXT};
-    }}
-"""
+_CARD_STYLE = dashboard_card_stylesheet()
 
 
 class AISProvidersSection(QFrame):
@@ -78,13 +41,18 @@ class AISProvidersSection(QFrame):
         self.setStyleSheet(_CARD_STYLE)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(10)
+        layout.setContentsMargins(
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+        )
+        layout.setSpacing(DASHBOARD_SECTION_SPACING)
 
         self._header_button = QPushButton()
         self._header_button.setCheckable(True)
         self._header_button.setChecked(False)
-        self._header_button.setStyleSheet(_HEADER_STYLE)
+        self._header_button.setStyleSheet(dashboard_provider_header_stylesheet())
         self._header_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._header_button.clicked.connect(self._on_toggle)
         layout.addWidget(self._header_button)
@@ -92,19 +60,14 @@ class AISProvidersSection(QFrame):
         self._content = QWidget()
         content_layout = QVBoxLayout(self._content)
         content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(6)
+        content_layout.setSpacing(DASHBOARD_LIST_SPACING)
 
         self._provider_list = QVBoxLayout()
-        self._provider_list.setSpacing(4)
+        self._provider_list.setSpacing(DASHBOARD_LIST_SPACING)
         content_layout.addLayout(self._provider_list)
 
-        self._separator = QFrame()
-        self._separator.setFrameShape(QFrame.Shape.HLine)
-        self._separator.setStyleSheet(f"color: {BORDER};")
-        content_layout.addWidget(self._separator)
-
         self._add_provider_button = QPushButton()
-        self._add_provider_button.setStyleSheet(_ADD_PROVIDER_STYLE)
+        self._add_provider_button.setStyleSheet(dashboard_provider_add_stylesheet())
         self._add_provider_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._add_provider_button.clicked.connect(self._on_add_provider)
         content_layout.addWidget(self._add_provider_button)
@@ -129,7 +92,7 @@ class AISProvidersSection(QFrame):
     def _update_header_text(self) -> None:
 
         icon = "▼" if self._header_button.isChecked() else "▶"
-        self._header_button.setText(f"{icon} {tr('AIS Providers')}")
+        self._header_button.setText(f"{icon}   {tr('AIS Providers')}")
 
     def _on_toggle(self, checked: bool) -> None:
 
@@ -146,7 +109,7 @@ class AISProvidersSection(QFrame):
 
         for provider in providers:
             button = QPushButton(self._provider_label(provider))
-            button.setStyleSheet(_ENTRY_STYLE)
+            button.setStyleSheet(dashboard_provider_entry_stylesheet())
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.clicked.connect(
                 lambda _checked=False, item=provider: self._on_provider_clicked(item)
@@ -177,7 +140,8 @@ class AISProvidersSection(QFrame):
     def _provider_label(self, provider: ConfiguredProvider) -> str:
 
         status = self._provider_connection_status(provider.provider_id)
-        return f"{self._status_icon(status)} {tr(provider.label_key)}"
+        icon = self._status_icon(status)
+        return f"{icon}   {tr(provider.label_key)}"
 
     def _on_provider_clicked(self, provider: ConfiguredProvider) -> None:
 
