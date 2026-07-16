@@ -20,12 +20,17 @@ from PySide6.QtWidgets import (
 from gui.i18n_support import bind_language_refresh
 from gui.theme import (
     BG_DEEP,
-    BG_HEADER,
-    BORDER,
-    TEXT,
-    TEXT_MUTED,
-    card_stylesheet,
-    secondary_button_stylesheet,
+    DASHBOARD_BUTTON_ROW_SPACING,
+    DASHBOARD_CARD_PADDING,
+    DASHBOARD_MARGIN,
+    DASHBOARD_SECTION_SPACING,
+    DASHBOARD_SPACING,
+    TEXT_PRIMARY,
+    dashboard_button_stylesheet,
+    dashboard_caption_stylesheet,
+    dashboard_card_stylesheet,
+    dashboard_section_title_stylesheet,
+    dashboard_value_stylesheet,
 )
 from i18n import tr
 
@@ -34,27 +39,12 @@ _WINDOW_STYLE = f"""
         background: {BG_DEEP};
     }}
     QLabel {{
-        color: {TEXT};
+        color: {TEXT_PRIMARY};
     }}
-    {secondary_button_stylesheet()}
+    {dashboard_button_stylesheet()}
 """
 
-_SECTION_STYLE = card_stylesheet(radius=8)
-
-_CLOSE_BUTTON_STYLE = f"""
-    QPushButton {{
-        background: transparent;
-        color: {TEXT_MUTED};
-        border: 1px solid {BORDER};
-        border-radius: 6px;
-        padding: 4px 12px;
-        min-width: 72px;
-    }}
-    QPushButton:hover {{
-        background: {BG_HEADER};
-        color: white;
-    }}
-"""
+_SECTION_STYLE = dashboard_card_stylesheet()
 
 
 class ProviderWindow(QWidget):
@@ -74,11 +64,16 @@ class ProviderWindow(QWidget):
         self._section_rows: list[list[tuple[str, str]]] = []
 
         root_layout = QVBoxLayout(self)
-        root_layout.setContentsMargins(20, 20, 20, 20)
-        root_layout.setSpacing(12)
+        root_layout.setContentsMargins(
+            DASHBOARD_MARGIN,
+            DASHBOARD_MARGIN,
+            DASHBOARD_MARGIN,
+            DASHBOARD_MARGIN,
+        )
+        root_layout.setSpacing(DASHBOARD_SPACING)
 
         header = QHBoxLayout()
-        header.setSpacing(12)
+        header.setSpacing(DASHBOARD_SPACING)
 
         self._icon_label = QLabel()
         self._icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -87,13 +82,11 @@ class ProviderWindow(QWidget):
         header.addWidget(self._icon_label)
 
         self._title_label = QLabel()
-        self._title_label.setStyleSheet(
-            "font-size: 18pt; font-weight: bold; color: white;"
-        )
+        self._title_label.setStyleSheet(dashboard_section_title_stylesheet())
         header.addWidget(self._title_label, 1)
 
         self._close_button = QPushButton()
-        self._close_button.setStyleSheet(_CLOSE_BUTTON_STYLE)
+        self._close_button.setStyleSheet(dashboard_button_stylesheet())
         self._close_button.clicked.connect(self.close)
         header.addWidget(self._close_button)
 
@@ -107,7 +100,7 @@ class ProviderWindow(QWidget):
         content = QWidget()
         content_layout = QVBoxLayout(content)
         content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(12)
+        content_layout.setSpacing(DASHBOARD_SPACING)
 
         for title_key, rows in self._sections():
             section, form = self._build_section(title_key, rows)
@@ -144,21 +137,26 @@ class ProviderWindow(QWidget):
         frame.setStyleSheet(_SECTION_STYLE)
 
         layout = QVBoxLayout(frame)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(10)
+        layout.setContentsMargins(
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+        )
+        layout.setSpacing(DASHBOARD_SECTION_SPACING)
 
         title = QLabel(tr(title_key))
-        title.setStyleSheet("font-size: 12pt; font-weight: bold; color: white;")
+        title.setStyleSheet(dashboard_section_title_stylesheet())
         layout.addWidget(title)
 
         form = QFormLayout()
-        form.setSpacing(10)
+        form.setSpacing(DASHBOARD_SECTION_SPACING)
 
         for caption_key, value_key in rows:
             caption = QLabel(tr(caption_key))
-            caption.setStyleSheet(f"color: {TEXT_MUTED}; font-weight: 600;")
+            caption.setStyleSheet(dashboard_caption_stylesheet())
             value = QLabel(tr(value_key))
-            value.setStyleSheet("color: white; font-weight: 600;")
+            value.setStyleSheet(dashboard_value_stylesheet())
             value.setWordWrap(True)
             form.addRow(caption, value)
 

@@ -577,6 +577,260 @@ def global_stylesheet() -> str:
     """
 
 
+# --- Dashboard polish (SAVE-103) ------------------------------------------------
+
+DASHBOARD_MARGIN = 24
+DASHBOARD_SPACING = 16
+DASHBOARD_CARD_PADDING = 20
+DASHBOARD_CARD_RADIUS = 12
+DASHBOARD_SECTION_SPACING = 14
+DASHBOARD_LIST_SPACING = 8
+DASHBOARD_BUTTON_ROW_SPACING = 10
+DASHBOARD_BUTTON_PADDING = "8px 14px"
+
+
+def dashboard_button_stylesheet() -> str:
+
+    return secondary_button_stylesheet(padding=DASHBOARD_BUTTON_PADDING)
+
+
+def dashboard_card_stylesheet(*, radius: int = DASHBOARD_CARD_RADIUS) -> str:
+
+    return f"""
+        QFrame {{
+            background: {ThemeColors.Panel};
+            border: none;
+            border-radius: {radius}px;
+        }}
+    """
+
+
+def dashboard_inset_stylesheet(*, radius: int = DASHBOARD_CARD_RADIUS) -> str:
+
+    return f"""
+        QFrame {{
+            background: {BG_DEEP};
+            border: none;
+            border-radius: {radius}px;
+        }}
+    """
+
+
+def dashboard_list_button_stylesheet() -> str:
+
+    return f"""
+        QPushButton {{
+            background: {BG_BUTTON};
+            color: {TEXT_PRIMARY};
+            border: 1px solid {BORDER_STRONG};
+            border-radius: 6px;
+            padding: {DASHBOARD_BUTTON_PADDING};
+            text-align: left;
+            font-weight: 500;
+        }}
+        QPushButton:hover {{
+            background: {BG_BUTTON_HOVER};
+        }}
+        QPushButton:disabled {{
+            color: {TEXT_DISABLED};
+        }}
+        QPushButton:focus {{
+            border: 1px solid {BORDER_FOCUS};
+        }}
+    """
+
+
+def dashboard_list_button_muted_stylesheet() -> str:
+
+    return f"""
+        QPushButton {{
+            background: {BG_BUTTON};
+            color: {TEXT_MUTED};
+            border: 1px solid {BORDER_STRONG};
+            border-radius: 6px;
+            padding: {DASHBOARD_BUTTON_PADDING};
+            text-align: left;
+            font-weight: 500;
+        }}
+        QPushButton:hover {{
+            background: {BG_BUTTON_HOVER};
+            color: {TEXT_PRIMARY};
+        }}
+        QPushButton:disabled {{
+            color: {TEXT_DISABLED};
+        }}
+        QPushButton:focus {{
+            border: 1px solid {BORDER_FOCUS};
+        }}
+    """
+
+
+def dashboard_page_title_stylesheet() -> str:
+
+    return f"""
+        font-size: 24pt;
+        font-weight: bold;
+        color: {TEXT_PRIMARY};
+    """
+
+
+def dashboard_subtitle_stylesheet() -> str:
+
+    return f"""
+        color: {TEXT_MUTED};
+        font-size: 11pt;
+        padding-bottom: 8px;
+    """
+
+
+def dashboard_section_title_stylesheet() -> str:
+
+    return f"""
+        font-size: 14pt;
+        font-weight: 600;
+        color: {TEXT_PRIMARY};
+    """
+
+
+def dashboard_caption_stylesheet() -> str:
+
+    return f"color: {TEXT_MUTED}; font-size: 10pt;"
+
+
+def dashboard_value_stylesheet() -> str:
+
+    return f"color: {TEXT_PRIMARY}; font-weight: 600;"
+
+
+def dashboard_value_success_stylesheet() -> str:
+
+    return f"color: {SUCCESS}; font-weight: 600;"
+
+
+def dashboard_value_muted_stylesheet() -> str:
+
+    return f"color: {TEXT_MUTED}; font-weight: 600;"
+
+
+def dashboard_info_card_title_stylesheet() -> str:
+
+    return f"color: {TEXT_MUTED}; font-size: 11pt; font-weight: 500;"
+
+
+def dashboard_info_card_value_stylesheet() -> str:
+
+    return f"""
+        color: {TEXT_PRIMARY};
+        font-size: 26pt;
+        font-weight: bold;
+    """
+
+
+def dashboard_provider_entry_stylesheet() -> str:
+
+    return dashboard_list_button_stylesheet()
+
+
+def dashboard_provider_header_stylesheet() -> str:
+
+    return f"""
+        QPushButton {{
+            background: transparent;
+            color: {TEXT_PRIMARY};
+            font-size: 14pt;
+            font-weight: 600;
+            text-align: left;
+            border: none;
+            border-radius: 6px;
+            padding: 4px 0;
+        }}
+        QPushButton:hover {{
+            color: {ACCENT_GLOW};
+        }}
+        QPushButton:focus {{
+            border: 1px solid {BORDER_FOCUS};
+        }}
+    """
+
+
+def dashboard_provider_add_stylesheet() -> str:
+
+    return dashboard_list_button_muted_stylesheet()
+
+
+def dashboard_dialog_stylesheet() -> str:
+
+    return f"""
+        QDialog {{
+            background: {BG_DEEP};
+        }}
+
+        QLabel {{
+            color: {TEXT};
+        }}
+
+        {input_stylesheet()}
+
+        {dashboard_button_stylesheet()}
+    """
+
+
+def dashboard_embed_settings_stylesheet(
+    *, include_table: bool = False, radius: int = DASHBOARD_CARD_RADIUS
+) -> str:
+
+    table_block = table_stylesheet() if include_table else ""
+
+    return f"""
+        QFrame {{
+            background: {BG_DEEP};
+            border: none;
+            border-radius: {radius}px;
+        }}
+
+        QLabel[role="section"] {{
+            color: {TEXT_PRIMARY};
+            font-size: 14pt;
+            font-weight: 600;
+        }}
+
+        QLabel[role="field"] {{
+            color: {TEXT_MUTED};
+            font-size: 10pt;
+            font-weight: 600;
+        }}
+
+        QLabel[role="caption"] {{
+            color: {TEXT_SOFT};
+            font-size: 9pt;
+        }}
+
+        QLabel[role="summary-title"] {{
+            color: {TEXT_MUTED};
+            font-size: 9pt;
+            font-weight: 600;
+        }}
+
+        QLabel[role="summary-value"] {{
+            color: {TEXT_PRIMARY};
+            font-size: 16pt;
+            font-weight: bold;
+        }}
+
+        QComboBox, QLineEdit {{
+            background: {ThemeColors.Panel};
+            color: {TEXT_PRIMARY};
+            border: 1px solid {BORDER};
+            border-radius: 6px;
+            padding: 6px 8px;
+        }}
+
+        {dashboard_button_stylesheet()}
+
+        {table_block}
+    """
+
+
 class ProjectXTheme:
     """Project X Design System — centralized colors and stylesheets."""
 
@@ -593,6 +847,11 @@ class ProjectXTheme:
     analytics_page_stylesheet = staticmethod(analytics_page_stylesheet)
     settings_panel_stylesheet = staticmethod(settings_panel_stylesheet)
     global_stylesheet = staticmethod(global_stylesheet)
+    dashboard_card_stylesheet = staticmethod(dashboard_card_stylesheet)
+    dashboard_inset_stylesheet = staticmethod(dashboard_inset_stylesheet)
+    dashboard_embed_settings_stylesheet = staticmethod(dashboard_embed_settings_stylesheet)
+    dashboard_button_stylesheet = staticmethod(dashboard_button_stylesheet)
+    dashboard_dialog_stylesheet = staticmethod(dashboard_dialog_stylesheet)
 
 
 Theme = ProjectXTheme

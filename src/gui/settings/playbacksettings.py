@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
 from engines.playback import BackendRegistry, backend_registry
 from engines.playback.backend import PlaybackBackend
 from gui.i18n_support import bind_language_refresh
-from gui.theme import TEXT, TEXT_SOFT, ThemeColors
+from gui.theme import DASHBOARD_BUTTON_ROW_SPACING, DASHBOARD_SECTION_SPACING
 from i18n import tr
 from playback.preferences import (
     PlaybackMode,
@@ -178,35 +178,9 @@ class PlaybackSettingsPage(QFrame):
 
     def _build_ui(self) -> None:
 
-        self.setStyleSheet(f"""
-            QLabel[role="section"] {{
-                color: white;
-                font-size: 14pt;
-                font-weight: bold;
-            }}
-
-            QLabel[role="field"] {{
-                color: {TEXT};
-                font-size: 10pt;
-                font-weight: 600;
-            }}
-
-            QLineEdit {{
-                background: {ThemeColors.Panel};
-                color: white;
-                border: 1px solid {ThemeColors.Border};
-                border-radius: 6px;
-                padding: 6px 8px;
-            }}
-
-            QLineEdit:disabled {{
-                color: {TEXT_SOFT};
-            }}
-        """)
-
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 12, 0, 0)
-        layout.setSpacing(10)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(DASHBOARD_SECTION_SPACING)
 
         self._title_label = QLabel(tr("Playback Settings"))
         self._title_label.setProperty("role", "section")
@@ -235,7 +209,7 @@ class PlaybackSettingsPage(QFrame):
         layout.addWidget(self.arguments_input)
 
         button_row = QHBoxLayout()
-        button_row.setSpacing(8)
+        button_row.setSpacing(DASHBOARD_BUTTON_ROW_SPACING)
 
         self.save_button = QPushButton()
         self.restore_button = QPushButton()

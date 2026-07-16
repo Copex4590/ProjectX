@@ -3,7 +3,6 @@ from PySide6.QtGui import QShowEvent
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
-    QDialogButtonBox,
     QFileDialog,
     QFormLayout,
     QFrame,
@@ -36,17 +35,26 @@ from gui.observationwizard import ObservationWizard
 from gui.settings.cameradiagnosticspanel import CameraDiagnosticsPanel
 from gui.settings.playbacksettings import PlaybackSettingsPage
 from gui.theme import (
-    BG_DEEP,
-    BG_HEADER,
-    BORDER,
-    SUCCESS,
-    TEXT,
-    TEXT_MUTED,
-    TEXT_MUTED,
-    ThemeColors,
-    card_stylesheet,
-    secondary_button_stylesheet,
-    settings_panel_stylesheet,
+    DASHBOARD_BUTTON_ROW_SPACING,
+    DASHBOARD_CARD_PADDING,
+    DASHBOARD_LIST_SPACING,
+    DASHBOARD_MARGIN,
+    DASHBOARD_SECTION_SPACING,
+    DASHBOARD_SPACING,
+    dashboard_button_stylesheet,
+    dashboard_caption_stylesheet,
+    dashboard_card_stylesheet,
+    dashboard_dialog_stylesheet,
+    dashboard_embed_settings_stylesheet,
+    dashboard_info_card_title_stylesheet,
+    dashboard_info_card_value_stylesheet,
+    dashboard_inset_stylesheet,
+    dashboard_page_title_stylesheet,
+    dashboard_section_title_stylesheet,
+    dashboard_subtitle_stylesheet,
+    dashboard_value_muted_stylesheet,
+    dashboard_value_stylesheet,
+    dashboard_value_success_stylesheet,
 )
 from gui.widgets.aiproviderssection import AISProvidersSection
 from gui.wizardhelp import show_wizard_help
@@ -59,9 +67,9 @@ from preferences import (
     preferences_manager,
 )
 
-_CARD_STYLE = card_stylesheet()
+_CARD_STYLE = dashboard_card_stylesheet()
 
-_BUTTON_STYLE = secondary_button_stylesheet()
+_BUTTON_STYLE = dashboard_button_stylesheet()
 
 _LANGUAGE_LABELS = {
     "en": "English",
@@ -90,26 +98,24 @@ class InfoCard(QFrame):
 
         self._title_key = title_key
 
-        self.setStyleSheet(card_stylesheet())
+        self.setStyleSheet(_CARD_STYLE)
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+        )
+        layout.setSpacing(DASHBOARD_SECTION_SPACING)
 
         self.title = QLabel(tr(title_key))
         self.title.setAlignment(Qt.AlignCenter)
-
-        self.title.setStyleSheet(f"""
-            color:{TEXT_MUTED};
-            font-size:12pt;
-        """)
+        self.title.setStyleSheet(dashboard_info_card_title_stylesheet())
 
         self.value = QLabel(tr("Not available"))
         self.value.setAlignment(Qt.AlignCenter)
-
-        self.value.setStyleSheet("""
-            color:white;
-            font-size:28pt;
-            font-weight:bold;
-        """)
+        self.value.setStyleSheet(dashboard_info_card_value_stylesheet())
 
         layout.addWidget(self.title)
         layout.addWidget(self.value)
@@ -121,22 +127,39 @@ class _RenameDialog(QDialog):
 
         self.setModal(True)
         self.setMinimumWidth(360)
+        self.setStyleSheet(dashboard_dialog_stylesheet())
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+        )
+        layout.setSpacing(DASHBOARD_SECTION_SPACING)
 
         self._label = QLabel()
+        self._label.setStyleSheet(dashboard_caption_stylesheet())
         layout.addWidget(self._label)
 
         self._input = QLineEdit(current_name)
         layout.addWidget(self._input)
 
-        self._button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        layout.addWidget(self._button_box)
+        button_row = QHBoxLayout()
+        button_row.setSpacing(DASHBOARD_BUTTON_ROW_SPACING)
+        button_row.addStretch()
 
-        self._button_box.accepted.connect(self.accept)
-        self._button_box.rejected.connect(self.reject)
+        self._confirm_button = QPushButton()
+        self._confirm_button.setStyleSheet(_BUTTON_STYLE)
+        self._confirm_button.clicked.connect(self.accept)
+        button_row.addWidget(self._confirm_button)
+
+        self._cancel_button = QPushButton()
+        self._cancel_button.setStyleSheet(_BUTTON_STYLE)
+        self._cancel_button.clicked.connect(self.reject)
+        button_row.addWidget(self._cancel_button)
+
+        layout.addLayout(button_row)
 
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
@@ -145,12 +168,8 @@ class _RenameDialog(QDialog):
 
         self.setWindowTitle(tr("Rename"))
         self._label.setText(tr("Observation Point name"))
-        self._button_box.button(QDialogButtonBox.StandardButton.Ok).setText(
-            tr("Confirm")
-        )
-        self._button_box.button(QDialogButtonBox.StandardButton.Cancel).setText(
-            tr("Cancel")
-        )
+        self._confirm_button.setText(tr("Confirm"))
+        self._cancel_button.setText(tr("Cancel"))
 
     def name(self) -> str:
 
@@ -176,27 +195,26 @@ class DashboardPage(QWidget):
 
         content = QWidget()
         layout = QVBoxLayout(content)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
+        layout.setContentsMargins(
+            DASHBOARD_MARGIN,
+            DASHBOARD_MARGIN,
+            DASHBOARD_MARGIN,
+            DASHBOARD_MARGIN,
+        )
+        layout.setSpacing(DASHBOARD_SPACING)
 
         self._title_label = QLabel(tr("Dashboard"))
         self._title_label.setAlignment(Qt.AlignCenter)
-        self._title_label.setStyleSheet("""
-            font-size:26pt;
-            font-weight:bold;
-            color:white;
-        """)
+        self._title_label.setStyleSheet(dashboard_page_title_stylesheet())
         layout.addWidget(self._title_label)
 
         self._subtitle_label = QLabel()
         self._subtitle_label.setAlignment(Qt.AlignCenter)
-        self._subtitle_label.setStyleSheet(
-            f"color: {TEXT_MUTED}; font-size: 11pt; padding-bottom: 4px;"
-        )
+        self._subtitle_label.setStyleSheet(dashboard_subtitle_stylesheet())
         layout.addWidget(self._subtitle_label)
 
         summary_grid = QGridLayout()
-        summary_grid.setSpacing(12)
+        summary_grid.setSpacing(DASHBOARD_SPACING)
 
         self.ships = InfoCard("Ships")
         self.ais = InfoCard("AIS")
@@ -210,32 +228,37 @@ class DashboardPage(QWidget):
         layout.addLayout(summary_grid)
 
         columns = QHBoxLayout()
-        columns.setSpacing(12)
+        columns.setSpacing(DASHBOARD_SPACING)
 
         left_column = QVBoxLayout()
-        left_column.setSpacing(12)
+        left_column.setSpacing(DASHBOARD_SPACING)
         right_column = QVBoxLayout()
-        right_column.setSpacing(12)
+        right_column.setSpacing(DASHBOARD_SPACING)
 
         self._observation_card = QFrame()
         self._observation_card.setStyleSheet(_CARD_STYLE)
         observation_layout = QVBoxLayout(self._observation_card)
-        observation_layout.setContentsMargins(16, 16, 16, 16)
-        observation_layout.setSpacing(10)
+        observation_layout.setContentsMargins(
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+        )
+        observation_layout.setSpacing(DASHBOARD_SECTION_SPACING)
 
         self._observation_title = QLabel()
-        self._observation_title.setStyleSheet(
-            "font-size: 16pt; font-weight: bold; color: white;"
-        )
+        self._observation_title.setStyleSheet(dashboard_section_title_stylesheet())
         observation_layout.addWidget(self._observation_title)
 
         self._observation_map_hint = QLabel()
         self._observation_map_hint.setWordWrap(True)
-        self._observation_map_hint.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10pt;")
+        self._observation_map_hint.setStyleSheet(dashboard_caption_stylesheet())
         observation_layout.addWidget(self._observation_map_hint)
 
         info_grid = QGridLayout()
         info_grid.setColumnStretch(1, 1)
+        info_grid.setVerticalSpacing(10)
+        info_grid.setHorizontalSpacing(12)
 
         self._name_caption = QLabel()
         self._name_value = QLabel()
@@ -249,14 +272,14 @@ class DashboardPage(QWidget):
             self._coords_caption,
             self._status_caption,
         ):
-            caption.setStyleSheet(f"color: {TEXT_MUTED};")
+            caption.setStyleSheet(dashboard_caption_stylesheet())
 
         for value in (
             self._name_value,
             self._coords_value,
             self._status_value,
         ):
-            value.setStyleSheet("color: white; font-weight: 600;")
+            value.setStyleSheet(dashboard_value_stylesheet())
             value.setWordWrap(True)
 
         info_grid.addWidget(self._name_caption, 0, 0)
@@ -278,7 +301,7 @@ class DashboardPage(QWidget):
         observation_layout.addWidget(self._selector_panel)
 
         button_row = QHBoxLayout()
-        button_row.setSpacing(8)
+        button_row.setSpacing(DASHBOARD_BUTTON_ROW_SPACING)
 
         self._rename_button = QPushButton()
         self._create_button = QPushButton()
@@ -303,21 +326,24 @@ class DashboardPage(QWidget):
         self._cameras_card = QFrame()
         self._cameras_card.setStyleSheet(_CARD_STYLE)
         cameras_layout = QVBoxLayout(self._cameras_card)
-        cameras_layout.setContentsMargins(16, 16, 16, 16)
-        cameras_layout.setSpacing(10)
+        cameras_layout.setContentsMargins(
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+        )
+        cameras_layout.setSpacing(DASHBOARD_SECTION_SPACING)
 
         self._cameras_title = QLabel()
-        self._cameras_title.setStyleSheet(
-            "font-size: 16pt; font-weight: bold; color: white;"
-        )
+        self._cameras_title.setStyleSheet(dashboard_section_title_stylesheet())
         cameras_layout.addWidget(self._cameras_title)
 
         self._cameras_list = QVBoxLayout()
-        self._cameras_list.setSpacing(6)
+        self._cameras_list.setSpacing(DASHBOARD_LIST_SPACING)
         cameras_layout.addLayout(self._cameras_list)
 
         self._no_cameras_label = QLabel()
-        self._no_cameras_label.setStyleSheet(f"color: {TEXT_MUTED};")
+        self._no_cameras_label.setStyleSheet(dashboard_caption_stylesheet())
         self._no_cameras_label.setVisible(False)
         cameras_layout.addWidget(self._no_cameras_label)
 
@@ -333,13 +359,16 @@ class DashboardPage(QWidget):
         self._logbook_card = QFrame()
         self._logbook_card.setStyleSheet(_CARD_STYLE)
         logbook_layout = QVBoxLayout(self._logbook_card)
-        logbook_layout.setContentsMargins(16, 16, 16, 16)
-        logbook_layout.setSpacing(10)
+        logbook_layout.setContentsMargins(
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+        )
+        logbook_layout.setSpacing(DASHBOARD_SECTION_SPACING)
 
         self._logbook_title = QLabel()
-        self._logbook_title.setStyleSheet(
-            "font-size: 16pt; font-weight: bold; color: white;"
-        )
+        self._logbook_title.setStyleSheet(dashboard_section_title_stylesheet())
         logbook_layout.addWidget(self._logbook_title)
 
         self._import_logbook_button = QPushButton()
@@ -349,16 +378,21 @@ class DashboardPage(QWidget):
         self._ais_card = QFrame()
         self._ais_card.setStyleSheet(_CARD_STYLE)
         ais_layout = QVBoxLayout(self._ais_card)
-        ais_layout.setContentsMargins(16, 16, 16, 16)
-        ais_layout.setSpacing(10)
+        ais_layout.setContentsMargins(
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+        )
+        ais_layout.setSpacing(DASHBOARD_SECTION_SPACING)
 
         self._ais_title = QLabel()
-        self._ais_title.setStyleSheet(
-            "font-size: 16pt; font-weight: bold; color: white;"
-        )
+        self._ais_title.setStyleSheet(dashboard_section_title_stylesheet())
         ais_layout.addWidget(self._ais_title)
 
         ais_grid = QGridLayout()
+        ais_grid.setVerticalSpacing(10)
+        ais_grid.setHorizontalSpacing(12)
         self._ais_provider_caption = QLabel()
         self._ais_provider_value = QLabel()
         self._ais_config_caption = QLabel()
@@ -371,14 +405,14 @@ class DashboardPage(QWidget):
             self._ais_config_caption,
             self._ais_connection_caption,
         ):
-            caption.setStyleSheet(f"color: {TEXT_MUTED};")
+            caption.setStyleSheet(dashboard_caption_stylesheet())
 
         for value in (
             self._ais_provider_value,
             self._ais_config_value,
             self._ais_connection_value,
         ):
-            value.setStyleSheet("color: white; font-weight: 600;")
+            value.setStyleSheet(dashboard_value_stylesheet())
             value.setWordWrap(True)
 
         ais_grid.addWidget(self._ais_provider_caption, 0, 0)
@@ -390,7 +424,7 @@ class DashboardPage(QWidget):
         ais_layout.addLayout(ais_grid)
 
         ais_button_row = QHBoxLayout()
-        ais_button_row.setSpacing(8)
+        ais_button_row.setSpacing(DASHBOARD_BUTTON_ROW_SPACING)
 
         self._ais_configure_button = QPushButton()
         self._ais_test_button = QPushButton()
@@ -423,53 +457,40 @@ class DashboardPage(QWidget):
         self._configuration_card = QFrame()
         self._configuration_card.setStyleSheet(_CARD_STYLE)
         configuration_layout = QVBoxLayout(self._configuration_card)
-        configuration_layout.setContentsMargins(16, 16, 16, 16)
-        configuration_layout.setSpacing(16)
+        configuration_layout.setContentsMargins(
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+        )
+        configuration_layout.setSpacing(DASHBOARD_SPACING)
 
         self._configuration_title = QLabel()
-        self._configuration_title.setStyleSheet(
-            "font-size: 16pt; font-weight: bold; color: white;"
-        )
+        self._configuration_title.setStyleSheet(dashboard_section_title_stylesheet())
         configuration_layout.addWidget(self._configuration_title)
 
         personalization = QFrame()
-        personalization.setStyleSheet(f"""
-            QFrame {{
-                background: {BG_DEEP};
-                border: 1px solid {BORDER};
-                border-radius: 8px;
-            }}
-            QLabel[role="section"] {{
-                color: {TEXT};
-                font-size: 12pt;
-                font-weight: 600;
-            }}
-            QLabel[role="field"] {{
-                color: {TEXT_MUTED};
-                font-size: 10pt;
-                font-weight: 600;
-            }}
-            QComboBox {{
-                background: {ThemeColors.Panel};
-                color: white;
-                border: 1px solid {BORDER};
-                border-radius: 6px;
-                padding: 6px 8px;
-            }}
-        """)
+        personalization.setStyleSheet(dashboard_inset_stylesheet())
         personalization_layout = QVBoxLayout(personalization)
-        personalization_layout.setContentsMargins(16, 16, 16, 16)
-        personalization_layout.setSpacing(12)
+        personalization_layout.setContentsMargins(
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+            DASHBOARD_CARD_PADDING,
+        )
+        personalization_layout.setSpacing(DASHBOARD_SECTION_SPACING)
 
         self._personalization_title = QLabel()
         self._personalization_title.setProperty("role", "section")
+        self._personalization_title.setStyleSheet(dashboard_section_title_stylesheet())
         personalization_layout.addWidget(self._personalization_title)
 
         form = QFormLayout()
-        form.setSpacing(12)
+        form.setSpacing(DASHBOARD_SECTION_SPACING)
 
         self._language_label = QLabel()
         self._language_label.setProperty("role", "field")
+        self._language_label.setStyleSheet(dashboard_caption_stylesheet())
         self._language_combo = QComboBox()
         for code in SUPPORTED_LANGUAGES:
             self._language_combo.addItem(
@@ -480,6 +501,7 @@ class DashboardPage(QWidget):
 
         self._layout_label = QLabel()
         self._layout_label.setProperty("role", "field")
+        self._layout_label.setStyleSheet(dashboard_caption_stylesheet())
         self._layout_combo = QComboBox()
         for layout_name in SUPPORTED_VESSEL_CARD_LAYOUTS:
             self._layout_combo.addItem(
@@ -492,13 +514,13 @@ class DashboardPage(QWidget):
         configuration_layout.addWidget(personalization)
 
         self.playback_settings = PlaybackSettingsPage()
-        self.playback_settings.setStyleSheet(settings_panel_stylesheet(radius=8))
+        self.playback_settings.setStyleSheet(dashboard_embed_settings_stylesheet())
         configuration_layout.addWidget(self.playback_settings)
 
         self.camera_diagnostics = CameraDiagnosticsPanel()
         self.camera_diagnostics.setMinimumHeight(320)
         self.camera_diagnostics.setStyleSheet(
-            settings_panel_stylesheet(include_table=True, radius=8)
+            dashboard_embed_settings_stylesheet(include_table=True)
         )
         configuration_layout.addWidget(self.camera_diagnostics)
         layout.addWidget(self._configuration_card)
@@ -631,13 +653,13 @@ class DashboardPage(QWidget):
                     f"{active.latitude:.5f}, {active.longitude:.5f}"
                 )
                 self._status_value.setText(tr("Active"))
-                self._status_value.setStyleSheet(f"color: {SUCCESS}; font-weight: 600;")
+                self._status_value.setStyleSheet(dashboard_value_success_stylesheet())
                 has_point = True
             else:
                 self._name_value.setText(tr("No observation point"))
                 self._coords_value.setText(tr("Not available"))
                 self._status_value.setText(tr("Not configured"))
-                self._status_value.setStyleSheet(f"color: {TEXT_MUTED}; font-weight: 600;")
+                self._status_value.setStyleSheet(dashboard_value_muted_stylesheet())
                 has_point = False
 
             self._rename_button.setEnabled(has_point)
@@ -684,13 +706,15 @@ class DashboardPage(QWidget):
                 row_widget.setLayout(row)
 
                 name_label = QLabel(camera.name)
-                name_label.setStyleSheet("color: white; font-weight: 600;")
+                name_label.setStyleSheet(dashboard_value_stylesheet())
                 row.addWidget(name_label, 1)
 
                 status_text = tr("Enabled") if camera.enabled else tr("Disabled")
                 status_label = QLabel(status_text)
                 status_label.setStyleSheet(
-                    f"color: {SUCCESS};" if camera.enabled else f"color: {TEXT_MUTED};"
+                    dashboard_value_success_stylesheet()
+                    if camera.enabled
+                    else dashboard_value_muted_stylesheet()
                 )
                 row.addWidget(status_label)
 
@@ -698,9 +722,7 @@ class DashboardPage(QWidget):
                 delete_button = QPushButton(tr("Delete"))
 
                 for button in (edit_button, delete_button):
-                    button.setStyleSheet(
-                        secondary_button_stylesheet(padding="4px 10px")
-                    )
+                    button.setStyleSheet(_BUTTON_STYLE)
 
                 edit_button.clicked.connect(
                     lambda _checked=False, item=camera: self._edit_camera(item)
@@ -807,19 +829,15 @@ class DashboardPage(QWidget):
 
         self._ais_provider_value.setText(self._ais_mode_label(len(enabled)))
         self._ais_config_value.setText(self._ais_providers_display(enabled))
-        self._ais_config_value.setStyleSheet("color: white; font-weight: 600;")
+        self._ais_config_value.setStyleSheet(dashboard_value_stylesheet())
 
         if self._ais_dashboard_connected():
             self._ais_connection_value.setText(tr("Connected"))
-            self._ais_connection_value.setStyleSheet(
-                f"color: {SUCCESS}; font-weight: 600;"
-            )
+            self._ais_connection_value.setStyleSheet(dashboard_value_success_stylesheet())
             self.ais.value.setText(tr("Connected"))
         else:
             self._ais_connection_value.setText(tr("Disconnected"))
-            self._ais_connection_value.setStyleSheet(
-                f"color: {TEXT_MUTED}; font-weight: 600;"
-            )
+            self._ais_connection_value.setStyleSheet(dashboard_value_muted_stylesheet())
             self.ais.value.setText(tr("Disconnected"))
 
         self._providers_section.refresh()
