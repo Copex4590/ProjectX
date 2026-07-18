@@ -12,5 +12,7 @@
   "rtl_sdr_configured": false,
   "rtl_auto_start_ais_catcher": true,
   "rtl_setup_os": "",
-  "rtl_setup_completed": false
+  "rtl_setup_completed": false,
+  "ais_provider_coverage_notice_dismissed": false,
+  "observation_point_workflow_notice_dismissed": false
 }

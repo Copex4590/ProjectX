@@ -1,5 +1,5 @@
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QShowEvent
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QAction, QActionGroup, QShowEvent
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
+    QMenu,
     QMessageBox,
     QPushButton,
     QScrollArea,
@@ -27,6 +27,7 @@ from debug.obs_freeze_trace import (
 from gui.camerawizard import CameraWizard
 from gui.i18n_support import bind_language_refresh
 from gui.mapcontroller import MapController
+from gui.observationpointworkflownoticedialog import ObservationPointWorkflowNoticeDialog
 from gui.observationwizard import ObservationWizard
 from gui.settings.cameradiagnosticspanel import CameraDiagnosticsPanel
 from gui.settings.playbacksettings import PlaybackSettingsPage
@@ -40,7 +41,6 @@ from gui.theme import (
     dashboard_button_stylesheet,
     dashboard_caption_stylesheet,
     dashboard_card_stylesheet,
-    dashboard_dialog_stylesheet,
     dashboard_embed_settings_stylesheet,
     dashboard_inset_stylesheet,
     dashboard_page_title_stylesheet,
@@ -76,61 +76,6 @@ _LAYOUT_LABELS = {
     "detailed": "Detailed",
     "media": "Media",
 }
-
-
-class _RenameDialog(QDialog):
-    def __init__(self, current_name: str, parent=None):
-        super().__init__(parent)
-
-        self.setModal(True)
-        self.setMinimumWidth(360)
-        self.setStyleSheet(dashboard_dialog_stylesheet())
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(
-            DASHBOARD_CARD_PADDING,
-            DASHBOARD_CARD_PADDING,
-            DASHBOARD_CARD_PADDING,
-            DASHBOARD_CARD_PADDING,
-        )
-        layout.setSpacing(DASHBOARD_SECTION_SPACING)
-
-        self._label = QLabel()
-        self._label.setStyleSheet(dashboard_caption_stylesheet())
-        layout.addWidget(self._label)
-
-        self._input = QLineEdit(current_name)
-        layout.addWidget(self._input)
-
-        button_row = QHBoxLayout()
-        button_row.setSpacing(DASHBOARD_BUTTON_ROW_SPACING)
-        button_row.addStretch()
-
-        self._confirm_button = QPushButton()
-        self._confirm_button.setStyleSheet(_BUTTON_STYLE)
-        self._confirm_button.clicked.connect(self.accept)
-        button_row.addWidget(self._confirm_button)
-
-        self._cancel_button = QPushButton()
-        self._cancel_button.setStyleSheet(_BUTTON_STYLE)
-        self._cancel_button.clicked.connect(self.reject)
-        button_row.addWidget(self._cancel_button)
-
-        layout.addLayout(button_row)
-
-        bind_language_refresh(self.refresh_translations)
-        self.refresh_translations()
-
-    def refresh_translations(self) -> None:
-
-        self.setWindowTitle(tr("Rename"))
-        self._label.setText(tr("Observation Point name"))
-        self._confirm_button.setText(tr("Confirm"))
-        self._cancel_button.setText(tr("Cancel"))
-
-    def name(self) -> str:
-
-        return self._input.text().strip()
 
 
 class DashboardPage(QWidget):
@@ -239,36 +184,32 @@ class DashboardPage(QWidget):
         info_grid.addWidget(self._status_value, 3, 1)
         observation_layout.addLayout(info_grid)
 
-        selector_row = QHBoxLayout()
-        self._point_selector_label = QLabel()
-        self._point_selector = QComboBox()
-        selector_row.addWidget(self._point_selector_label)
-        selector_row.addWidget(self._point_selector, 1)
-        self._selector_panel = QWidget()
-        self._selector_panel.setLayout(selector_row)
-        self._selector_panel.setVisible(False)
-        observation_layout.addWidget(self._selector_panel)
-
         button_row = QHBoxLayout()
         button_row.setSpacing(DASHBOARD_BUTTON_ROW_SPACING)
 
-        self._rename_button = QPushButton()
+        self._select_menu = QMenu(self)
+        self._select_action_group = QActionGroup(self)
+        self._select_action_group.setExclusive(True)
+
+        self._select_button = QPushButton()
+        self._select_button.setMenu(self._select_menu)
+
+        self._edit_button = QPushButton()
         self._create_button = QPushButton()
         self._delete_button = QPushButton()
-        self._set_active_button = QPushButton()
 
         for button in (
-            self._rename_button,
+            self._select_button,
+            self._edit_button,
             self._create_button,
             self._delete_button,
-            self._set_active_button,
         ):
             button.setStyleSheet(_BUTTON_STYLE)
 
-        button_row.addWidget(self._rename_button)
+        button_row.addWidget(self._select_button)
+        button_row.addWidget(self._edit_button)
         button_row.addWidget(self._create_button)
         button_row.addWidget(self._delete_button)
-        button_row.addWidget(self._set_active_button)
         button_row.addStretch()
         observation_layout.addLayout(button_row)
 
@@ -412,11 +353,9 @@ class DashboardPage(QWidget):
         self._scroll.setWidget(content)
         root_layout.addWidget(self._scroll)
 
-        self._rename_button.clicked.connect(self._rename_active)
+        self._edit_button.clicked.connect(self._edit_selected)
         self._create_button.clicked.connect(self._create_new)
         self._delete_button.clicked.connect(self._delete_active)
-        self._set_active_button.clicked.connect(self._set_selected_active)
-        self._point_selector.currentIndexChanged.connect(self._on_selector_changed)
         self._language_combo.currentIndexChanged.connect(self._on_language_changed)
         self._layout_combo.currentIndexChanged.connect(self._on_layout_changed)
         language_manager.language_changed.connect(
@@ -474,12 +413,11 @@ class DashboardPage(QWidget):
         self._coords_caption.setText(tr("Coordinates"))
         self._radius_caption.setText(tr("Observation radius (km)"))
         self._status_caption.setText(tr("Status"))
-        self._point_selector_label.setText(tr("Observation Point"))
 
-        self._rename_button.setText(tr("Rename"))
+        self._select_button.setText(tr("Select Observation Point"))
+        self._edit_button.setText(tr("Edit"))
         self._create_button.setText(tr("Create new"))
         self._delete_button.setText(tr("Delete"))
-        self._set_active_button.setText(tr("Set active"))
         self._cameras_title.setText(tr("Attached Cameras"))
         self._no_cameras_label.setText(tr("No cameras"))
         self._cameras_help_button.setText(tr("Help"))
@@ -510,8 +448,8 @@ class DashboardPage(QWidget):
             active = observation_manager.active()
             trace_exit("DashboardPage.refresh_observation.observation_manager.active")
 
-            with trace_block("DashboardPage.refresh_observation._populate_selector"):
-                self._populate_selector(points, active)
+            with trace_block("DashboardPage.refresh_observation._rebuild_select_menu"):
+                self._rebuild_select_menu(points, active)
 
             trace_enter("DashboardPage.refresh_observation.update_labels")
             if active is not None:
@@ -531,10 +469,10 @@ class DashboardPage(QWidget):
                 self._status_value.setStyleSheet(dashboard_value_muted_stylesheet())
                 has_point = False
 
-            self._rename_button.setEnabled(has_point)
+            self._edit_button.setEnabled(has_point)
             self._delete_button.setEnabled(has_point)
-            self._set_active_button.setEnabled(has_point and len(points) > 1)
-            self._selector_panel.setVisible(len(points) > 1)
+            self._select_button.setVisible(len(points) > 1)
+            self._select_button.setEnabled(has_point and len(points) > 1)
             trace_exit("DashboardPage.refresh_observation.update_labels")
 
             with trace_block("DashboardPage.refresh_observation.refresh_cameras"):
@@ -687,64 +625,43 @@ class DashboardPage(QWidget):
         camera_manager.remove(camera.id)
         self.refresh_cameras()
 
-    def _populate_selector(self, points, active) -> None:
+    def _rebuild_select_menu(self, points, active) -> None:
 
-        with trace_block("DashboardPage._populate_selector"):
-            trace_enter("DashboardPage._populate_selector.blockSignals")
-            self._point_selector.blockSignals(True)
-            trace_exit("DashboardPage._populate_selector.blockSignals")
+        with trace_block("DashboardPage._rebuild_select_menu"):
+            trace_enter("DashboardPage._rebuild_select_menu.clear")
+            self._select_menu.clear()
 
-            trace_enter("DashboardPage._populate_selector.clear")
-            self._point_selector.clear()
-            trace_exit("DashboardPage._populate_selector.clear")
+            for action in self._select_action_group.actions():
+                self._select_action_group.removeAction(action)
+            trace_exit("DashboardPage._rebuild_select_menu.clear")
 
-            trace_enter("DashboardPage._populate_selector.add_items")
+            active_id = active.id if active is not None else None
+
+            trace_enter("DashboardPage._rebuild_select_menu.add_items")
             for point in points:
-                label = point.name
-
-                if point.active:
-                    label = f"{label} ({tr('Active')})"
-
-                self._point_selector.addItem(label, point.id)
-            trace_exit("DashboardPage._populate_selector.add_items")
-
-            if active is not None:
-                trace_enter("DashboardPage._populate_selector.setCurrentIndex")
-                for index in range(self._point_selector.count()):
-                    if self._point_selector.itemData(index) == active.id:
-                        self._point_selector.setCurrentIndex(index)
-                        break
-                trace_exit("DashboardPage._populate_selector.setCurrentIndex")
-
-            trace_enter("DashboardPage._populate_selector.unblockSignals")
-            self._point_selector.blockSignals(False)
-            trace_exit("DashboardPage._populate_selector.unblockSignals")
+                action = QAction(point.name, self)
+                action.setCheckable(True)
+                action.setChecked(point.id == active_id)
+                action.setData(point.id)
+                self._select_action_group.addAction(action)
+                self._select_menu.addAction(action)
+                action.triggered.connect(
+                    lambda _checked=False, point_id=point.id: (
+                        self._activate_observation_point(point_id)
+                    )
+                )
+            trace_exit("DashboardPage._rebuild_select_menu.add_items")
 
     def _active_point_id(self) -> str | None:
 
         active = observation_manager.active()
         return active.id if active else None
 
-    def _rename_active(self) -> None:
+    def _selected_point(self):
 
-        active = observation_manager.active()
+        return observation_manager.active()
 
-        if active is None:
-            return
-
-        dialog = _RenameDialog(active.name, self)
-
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-
-        new_name = dialog.name()
-
-        if not new_name:
-            return
-
-        observation_manager.rename(active.id, new_name)
-
-    def _create_new(self) -> None:
+    def _open_observation_wizard(self) -> ObservationWizard | None:
 
         if self._observation_wizard is not None:
             from shiboken6 import isValid
@@ -752,7 +669,7 @@ class DashboardPage(QWidget):
             if isValid(self._observation_wizard):
                 self._observation_wizard.raise_()
                 self._observation_wizard.activateWindow()
-                return
+                return None
 
             self._observation_wizard = None
 
@@ -761,6 +678,32 @@ class DashboardPage(QWidget):
         wizard.finished.connect(self._on_observation_wizard_finished)
         wizard.destroyed.connect(self._on_observation_wizard_destroyed)
         self._observation_wizard = wizard
+        return wizard
+
+    def _edit_selected(self) -> None:
+
+        if not self._maybe_show_observation_workflow_notice():
+            return
+
+        point = self._selected_point()
+
+        if point is None:
+            return
+
+        wizard = self._open_observation_wizard()
+
+        if wizard is None:
+            return
+
+        wizard.start_edit(point)
+
+    def _create_new(self) -> None:
+
+        wizard = self._open_observation_wizard()
+
+        if wizard is None:
+            return
+
         wizard.start_setup()
 
     def _on_observation_wizard_destroyed(self, _object=None) -> None:
@@ -784,7 +727,7 @@ class DashboardPage(QWidget):
 
         try:
             trace_enter("DashboardPage._delete_active ENTER step 2")
-            active = observation_manager.active()
+            active = self._selected_point()
             trace_exit("DashboardPage._delete_active EXIT step 2")
 
             trace_enter("DashboardPage._delete_active ENTER step 3")
@@ -792,6 +735,10 @@ class DashboardPage(QWidget):
                 trace_exit("DashboardPage._delete_active EXIT step 3 early return")
                 return
             trace_exit("DashboardPage._delete_active EXIT step 3")
+
+            if not self._maybe_show_observation_workflow_notice():
+                trace_exit("DashboardPage._delete_active workflow notice dismissed")
+                return
 
             trace_enter("DashboardPage._delete_active ENTER step 4")
             parent = self.window()
@@ -832,42 +779,63 @@ class DashboardPage(QWidget):
             trace_enter("DashboardPage._delete_active ENTER step 11")
             observation_manager.delete(point_id)
             trace_exit("DashboardPage._delete_active EXIT step 11")
+
+            if not observation_manager.all():
+                main_window = self.window()
+
+                if hasattr(main_window, "run_first_run_wizard"):
+                    QTimer.singleShot(0, main_window.run_first_run_wizard)
         finally:
             trace_exit("DashboardPage._delete_active EXIT step 1")
 
-    def _set_selected_active(self) -> None:
+    def _maybe_show_observation_workflow_notice(self) -> bool:
 
-        point_id = self._point_selector.currentData()
+        preferences = preferences_manager.get()
 
-        if not point_id:
-            return
+        if preferences.observation_point_workflow_notice_dismissed:
+            return True
 
-        observation_manager.set_active(str(point_id))
+        dialog = ObservationPointWorkflowNoticeDialog(self.window())
 
-    def _on_selector_changed(self, _index: int) -> None:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return False
 
-        with trace_block("DashboardPage._on_selector_changed"):
-            trace_enter("DashboardPage._on_selector_changed.currentData")
-            point_id = self._point_selector.currentData()
-            trace_exit("DashboardPage._on_selector_changed.currentData")
+        if dialog.dont_show_again():
+            preferences_manager.set_observation_point_workflow_notice_dismissed(True)
+
+        return True
+
+    def _activate_observation_point(self, point_id: str) -> None:
+
+        with trace_block("DashboardPage._activate_observation_point"):
+            trace_enter(
+                "DashboardPage._activate_observation_point "
+                f"point_id={point_id}"
+            )
 
             if not point_id:
-                return
-
-            trace_enter("DashboardPage._on_selector_changed.observation_manager.active")
-            active = observation_manager.active()
-            trace_exit("DashboardPage._on_selector_changed.observation_manager.active")
-
-            if active is not None and active.id == point_id:
+                trace_exit("DashboardPage._activate_observation_point early return")
                 return
 
             trace_enter(
-                "DashboardPage._on_selector_changed.observation_manager._set_active "
+                "DashboardPage._activate_observation_point.observation_manager.active"
+            )
+            active = observation_manager.active()
+            trace_exit(
+                "DashboardPage._activate_observation_point.observation_manager.active"
+            )
+
+            if active is not None and active.id == point_id:
+                trace_exit("DashboardPage._activate_observation_point already active")
+                return
+
+            trace_enter(
+                "DashboardPage._activate_observation_point.observation_manager.set_active "
                 f"point_id={point_id}"
             )
             observation_manager.set_active(str(point_id))
             trace_exit(
-                "DashboardPage._on_selector_changed.observation_manager._set_active "
+                "DashboardPage._activate_observation_point.observation_manager.set_active "
                 f"point_id={point_id}"
             )
 

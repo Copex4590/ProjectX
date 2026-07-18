@@ -66,6 +66,24 @@ class PreferencesManager:
         current.first_run_completed = bool(completed)
         return self.save(Preferences.from_dict(current.to_dict()))
 
+    def set_ais_provider_coverage_notice_dismissed(
+        self,
+        dismissed: bool = True,
+    ) -> Preferences:
+
+        current = self.get()
+        current.ais_provider_coverage_notice_dismissed = bool(dismissed)
+        return self.save(Preferences.from_dict(current.to_dict()))
+
+    def set_observation_point_workflow_notice_dismissed(
+        self,
+        dismissed: bool = True,
+    ) -> Preferences:
+
+        current = self.get()
+        current.observation_point_workflow_notice_dismissed = bool(dismissed)
+        return self.save(Preferences.from_dict(current.to_dict()))
+
     def set_ais_configuration(
         self,
         *,

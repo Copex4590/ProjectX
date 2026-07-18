@@ -108,6 +108,34 @@ class ShipRegistry:
         with self._lock:
             self._ships.clear()
 
+    def purge_ais_only_ships(self) -> int:
+
+        with self._lock:
+            stale_mmsis = [
+                mmsi
+                for mmsi, ship in self._ships.items()
+                if ship.ais_visible and not ship.rtl_visible
+            ]
+
+            for mmsi in stale_mmsis:
+                self._ships.pop(mmsi, None)
+
+            return len(stale_mmsis)
+
+    def purge_rtl_only_ships(self) -> int:
+
+        with self._lock:
+            stale_mmsis = [
+                mmsi
+                for mmsi, ship in self._ships.items()
+                if ship.rtl_visible and not ship.ais_visible
+            ]
+
+            for mmsi in stale_mmsis:
+                self._ships.pop(mmsi, None)
+
+            return len(stale_mmsis)
+
     def purge_outside_reference_coverage(self) -> int:
 
         with self._lock:

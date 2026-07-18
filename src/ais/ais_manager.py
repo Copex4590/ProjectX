@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from threading import Lock
@@ -16,6 +17,8 @@ from events import eventbus
 from preferences import preferences_manager
 
 from app.paths import runtime_config_path
+
+logger = logging.getLogger(__name__)
 
 AIS_API_KEY_FILE = Path(
     os.environ.get(
@@ -145,11 +148,18 @@ class AISManager:
     def _sync_api_key_file(self, api_key: str) -> None:
 
         key = str(api_key or "").strip()
+        paths = (AIS_API_KEY_FILE, _LEGACY_API_KEY_FILE)
 
         if not key:
+            for path in paths:
+                try:
+                    if path.exists():
+                        path.unlink()
+                except OSError:
+                    logger.warning("Failed to remove AIS API key file: %s", path)
             return
 
-        for path in (AIS_API_KEY_FILE, _LEGACY_API_KEY_FILE):
+        for path in paths:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(key + "\n", encoding="utf-8")
 

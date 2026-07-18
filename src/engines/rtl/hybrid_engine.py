@@ -5,9 +5,12 @@ import subprocess
 import threading
 import time
 from datetime import datetime
+from pathlib import Path
 
 import websocket
 
+from ais.ais_manager import AIS_API_KEY_FILE, _LEGACY_API_KEY_FILE
+from ais.providers import AISProviderType, normalize_provider_type
 from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
 from database import registry
 from debug.obs_freeze_trace import trace_block
@@ -20,6 +23,7 @@ from events import eventbus
 from logbook.duna_format import get_direction, get_heading
 from models.ship import Ship
 from observation.geo_context import geo_context
+from preferences import preferences_manager
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +56,9 @@ class HybridEngine(BaseEngine):
         self._ws = None
         self._ws_lock = threading.Lock()
         self._resubscribe_requested = False
+        self._runtime_lock = threading.Lock()
+        self._aisstream_active = False
+        self._rtl_active = False
 
         self.ship_names = {}
         self.static_ship_data = {}
@@ -71,35 +78,158 @@ class HybridEngine(BaseEngine):
 
     def on_start(self):
 
-        self.ais_thread = threading.Thread(
-            target=self.aisstream_worker,
-            daemon=True,
-        )
-        self.ais_thread.start()
+        self.sync_enabled_providers()
 
-        if is_port_open(AIS_CATCHER_HOST, AIS_CATCHER_PORT):
+        if self.ais_thread is None or not self.ais_thread.is_alive():
+            self.ais_thread = threading.Thread(
+                target=self.aisstream_worker,
+                daemon=True,
+            )
+            self.ais_thread.start()
+
+        if self.rtl_thread is None or not self.rtl_thread.is_alive():
             self.rtl_thread = threading.Thread(
                 target=self.rtl_worker,
                 daemon=True,
             )
             self.rtl_thread.start()
+
+    def sync_enabled_providers(self, enabled_ids: list[str] | None = None) -> None:
+
+        from ais.user_provider_service import (
+            get_enabled_provider_ids,
+            is_provider_configured,
+        )
+
+        if enabled_ids is None:
+            enabled_ids = get_enabled_provider_ids()
+
+        enabled = {
+            normalize_provider_type(provider_id) for provider_id in enabled_ids
+        }
+
+        want_aisstream = (
+            AISProviderType.AISSTREAM in enabled
+            and is_provider_configured(AISProviderType.AISSTREAM)
+        )
+        want_rtl = (
+            AISProviderType.LOCAL in enabled
+            and is_provider_configured(AISProviderType.LOCAL)
+        )
+
+        with self._runtime_lock:
+            if want_aisstream:
+                self._aisstream_active = True
+                self._resubscribe_requested = True
+                self._close_ws()
+            elif self._aisstream_active:
+                self._aisstream_active = False
+                self._resubscribe_requested = False
+                self._close_ws()
+                eventbus.publish("ais.status", status="offline")
+                self._purge_ais_runtime_state()
+
+            if want_rtl:
+                self._rtl_active = True
+            elif self._rtl_active:
+                self._rtl_active = False
+                self._disconnect_rtl_client()
+                eventbus.publish("rtl.status", status="offline")
+                self._purge_rtl_runtime_state()
+
+    def _disconnect_rtl_client(self) -> None:
+
+        client = self._rtl_client
+
+        if client is None:
             return
 
-        logger.warning(
-            "AIS-Catcher unavailable on %s:%s — RTL AIS provider disabled",
-            AIS_CATCHER_HOST,
-            AIS_CATCHER_PORT,
-        )
-        eventbus.publish("rtl.status", status="offline")
+        try:
+            client.disconnect()
+        except Exception:
+            logger.exception("Failed to disconnect RTL AIS client")
+
+        self._rtl_client = None
+
+    def _purge_ais_runtime_state(self) -> None:
+
+        removed = registry.purge_ais_only_ships()
+
+        stale_mmsis = [
+            mmsi
+            for mmsi, payload in self.radar_data.items()
+            if payload.get("source") == "AIS"
+        ]
+
+        for mmsi in stale_mmsis:
+            self.radar_data.pop(mmsi, None)
+            self.last_ship_data.pop(mmsi, None)
+            self.last_printed_state.pop(mmsi, None)
+
+        if removed:
+            eventbus.publish("ship.updated")
+
+    def purge_ais_only_vessels(self) -> None:
+
+        self._purge_ais_runtime_state()
+
+    def _purge_rtl_runtime_state(self) -> None:
+
+        removed = registry.purge_rtl_only_ships()
+
+        stale_mmsis = [
+            mmsi
+            for mmsi, payload in self.radar_data.items()
+            if payload.get("source") == "RTL"
+        ]
+
+        for mmsi in stale_mmsis:
+            self.radar_data.pop(mmsi, None)
+            self.last_ship_data.pop(mmsi, None)
+            self.last_printed_state.pop(mmsi, None)
+
+        if removed:
+            eventbus.publish("ship.updated")
+
+    def _aisstream_api_key(self) -> str:
+
+        key = preferences_manager.get().aisstream_api_key.strip()
+
+        if key:
+            return key
+
+        for path in (AIS_API_KEY_FILE, _LEGACY_API_KEY_FILE, Path(API_KEY_FILE)):
+            try:
+                if path.exists():
+                    value = path.read_text(encoding="utf-8").strip()
+
+                    if value:
+                        return value
+            except OSError:
+                logger.warning("Failed to read AIS API key file: %s", path)
+
+        return ""
+
+    def _aisstream_enabled(self) -> bool:
+
+        with self._runtime_lock:
+            return self._aisstream_active
+
+    def _rtl_enabled(self) -> bool:
+
+        with self._runtime_lock:
+            return self._rtl_active
 
     def on_stop(self):
 
+        with self._runtime_lock:
+            self._aisstream_active = False
+            self._rtl_active = False
+
         self._close_ws()
+        self._disconnect_rtl_client()
 
-        if self._rtl_client:
-            self._rtl_client.disconnect()
-            self._rtl_client = None
-
+        eventbus.publish("ais.status", status="offline")
         eventbus.publish("rtl.status", status="offline")
 
         print("🛑 Hybrid Engine stopped")
@@ -109,6 +239,9 @@ class HybridEngine(BaseEngine):
         removed = registry.purge_outside_reference_coverage()
         if removed:
             print(f"🧹 Removed {removed} ship(s) outside reference coverage")
+
+        if not self._aisstream_enabled():
+            return
 
         self._resubscribe_requested = True
         self._close_ws()
@@ -425,6 +558,12 @@ class HybridEngine(BaseEngine):
     def aisstream_worker(self):
 
         while self.running:
+            if not self._aisstream_enabled():
+                self._close_ws()
+                eventbus.publish("ais.status", status="offline")
+                time.sleep(1)
+                continue
+
             subscribed_boxes = reference_observation_bounding_boxes()
 
             if subscribed_boxes is None:
@@ -433,11 +572,17 @@ class HybridEngine(BaseEngine):
                 time.sleep(2)
                 continue
 
+            api_key = self._aisstream_api_key()
+
+            if not api_key:
+                print("⏳ AISStream disabled or missing API key...")
+                self._close_ws()
+                eventbus.publish("ais.status", status="offline")
+                time.sleep(2)
+                continue
+
             try:
                 print("📡 AISStream kapcsolat...")
-
-                with open(API_KEY_FILE, "r") as f:
-                    api_key = f.read().strip()
 
                 with self._ws_lock:
                     self._ws = websocket.create_connection(
@@ -461,6 +606,9 @@ class HybridEngine(BaseEngine):
                 eventbus.publish("ais.status", status="connected")
 
                 while self.running:
+                    if not self._aisstream_enabled():
+                        break
+
                     if self._resubscribe_requested:
                         break
 
@@ -570,114 +718,135 @@ class HybridEngine(BaseEngine):
     # --------------------------------------------------
     def rtl_worker(self):
 
-        print("🚢 Hybrid Duna Monitor")
-        print("📡 Kapcsolódás AIS-catcherhez...")
-
-        self._rtl_client = AISRtlClient()
-
-        try:
-            self._rtl_client.connect(AIS_CATCHER_HOST, AIS_CATCHER_PORT)
-        except OSError as error:
-            logger.warning(
-                "RTL AIS connection failed on %s:%s: %s",
-                AIS_CATCHER_HOST,
-                AIS_CATCHER_PORT,
-                error,
-            )
-            eventbus.publish("rtl.status", status="offline")
-            return
-
-        print("✅ Kapcsolódva")
-        eventbus.publish("rtl.status", status="connected")
-
-        decoder = AISNmeaDecoder()
-
-        print("📡 Várakozás hajóadatokra...")
-
         while self.running:
-            try:
-                line = self._rtl_client.receive()
-            except OSError:
-                if not self.running:
-                    break
+            if not self._rtl_enabled():
+                self._disconnect_rtl_client()
                 eventbus.publish("rtl.status", status="offline")
-                raise
-
-            if not line:
+                time.sleep(1)
                 continue
 
-            if not line.startswith(("!AIVDM", "!AIVDO")):
+            if not is_port_open(AIS_CATCHER_HOST, AIS_CATCHER_PORT):
+                logger.warning(
+                    "AIS-Catcher unavailable on %s:%s — RTL AIS provider disabled",
+                    AIS_CATCHER_HOST,
+                    AIS_CATCHER_PORT,
+                )
+                eventbus.publish("rtl.status", status="offline")
+                time.sleep(5)
                 continue
+
+            print("🚢 Hybrid Duna Monitor")
+            print("📡 Kapcsolódás AIS-catcherhez...")
+
+            self._rtl_client = AISRtlClient()
 
             try:
-                decoder.feed(line)
+                self._rtl_client.connect(AIS_CATCHER_HOST, AIS_CATCHER_PORT)
+            except OSError as error:
+                logger.warning(
+                    "RTL AIS connection failed on %s:%s: %s",
+                    AIS_CATCHER_HOST,
+                    AIS_CATCHER_PORT,
+                    error,
+                )
+                self._rtl_client = None
+                eventbus.publish("rtl.status", status="offline")
+                time.sleep(5)
+                continue
 
-                decoded = decoder.decode()
-                if not decoded:
+            print("✅ Kapcsolódva")
+            eventbus.publish("rtl.status", status="connected")
+
+            decoder = AISNmeaDecoder()
+
+            print("📡 Várakozás hajóadatokra...")
+
+            while self.running and self._rtl_enabled():
+                try:
+                    line = self._rtl_client.receive()
+                except OSError:
+                    if not self.running:
+                        break
+                    eventbus.publish("rtl.status", status="offline")
+                    break
+
+                if not line:
                     continue
 
-                msg_type = decoded.get("id", 0)
-                mmsi = str(decoded.get("mmsi", ""))
-
-                if not mmsi:
+                if not line.startswith(("!AIVDM", "!AIVDO")):
                     continue
 
-                # --------------------------------------------------
-                # RÁDIÓS NÉV / STATIKUS ADAT (ID5)
-                # --------------------------------------------------
-                if msg_type == 5:
-                    ship_name = sanitize_name(decoded.get("name", ""))
-                    if ship_name:
-                        old_name = self.ship_names.get(mmsi, "")
-                        self.ship_names[mmsi] = ship_name
+                try:
+                    decoder.feed(line)
 
-                        if old_name != ship_name:
-                            self.save_ship_cache()
-                            print(f"📻 RÁDIÓ NÉV: {mmsi} -> {ship_name}")
+                    decoded = decoder.decode()
+                    if not decoded:
+                        continue
 
-                    self.static_ship_data[mmsi] = {
-                        "destination": sanitize_name(
-                            decoded.get("destination", "")
-                        ),
-                        "eta": (
-                            f"{decoded.get('eta_month', 0):02d}."
-                            f"{decoded.get('eta_day', 0):02d} "
-                            f"{decoded.get('eta_hour', 0):02d}:"
-                            f"{decoded.get('eta_minute', 0):02d}"
-                        ),
-                        "callsign": sanitize_name(
-                            decoded.get("callsign", "")
-                        ),
-                        "draught": decoded.get("draught", ""),
-                        "mmsi": mmsi,
-                        "type": decoded.get("ship_type", ""),
-                        "length": (
-                            decoded.get("dim_bow", 0)
-                            + decoded.get("dim_stern", 0)
-                        ),
-                        "width": (
-                            decoded.get("dim_port", 0)
-                            + decoded.get("dim_starboard", 0)
-                        ),
-                    }
-                    continue
+                    msg_type = decoded.get("id", 0)
+                    mmsi = str(decoded.get("mmsi", ""))
 
-                # --------------------------------------------------
-                # csak pozíciós üzenetek
-                # --------------------------------------------------
-                if msg_type not in [1, 2, 3, 18]:
-                    continue
+                    if not mmsi:
+                        continue
 
-                lat = decoded.get("y")
-                lon = decoded.get("x")
+                    # --------------------------------------------------
+                    # RÁDIÓS NÉV / STATIKUS ADAT (ID5)
+                    # --------------------------------------------------
+                    if msg_type == 5:
+                        ship_name = sanitize_name(decoded.get("name", ""))
+                        if ship_name:
+                            old_name = self.ship_names.get(mmsi, "")
+                            self.ship_names[mmsi] = ship_name
 
-                if lat is None or lon is None:
-                    continue
+                            if old_name != ship_name:
+                                self.save_ship_cache()
+                                print(f"📻 RÁDIÓ NÉV: {mmsi} -> {ship_name}")
 
-                sog = float(decoded.get("sog", 0) or 0)
-                cog = float(decoded.get("cog", 0) or 0)
+                        self.static_ship_data[mmsi] = {
+                            "destination": sanitize_name(
+                                decoded.get("destination", "")
+                            ),
+                            "eta": (
+                                f"{decoded.get('eta_month', 0):02d}."
+                                f"{decoded.get('eta_day', 0):02d} "
+                                f"{decoded.get('eta_hour', 0):02d}:"
+                                f"{decoded.get('eta_minute', 0):02d}"
+                            ),
+                            "callsign": sanitize_name(
+                                decoded.get("callsign", "")
+                            ),
+                            "draught": decoded.get("draught", ""),
+                            "mmsi": mmsi,
+                            "type": decoded.get("ship_type", ""),
+                            "length": (
+                                decoded.get("dim_bow", 0)
+                                + decoded.get("dim_stern", 0)
+                            ),
+                            "width": (
+                                decoded.get("dim_port", 0)
+                                + decoded.get("dim_starboard", 0)
+                            ),
+                        }
+                        continue
 
-                self.process_position(mmsi, lat, lon, sog, cog, "RTL")
+                    # --------------------------------------------------
+                    # csak pozíciós üzenetek
+                    # --------------------------------------------------
+                    if msg_type not in [1, 2, 3, 18]:
+                        continue
 
-            except Exception as e:
-                print("⚠️ RTL hiba:", e)
+                    lat = decoded.get("y")
+                    lon = decoded.get("x")
+
+                    if lat is None or lon is None:
+                        continue
+
+                    sog = float(decoded.get("sog", 0) or 0)
+                    cog = float(decoded.get("cog", 0) or 0)
+
+                    self.process_position(mmsi, lat, lon, sog, cog, "RTL")
+
+                except Exception as e:
+                    print("⚠️ RTL hiba:", e)
+
+            self._disconnect_rtl_client()

@@ -61,6 +61,7 @@ class ObservationSetupWidget(QWidget):
 
         self._picked_lat: float | None = None
         self._picked_lon: float | None = None
+        self._edit_point_id: str | None = None
         self._map_pick_token = 0
         self._map_pick_cancelled = False
 
@@ -74,7 +75,7 @@ class ObservationSetupWidget(QWidget):
 
         self._map_title.setText(tr("Step 1 — Choose location"))
         self._map_help_label.setText(
-            tr("Use the central Map to choose a location.")
+            tr("To create an observation point, choose a location on the map.")
         )
         self._name_title.setText(tr("Step 2 — Observation Point name"))
         self._name_label.setText(tr("Observation Point name"))
@@ -94,8 +95,13 @@ class ObservationSetupWidget(QWidget):
 
         return self._stack.currentIndex()
 
+    def is_editing(self) -> bool:
+
+        return self._edit_point_id is not None
+
     def begin_map_selection(self) -> None:
 
+        self._edit_point_id = None
         self._cancel_pending_map_advance()
         self._map_pick_cancelled = False
         self._picked_lat = None
@@ -103,6 +109,21 @@ class ObservationSetupWidget(QWidget):
         self._stack.setCurrentIndex(_SUBSTEP_MAP)
         self._update_picked_coords_label()
         self._start_map_pick()
+
+    def begin_edit(self, point) -> None:
+
+        self._cancel_pending_map_advance()
+        self._map_pick_cancelled = False
+        self._edit_point_id = point.id
+        self._picked_lat = float(point.latitude)
+        self._picked_lon = float(point.longitude)
+        self._name_input.setText(point.name)
+        self._sync_radius_limits()
+        self._coverage_radius_input.setValue(float(point.coverage_radius_km))
+        self._clear_name_error()
+        self._update_picked_coords_label()
+        self._stack.setCurrentIndex(_SUBSTEP_NAME)
+        self._name_input.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def on_enter(self) -> None:
 
@@ -153,7 +174,15 @@ class ObservationSetupWidget(QWidget):
             return False
 
         if substep == _SUBSTEP_NAME:
-            self.begin_map_selection()
+            if self._edit_point_id:
+                self._cancel_pending_map_advance()
+                self._map_pick_cancelled = False
+                self._stack.setCurrentIndex(_SUBSTEP_MAP)
+                self._update_picked_coords_label()
+                self._start_map_pick()
+            else:
+                self.begin_map_selection()
+
             return False
 
         return True
@@ -191,17 +220,31 @@ class ObservationSetupWidget(QWidget):
                 return False
 
             trace_enter("ObservationSetupWidget.handle_confirm.create")
-            observation_manager.create(
-                name,
-                self._picked_lat,
-                self._picked_lon,
-                coverage_radius_km=coverage_radius_km,
-                set_active=True,
-            )
+            if self._edit_point_id:
+                observation_manager.update(
+                    self._edit_point_id,
+                    name=name,
+                    latitude=self._picked_lat,
+                    longitude=self._picked_lon,
+                    coverage_radius_km=coverage_radius_km,
+                )
+            else:
+                observation_manager.create(
+                    name,
+                    self._picked_lat,
+                    self._picked_lon,
+                    coverage_radius_km=coverage_radius_km,
+                    set_active=True,
+                )
             trace_exit("ObservationSetupWidget.handle_confirm.create")
 
-            if observation_manager.try_consume_multi_op_notice():
+            if (
+                not self._edit_point_id
+                and observation_manager.try_consume_multi_op_notice()
+            ):
                 self._show_multi_op_notice()
+
+            self._edit_point_id = None
 
             return True
 
@@ -322,7 +365,7 @@ class ObservationSetupWidget(QWidget):
         QMessageBox.information(
             self.window(),
             tr("Observation Point Setup"),
-            tr("Use the central Map to choose a location."),
+            tr("To create an observation point, choose a location on the map."),
         )
 
     def _show_multi_op_notice(self) -> None:
@@ -348,7 +391,9 @@ class ObservationSetupWidget(QWidget):
 
         MapController.instance().begin_location_pick(
             self._on_map_location,
-            overlay_message=tr("Use the central Map to choose a location."),
+            overlay_message=tr(
+                "To create an observation point, choose a location on the map."
+            ),
             host=host,
         )
 
@@ -487,9 +532,20 @@ class ObservationWizard(QDialog):
 
         self._setup.begin_map_selection()
 
+    def start_edit(self, point) -> None:
+
+        self._setup.begin_edit(point)
+        self.show()
+        self.raise_()
+        self.activateWindow()
+        self._sync_buttons()
+
     def refresh_translations(self) -> None:
 
-        self.setWindowTitle(tr("Observation Point Setup"))
+        if self._setup.is_editing():
+            self.setWindowTitle(tr("Edit Observation Point"))
+        else:
+            self.setWindowTitle(tr("Observation Point Setup"))
         self._setup.refresh_translations()
         self._back_button.setText(tr("Back"))
         self._next_button.setText(tr("Next"))
