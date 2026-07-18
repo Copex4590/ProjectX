@@ -31,6 +31,8 @@ from gui.alertcenterpage import AlertCenterPage
 from gui.rulespage import RulesPage
 from gui.systemhealthpage import SystemHealthPage
 from gui.eventbridge import EventBridge
+from gui.notifications import AisConnectionMonitor, notification_manager
+from gui.providers import refresh_open_provider_windows
 from camera import camera_manager
 from debug.obs_freeze_trace import trace_slot
 from gui.firstrunwizard import FirstRunWizard
@@ -72,6 +74,8 @@ class MainWindow(QMainWindow):
         self._cancel_pick_shortcut.activated.connect(self._cancel_active_location_pick)
 
         self.event_bridge = EventBridge()
+        notification_manager()
+        self._ais_connection_monitor = AisConnectionMonitor(self.hybrid_engine, self)
         self._connect_event_bridge()
         self._connect_observation()
         self._connect_cameras()
@@ -82,6 +86,10 @@ class MainWindow(QMainWindow):
 
         logger.info("Starting Hybrid Engine")
         self.hybrid_engine.start()
+
+    def _sync_provider_runtime(self, *_args) -> None:
+
+        self.hybrid_engine.sync_enabled_providers()
 
     def _connect_event_bridge(self):
 
@@ -114,6 +122,13 @@ class MainWindow(QMainWindow):
         )
         self.event_bridge.ais_status.connect(
             trace_slot(
+                "MainWindow->AisConnectionMonitor.on_status",
+                self._ais_connection_monitor.on_status,
+            ),
+            connection,
+        )
+        self.event_bridge.ais_status.connect(
+            trace_slot(
                 "MainWindow->DashboardPage.refresh_ais",
                 self.dashboard_page.refresh_ais,
             ),
@@ -134,6 +149,41 @@ class MainWindow(QMainWindow):
             trace_slot(
                 "MainWindow->DashboardPage.refresh_rtl",
                 self.dashboard_page.refresh_rtl,
+            ),
+            connection,
+        )
+        self.event_bridge.providers_changed.connect(
+            trace_slot(
+                "MainWindow->HybridEngine.sync_enabled_providers",
+                self._sync_provider_runtime,
+            ),
+            connection,
+        )
+        self.event_bridge.providers_changed.connect(
+            trace_slot(
+                "MainWindow->DashboardPage.refresh_ais(providers)",
+                self.dashboard_page.refresh_ais,
+            ),
+            connection,
+        )
+        self.event_bridge.providers_changed.connect(
+            trace_slot(
+                "MainWindow->refresh_open_provider_windows",
+                refresh_open_provider_windows,
+            ),
+            connection,
+        )
+        self.event_bridge.ais_status.connect(
+            trace_slot(
+                "MainWindow->refresh_open_provider_windows(ais)",
+                refresh_open_provider_windows,
+            ),
+            connection,
+        )
+        self.event_bridge.rtl_status.connect(
+            trace_slot(
+                "MainWindow->refresh_open_provider_windows(rtl)",
+                refresh_open_provider_windows,
             ),
             connection,
         )

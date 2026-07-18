@@ -387,6 +387,34 @@ class ObservationManager(QObject):
         self.changed.emit()
         return result
 
+    def update(
+        self,
+        point_id: str,
+        *,
+        name: str,
+        latitude: float,
+        longitude: float,
+        coverage_radius_km: float,
+    ) -> ObservationPoint:
+
+        radius = float(coverage_radius_km)
+
+        if radius <= 0:
+            raise ValueError("coverage_radius_km must be positive")
+
+        with self._hold_lock("update"):
+            point = self._require_point(point_id)
+            point.name = str(name).strip() or point.name
+            point.latitude = float(latitude)
+            point.longitude = float(longitude)
+            point.coverage_radius_km = radius
+            point.updated_at = _utc_now()
+            self._write_unlocked()
+            result = deepcopy(point)
+
+        self.changed.emit()
+        return result
+
     def set_coverage_radius(
         self,
         point_id: str,

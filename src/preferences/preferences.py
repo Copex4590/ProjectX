@@ -52,6 +52,8 @@ class Preferences:
     rtl_auto_start_ais_catcher: bool = True
     rtl_setup_os: str = ""
     rtl_setup_completed: bool = False
+    ais_provider_coverage_notice_dismissed: bool = False
+    observation_point_workflow_notice_dismissed: bool = False
     version: int = SCHEMA_VERSION
 
     def to_dict(self) -> dict:
@@ -73,6 +75,12 @@ class Preferences:
             "rtl_auto_start_ais_catcher": self.rtl_auto_start_ais_catcher,
             "rtl_setup_os": self.rtl_setup_os,
             "rtl_setup_completed": self.rtl_setup_completed,
+            "ais_provider_coverage_notice_dismissed": (
+                self.ais_provider_coverage_notice_dismissed
+            ),
+            "observation_point_workflow_notice_dismissed": (
+                self.observation_point_workflow_notice_dismissed
+            ),
         }
 
     @classmethod
@@ -146,6 +154,12 @@ class Preferences:
             ),
             rtl_setup_os=str(data.get("rtl_setup_os", "")).strip().lower(),
             rtl_setup_completed=bool(data.get("rtl_setup_completed", False)),
+            ais_provider_coverage_notice_dismissed=bool(
+                data.get("ais_provider_coverage_notice_dismissed", False)
+            ),
+            observation_point_workflow_notice_dismissed=bool(
+                data.get("observation_point_workflow_notice_dismissed", False)
+            ),
             version=int(data.get("version", SCHEMA_VERSION)),
         )
 
@@ -208,5 +222,7 @@ class Preferences:
         migrated.setdefault("rtl_auto_start_ais_catcher", True)
         migrated.setdefault("rtl_setup_os", "")
         migrated.setdefault("rtl_setup_completed", False)
+        migrated.setdefault("ais_provider_coverage_notice_dismissed", False)
+        migrated.setdefault("observation_point_workflow_notice_dismissed", False)
 
         return migrated

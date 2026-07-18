@@ -25,6 +25,13 @@ from PySide6.QtWidgets import (
 
 from ais import AISSTREAM_REGISTER_URL, ais_manager
 from ais.providers import AISProviderType, normalize_provider_type
+from ais.user_provider_service import (
+    derive_enabled_providers,
+    is_provider_configured,
+    save_aisstream_configuration,
+    save_local_configuration,
+    set_enabled_providers,
+)
 from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
 from gui.i18n_support import bind_language_refresh
 from gui.theme import DANGER, SUCCESS, TEXT_MUTED, wizard_shell_stylesheet
@@ -41,56 +48,6 @@ _PROVIDER_OPTIONS = (
     AISProviderType.MARINE_TRAFFIC,
     AISProviderType.AISHUB,
 )
-
-
-def _derive_enabled_providers(provider: AISProviderType) -> list[str]:
-
-    if provider == AISProviderType.HYBRID:
-        return [
-            AISProviderType.AISSTREAM.value,
-            AISProviderType.LOCAL.value,
-        ]
-
-    if provider == AISProviderType.LATER:
-        return []
-
-    return [provider.value]
-
-
-def _legacy_provider_from_enabled(enabled: set[AISProviderType]) -> str:
-
-    if not enabled:
-        return AISProviderType.LATER.value
-
-    has_stream = AISProviderType.AISSTREAM in enabled
-    has_local = AISProviderType.LOCAL in enabled
-
-    if has_stream and has_local:
-        return AISProviderType.HYBRID.value
-
-    if has_local:
-        return AISProviderType.LOCAL.value
-
-    if has_stream:
-        return AISProviderType.AISSTREAM.value
-
-    return AISProviderType.LATER.value
-
-
-def _is_provider_configured(provider: AISProviderType) -> bool:
-
-    preferences = preferences_manager.get()
-
-    if provider == AISProviderType.AISSTREAM:
-        return bool(preferences.aisstream_api_key.strip())
-
-    if provider == AISProviderType.LOCAL:
-        return bool(preferences.rtl_sdr_configured)
-
-    if provider in (AISProviderType.MARINE_TRAFFIC, AISProviderType.AISHUB):
-        return False
-
-    return False
 
 
 def _configuration_prompt(provider: AISProviderType) -> str:
@@ -409,7 +366,7 @@ class AISSetupWidget(QWidget):
         enabled_values = preferences.ais_enabled_providers
 
         if enabled_values is None:
-            enabled_values = _derive_enabled_providers(
+            enabled_values = derive_enabled_providers(
                 normalize_provider_type(preferences.ais_provider)
             )
 
@@ -438,17 +395,7 @@ class AISSetupWidget(QWidget):
 
     def _save_enabled_providers(self, enabled: set[AISProviderType]) -> None:
 
-        legacy_provider = _legacy_provider_from_enabled(enabled)
-        preferences_manager.set_ais_enabled_providers(
-            [provider.value for provider in enabled],
-            legacy_provider=legacy_provider,
-        )
-
-        if not enabled:
-            ais_manager.save_configuration(
-                provider_type=AISProviderType.LATER.value,
-                configured=False,
-            )
+        set_enabled_providers(enabled)
 
     def _unconfigured_enabled_providers(
         self,
@@ -458,7 +405,7 @@ class AISSetupWidget(QWidget):
         return [
             provider
             for provider in _PROVIDER_OPTIONS
-            if provider in enabled and not _is_provider_configured(provider)
+            if provider in enabled and not is_provider_configured(provider)
         ]
 
     def _prompt_configure_provider(self, provider: AISProviderType) -> bool:
@@ -591,21 +538,13 @@ class AISSetupWidget(QWidget):
 
     def _save_aisstream_configuration(self) -> None:
 
-        ais_manager.save_configuration(
-            provider_type=AISProviderType.AISSTREAM.value,
-            api_key=self._api_key_input.text().strip(),
-            host=AIS_CATCHER_HOST,
-            port=AIS_CATCHER_PORT,
-            configured=True,
-        )
+        save_aisstream_configuration(self._api_key_input.text().strip())
 
     def _save_local_configuration(self) -> None:
 
-        ais_manager.save_configuration(
-            provider_type=AISProviderType.LOCAL.value,
+        save_local_configuration(
             host=self._host_input.text().strip(),
             port=self._port_input.value(),
-            configured=bool(preferences_manager.get().rtl_sdr_configured),
         )
 
 
