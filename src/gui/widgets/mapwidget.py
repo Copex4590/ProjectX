@@ -70,6 +70,7 @@ class MapWidget(QWebEngineView):
         self._pick_overlay_message = ""
         self._pick_enabled = False
         self._page_ready = False
+        self._pending_ships_payload: str | None = None
 
     def set_observation_points(self, points: list[dict]) -> None:
 
@@ -206,6 +207,8 @@ class MapWidget(QWebEngineView):
         else:
             self._apply_observation_points()
 
+        self._flush_pending_ships()
+
     def _apply_location_pick(self) -> None:
 
         if not self._page_ready:
@@ -265,12 +268,24 @@ class MapWidget(QWebEngineView):
     def update_ships(self, payload: str):
 
         with trace_block(f"MapWidget.update_ships bytes={len(payload)}"):
+            self._pending_ships_payload = payload
+
             if not self._page_ready:
+                trace_event("MapWidget.update_ships deferred page_not_ready")
                 return
 
-            trace_enter("MapWidget.update_ships.runJavaScript")
-            self._run_js(f"updateShips({payload});")
-            trace_exit("MapWidget.update_ships.runJavaScript")
+            self._flush_pending_ships()
+
+    def _flush_pending_ships(self) -> None:
+
+        if not self._page_ready or self._pending_ships_payload is None:
+            return
+
+        payload = self._pending_ships_payload
+
+        trace_enter("MapWidget.update_ships.runJavaScript")
+        self._run_js(f"updateShips({payload});")
+        trace_exit("MapWidget.update_ships.runJavaScript")
 
     def _run_js(self, script: str) -> None:
 

@@ -13,16 +13,16 @@ class ThemeColors:
     Background = "#1d2127"
     Panel = "#252a31"
     PanelHover = "#3b434d"
-    Border = "#3d4a5c"
-    BorderActive = "#4a6fa0"
+    Border = "#3c435d"
+    BorderActive = "#485da2"
 
-    # --- Primary scale (muted blue-gray) --------------------------------------
+    # --- Primary scale (muted steel blue) -------------------------------------
 
-    Primary900 = "#243651"
-    Primary700 = "#2d4a6f"
-    Primary500 = "#4a6fa0"
-    Primary300 = "#6d8fb3"
-    Primary100 = "#9eb3c9"
+    Primary900 = "#232c52"
+    Primary700 = "#2b3c71"
+    Primary500 = "#485da2"
+    Primary300 = "#6b80b5"
+    Primary100 = "#9daaca"
 
     # --- Text -----------------------------------------------------------------
 
@@ -39,13 +39,13 @@ class ThemeColors:
     def primary_hover(cls) -> str:
         """Primary action / button hover."""
 
-        return "#3d5f85"
+        return "#3b5087"
 
     @classmethod
     def primary_active(cls) -> str:
         """Primary action / button pressed."""
 
-        return "#355472"
+        return "#334774"
 
     @classmethod
     def nav_active_background(cls) -> str:
@@ -57,7 +57,7 @@ class ThemeColors:
     def panel_header(cls) -> str:
         """Table headers and elevated panel chrome."""
 
-        return "#2a3548"
+        return "#292f49"
 
     @classmethod
     def panel_elevated(cls) -> str:

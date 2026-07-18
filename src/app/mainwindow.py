@@ -101,6 +101,13 @@ class MainWindow(QMainWindow):
             ),
             connection,
         )
+        self.event_bridge.ship_updated.connect(
+            trace_slot(
+                "MainWindow->MapPage.on_ship_updated",
+                self.map_page.on_ship_updated,
+            ),
+            connection,
+        )
         self.event_bridge.ais_status.connect(
             self.connection_panel.on_ais_status,
             connection,
@@ -139,6 +146,13 @@ class MainWindow(QMainWindow):
             trace_slot(
                 "MainWindow->DashboardPage.refresh_observation",
                 self.dashboard_page.refresh_observation,
+            ),
+            connection,
+        )
+        observation_manager.changed.connect(
+            trace_slot(
+                "MainWindow->HybridEngine.on_observation_changed",
+                self.hybrid_engine.on_observation_changed,
             ),
             connection,
         )

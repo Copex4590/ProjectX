@@ -17,17 +17,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ais import ais_manager
-from ais.providers import AISProviderType, normalize_provider_type
 from camera import camera_manager
-from database import registry
 from debug.obs_freeze_trace import (
     begin_delete_trace_session,
     trace_block,
     trace_enter,
     trace_exit,
 )
-from gui.aiswizard import AISWizard
 from gui.camerawizard import CameraWizard
 from gui.i18n_support import bind_language_refresh
 from gui.mapcontroller import MapController
@@ -46,8 +42,6 @@ from gui.theme import (
     dashboard_card_stylesheet,
     dashboard_dialog_stylesheet,
     dashboard_embed_settings_stylesheet,
-    dashboard_info_card_title_stylesheet,
-    dashboard_info_card_value_stylesheet,
     dashboard_inset_stylesheet,
     dashboard_page_title_stylesheet,
     dashboard_section_title_stylesheet,
@@ -82,43 +76,6 @@ _LAYOUT_LABELS = {
     "detailed": "Detailed",
     "media": "Media",
 }
-
-_PROVIDER_DISPLAY_ORDER = (
-    AISProviderType.AISSTREAM,
-    AISProviderType.LOCAL,
-    AISProviderType.MARINE_TRAFFIC,
-    AISProviderType.AISHUB,
-)
-
-
-class InfoCard(QFrame):
-    def __init__(self, title_key: str):
-
-        super().__init__()
-
-        self._title_key = title_key
-
-        self.setStyleSheet(_CARD_STYLE)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(
-            DASHBOARD_CARD_PADDING,
-            DASHBOARD_CARD_PADDING,
-            DASHBOARD_CARD_PADDING,
-            DASHBOARD_CARD_PADDING,
-        )
-        layout.setSpacing(DASHBOARD_SECTION_SPACING)
-
-        self.title = QLabel(tr(title_key))
-        self.title.setAlignment(Qt.AlignCenter)
-        self.title.setStyleSheet(dashboard_info_card_title_stylesheet())
-
-        self.value = QLabel(tr("Not available"))
-        self.value.setAlignment(Qt.AlignCenter)
-        self.value.setStyleSheet(dashboard_info_card_value_stylesheet())
-
-        layout.addWidget(self.title)
-        layout.addWidget(self.value)
 
 
 class _RenameDialog(QDialog):
@@ -201,7 +158,7 @@ class DashboardPage(QWidget):
             DASHBOARD_MARGIN,
             DASHBOARD_MARGIN,
         )
-        layout.setSpacing(DASHBOARD_SPACING)
+        layout.setSpacing(20)
 
         self._title_label = QLabel(tr("Dashboard"))
         self._title_label.setAlignment(Qt.AlignCenter)
@@ -213,27 +170,13 @@ class DashboardPage(QWidget):
         self._subtitle_label.setStyleSheet(dashboard_subtitle_stylesheet())
         layout.addWidget(self._subtitle_label)
 
-        summary_grid = QGridLayout()
-        summary_grid.setSpacing(DASHBOARD_SPACING)
-
-        self.ships = InfoCard("Ships")
-        self.ais = InfoCard("AIS")
-        self.last = InfoCard("Last Ship")
-
-        self.ais.value.setText(tr("Disconnected"))
-
-        summary_grid.addWidget(self.ships, 0, 0)
-        summary_grid.addWidget(self.ais, 0, 1)
-        summary_grid.addWidget(self.last, 0, 2)
-        layout.addLayout(summary_grid)
-
         columns = QHBoxLayout()
-        columns.setSpacing(DASHBOARD_SPACING)
+        columns.setSpacing(20)
 
         left_column = QVBoxLayout()
-        left_column.setSpacing(DASHBOARD_SPACING)
+        left_column.setSpacing(20)
         right_column = QVBoxLayout()
-        right_column.setSpacing(DASHBOARD_SPACING)
+        right_column.setSpacing(20)
 
         self._observation_card = QFrame()
         self._observation_card.setStyleSheet(_CARD_STYLE)
@@ -264,12 +207,15 @@ class DashboardPage(QWidget):
         self._name_value = QLabel()
         self._coords_caption = QLabel()
         self._coords_value = QLabel()
+        self._radius_caption = QLabel()
+        self._radius_value = QLabel()
         self._status_caption = QLabel()
         self._status_value = QLabel()
 
         for caption in (
             self._name_caption,
             self._coords_caption,
+            self._radius_caption,
             self._status_caption,
         ):
             caption.setStyleSheet(dashboard_caption_stylesheet())
@@ -277,6 +223,7 @@ class DashboardPage(QWidget):
         for value in (
             self._name_value,
             self._coords_value,
+            self._radius_value,
             self._status_value,
         ):
             value.setStyleSheet(dashboard_value_stylesheet())
@@ -286,8 +233,10 @@ class DashboardPage(QWidget):
         info_grid.addWidget(self._name_value, 0, 1)
         info_grid.addWidget(self._coords_caption, 1, 0)
         info_grid.addWidget(self._coords_value, 1, 1)
-        info_grid.addWidget(self._status_caption, 2, 0)
-        info_grid.addWidget(self._status_value, 2, 1)
+        info_grid.addWidget(self._radius_caption, 2, 0)
+        info_grid.addWidget(self._radius_value, 2, 1)
+        info_grid.addWidget(self._status_caption, 3, 0)
+        info_grid.addWidget(self._status_value, 3, 1)
         observation_layout.addLayout(info_grid)
 
         selector_row = QHBoxLayout()
@@ -375,81 +324,14 @@ class DashboardPage(QWidget):
         self._import_logbook_button.setStyleSheet(_BUTTON_STYLE)
         logbook_layout.addWidget(self._import_logbook_button)
 
-        self._ais_card = QFrame()
-        self._ais_card.setStyleSheet(_CARD_STYLE)
-        ais_layout = QVBoxLayout(self._ais_card)
-        ais_layout.setContentsMargins(
-            DASHBOARD_CARD_PADDING,
-            DASHBOARD_CARD_PADDING,
-            DASHBOARD_CARD_PADDING,
-            DASHBOARD_CARD_PADDING,
-        )
-        ais_layout.setSpacing(DASHBOARD_SECTION_SPACING)
-
-        self._ais_title = QLabel()
-        self._ais_title.setStyleSheet(dashboard_section_title_stylesheet())
-        ais_layout.addWidget(self._ais_title)
-
-        ais_grid = QGridLayout()
-        ais_grid.setVerticalSpacing(10)
-        ais_grid.setHorizontalSpacing(12)
-        self._ais_provider_caption = QLabel()
-        self._ais_provider_value = QLabel()
-        self._ais_config_caption = QLabel()
-        self._ais_config_value = QLabel()
-        self._ais_connection_caption = QLabel()
-        self._ais_connection_value = QLabel()
-
-        for caption in (
-            self._ais_provider_caption,
-            self._ais_config_caption,
-            self._ais_connection_caption,
-        ):
-            caption.setStyleSheet(dashboard_caption_stylesheet())
-
-        for value in (
-            self._ais_provider_value,
-            self._ais_config_value,
-            self._ais_connection_value,
-        ):
-            value.setStyleSheet(dashboard_value_stylesheet())
-            value.setWordWrap(True)
-
-        ais_grid.addWidget(self._ais_provider_caption, 0, 0)
-        ais_grid.addWidget(self._ais_provider_value, 0, 1)
-        ais_grid.addWidget(self._ais_config_caption, 1, 0)
-        ais_grid.addWidget(self._ais_config_value, 1, 1)
-        ais_grid.addWidget(self._ais_connection_caption, 2, 0)
-        ais_grid.addWidget(self._ais_connection_value, 2, 1)
-        ais_layout.addLayout(ais_grid)
-
-        ais_button_row = QHBoxLayout()
-        ais_button_row.setSpacing(DASHBOARD_BUTTON_ROW_SPACING)
-
-        self._ais_configure_button = QPushButton()
-        self._ais_test_button = QPushButton()
-        self._ais_change_button = QPushButton()
-
-        for button in (
-            self._ais_configure_button,
-            self._ais_test_button,
-            self._ais_change_button,
-        ):
-            button.setStyleSheet(_BUTTON_STYLE)
-
-        ais_button_row.addWidget(self._ais_configure_button)
-        ais_button_row.addWidget(self._ais_test_button)
-        ais_button_row.addWidget(self._ais_change_button)
-        ais_button_row.addStretch()
-        ais_layout.addLayout(ais_button_row)
-
         self._providers_section = AISProvidersSection()
 
-        left_column.addWidget(self._ais_card)
         left_column.addWidget(self._providers_section)
         left_column.addWidget(self._logbook_card)
         right_column.addWidget(self._observation_card)
         right_column.addWidget(self._cameras_card)
+        left_column.addStretch()
+        right_column.addStretch()
         columns.addLayout(left_column, 1)
         columns.addLayout(right_column, 1)
         layout.addLayout(columns)
@@ -549,15 +431,11 @@ class DashboardPage(QWidget):
                 "Cameras help — body",
             )
         )
-        self._ais_configure_button.clicked.connect(self._configure_ais)
-        self._ais_test_button.clicked.connect(self._test_ais)
-        self._ais_change_button.clicked.connect(self._change_ais)
 
         bind_language_refresh(self.refresh_translations)
 
         self.refresh_translations()
         self.refresh_configuration()
-        self.update_dashboard()
         self.refresh_observation()
         self.refresh_cameras()
 
@@ -587,9 +465,6 @@ class DashboardPage(QWidget):
 
         self._title_label.setText(tr("Dashboard"))
         self._subtitle_label.setText(tr("Operational control center"))
-        self.ships.title.setText(tr("Ships"))
-        self.ais.title.setText(tr("AIS"))
-        self.last.title.setText(tr("Last Ship"))
 
         self._observation_title.setText(tr("Observation Point"))
         self._observation_map_hint.setText(
@@ -597,6 +472,7 @@ class DashboardPage(QWidget):
         )
         self._name_caption.setText(tr("Name"))
         self._coords_caption.setText(tr("Coordinates"))
+        self._radius_caption.setText(tr("Observation radius (km)"))
         self._status_caption.setText(tr("Status"))
         self._point_selector_label.setText(tr("Observation Point"))
 
@@ -610,21 +486,12 @@ class DashboardPage(QWidget):
         self._add_camera_button.setText(tr("Add Camera"))
         self._logbook_title.setText(tr("Vessel Logbook"))
         self._import_logbook_button.setText(tr("Import Legacy Logbook"))
-        self._ais_title.setText(tr("AIS Providers"))
-        self._ais_provider_caption.setText(tr("Mode"))
-        self._ais_config_caption.setText(tr("Providers"))
-        self._ais_connection_caption.setText(tr("Connection"))
-        self._ais_configure_button.setText(tr("Configure"))
-        self._ais_test_button.setText(tr("Test"))
-        self._ais_change_button.setText(tr("Change"))
         self._configuration_title.setText(tr("Configuration"))
 
         self._create_button.setToolTip(tr("Create a new observation point"))
         self._add_camera_button.setToolTip(
             tr("Add a camera to the active observation point")
         )
-        self._ais_configure_button.setToolTip(tr("Configure AIS providers"))
-        self._ais_test_button.setToolTip(tr("Test AIS connection"))
 
         self._refresh_configuration_labels()
         self.refresh_observation()
@@ -652,12 +519,14 @@ class DashboardPage(QWidget):
                 self._coords_value.setText(
                     f"{active.latitude:.5f}, {active.longitude:.5f}"
                 )
+                self._radius_value.setText(f"{active.coverage_radius_km:.1f}")
                 self._status_value.setText(tr("Active"))
                 self._status_value.setStyleSheet(dashboard_value_success_stylesheet())
                 has_point = True
             else:
                 self._name_value.setText(tr("No observation point"))
                 self._coords_value.setText(tr("Not available"))
+                self._radius_value.setText(tr("Not available"))
                 self._status_value.setText(tr("Not configured"))
                 self._status_value.setStyleSheet(dashboard_value_muted_stylesheet())
                 has_point = False
@@ -736,150 +605,9 @@ class DashboardPage(QWidget):
                 self._cameras_list.addWidget(row_widget)
             trace_exit("DashboardPage.refresh_cameras.build_rows")
 
-    def _enabled_ais_providers(self) -> list[AISProviderType]:
-
-        preferences = preferences_manager.get()
-        enabled_values = preferences.ais_enabled_providers
-
-        if enabled_values is None:
-            provider = normalize_provider_type(preferences.ais_provider)
-
-            if provider == AISProviderType.HYBRID:
-                return [
-                    AISProviderType.AISSTREAM,
-                    AISProviderType.LOCAL,
-                ]
-
-            if provider == AISProviderType.LATER:
-                return []
-
-            return [provider]
-
-        return [normalize_provider_type(value) for value in enabled_values]
-
-    @staticmethod
-    def _provider_connection_status(provider: AISProviderType) -> str:
-
-        if provider == AISProviderType.AISSTREAM:
-            return ais_manager.ais_connection_status()
-
-        if provider == AISProviderType.LOCAL:
-            return ais_manager.rtl_connection_status()
-
-        return "offline"
-
-    def _ais_dashboard_connected(self) -> bool:
-
-        enabled = self._enabled_ais_providers()
-
-        if not enabled:
-            return False
-
-        return any(
-            self._provider_connection_status(provider) == "connected"
-            for provider in enabled
-        )
-
-    @staticmethod
-    def _provider_display_label(provider: AISProviderType) -> str:
-
-        if provider == AISProviderType.AISSTREAM:
-            return tr("AISStream")
-
-        if provider == AISProviderType.LOCAL:
-            return tr("RTL-SDR")
-
-        if provider == AISProviderType.MARINE_TRAFFIC:
-            return tr("MarineTraffic")
-
-        if provider == AISProviderType.AISHUB:
-            return tr("AISHub")
-
-        return provider.value
-
-    def _ais_mode_label(self, enabled_count: int) -> str:
-
-        if enabled_count <= 0:
-            return tr("Not configured")
-
-        if enabled_count == 1:
-            return tr("Single Provider")
-
-        if enabled_count == 2:
-            return tr("Hybrid")
-
-        return tr("Multi Provider")
-
-    def _ais_providers_display(self, enabled: list[AISProviderType]) -> str:
-
-        if not enabled:
-            return tr("None")
-
-        enabled_set = set(enabled)
-        labels = [
-            self._provider_display_label(provider)
-            for provider in _PROVIDER_DISPLAY_ORDER
-            if provider in enabled_set
-        ]
-        return "\n".join(labels)
-
     def refresh_ais(self, *_) -> None:
 
-        enabled = self._enabled_ais_providers()
-
-        self._ais_provider_value.setText(self._ais_mode_label(len(enabled)))
-        self._ais_config_value.setText(self._ais_providers_display(enabled))
-        self._ais_config_value.setStyleSheet(dashboard_value_stylesheet())
-
-        if self._ais_dashboard_connected():
-            self._ais_connection_value.setText(tr("Connected"))
-            self._ais_connection_value.setStyleSheet(dashboard_value_success_stylesheet())
-            self.ais.value.setText(tr("Connected"))
-        else:
-            self._ais_connection_value.setText(tr("Disconnected"))
-            self._ais_connection_value.setStyleSheet(dashboard_value_muted_stylesheet())
-            self.ais.value.setText(tr("Disconnected"))
-
         self._providers_section.refresh()
-
-    def _configure_ais(self) -> None:
-
-        wizard = AISWizard(self)
-
-        if wizard.exec() == QDialog.DialogCode.Accepted:
-            self.refresh_ais()
-        else:
-            self._providers_section.refresh()
-
-    def _change_ais(self) -> None:
-
-        self._configure_ais()
-
-    def _test_ais(self) -> None:
-
-        if not ais_manager.is_configured():
-            QMessageBox.information(
-                self,
-                tr("AIS Providers"),
-                tr("AIS source is not configured yet."),
-            )
-            return
-
-        result = ais_manager.test_current()
-
-        if result.success:
-            QMessageBox.information(
-                self,
-                tr("AIS Providers"),
-                f"✓ {tr(result.message)}",
-            )
-            return
-
-        QMessageBox.warning(
-            self,
-            tr("AIS Providers"),
-            tr(result.message),
-        )
 
     def refresh_rtl(self, *_) -> None:
 
@@ -1232,29 +960,9 @@ class DashboardPage(QWidget):
         preferences_manager.set_vessel_card_layout(layout_name)
         self.personalization_changed.emit()
 
-    def update_dashboard(self):
-
-        ships = registry.all()
-
-        self.ships.value.setText(str(len(ships)))
-
-        if ships:
-            self.last.value.setText(ships[-1].name)
-        else:
-            self.last.value.setText(tr("Not available"))
-
     def on_ship_updated(self):
 
         with trace_block("DashboardPage.on_ship_updated"):
-            ships = registry.all()
-
-            self.ships.value.setText(str(len(ships)))
-
-            if ships:
-                self.last.value.setText(ships[-1].name)
-            else:
-                self.last.value.setText(tr("Not available"))
-
             trace_enter("DashboardPage.on_ship_updated.refresh_ais")
             self.refresh_ais()
             trace_exit("DashboardPage.on_ship_updated.refresh_ais")

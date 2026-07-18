@@ -1,5 +1,5 @@
 {
-  "Dashboard": "Dashboard",
+  "Dashboard": "Control Panel",
   "Live Map": "Live Map",
   "Vessels": "Vessels",
   "Cameras": "Cameras",
@@ -386,7 +386,10 @@
   "Single Provider": "Single Provider",
   "Multi Provider": "Multi Provider",
   "None": "None",
-  "➕ New provider...": "➕ New provider...",
+  "+ New provider...": "+ New provider...",
+  "No AIS providers added.": "No AIS providers added.",
+  "To get started, choose \"+ New provider...\".": "To get started, choose \"+ New provider...\".",
+  "Open": "Open",
   "Provider information": "Provider information",
   "Connection status": "Connection status",
   "Internet AIS": "Internet AIS",

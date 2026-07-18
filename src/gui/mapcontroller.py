@@ -126,6 +126,8 @@ class MapController(QObject):
     def on_map_page_visible(self) -> None:
 
         with trace_block("MapController.on_map_page_visible"):
+            self.clear_stale_pick_mode()
+
             if self._pick_mode != PickMode.LOCATION:
                 return
 
@@ -183,6 +185,19 @@ class MapController(QObject):
 
         return self._pick_mode
 
+    def clear_stale_pick_mode(self) -> None:
+
+        if self._pick_mode != PickMode.LOCATION:
+            return
+
+        if self._location_pick_callback is not None:
+            return
+
+        trace_event(
+            "MapController.clear_stale_pick_mode orphaned PickMode.LOCATION"
+        )
+        self.cancel_pick_mode(restore_host=False)
+
     def refresh_observation_points(self) -> None:
 
         with trace_block("MapController.refresh_observation_points"):
@@ -190,18 +205,25 @@ class MapController(QObject):
             points = observation_manager.all()
             trace_exit("MapController.refresh_observation_points.observation_manager.all")
 
+            trace_enter("MapController.refresh_observation_points.observation_manager.reference")
+            reference = observation_manager.reference()
+            reference_id = reference.id if reference else None
+            trace_exit("MapController.refresh_observation_points.observation_manager.reference")
+
+            def _point_payload(point) -> dict:
+                return {
+                    "id": point.id,
+                    "name": point.name,
+                    "lat": point.latitude,
+                    "lon": point.longitude,
+                    "active": point.active,
+                    "reference": point.id == reference_id,
+                    "coverage_radius_km": point.coverage_radius_km,
+                }
+
             if self._pick_mode == PickMode.LOCATION:
                 if points:
-                    payload = [
-                        {
-                            "id": point.id,
-                            "name": point.name,
-                            "lat": point.latitude,
-                            "lon": point.longitude,
-                            "active": point.active,
-                        }
-                        for point in points
-                    ]
+                    payload = [_point_payload(point) for point in points]
                     self._widget.set_observation_points(payload)
                 return
 
@@ -214,16 +236,7 @@ class MapController(QObject):
                 return
 
             trace_enter("MapController.refresh_observation_points.build_payload")
-            payload = [
-                {
-                    "id": point.id,
-                    "name": point.name,
-                    "lat": point.latitude,
-                    "lon": point.longitude,
-                    "active": point.active,
-                }
-                for point in points
-            ]
+            payload = [_point_payload(point) for point in points]
             trace_exit("MapController.refresh_observation_points.build_payload")
 
             trace_enter("MapController.refresh_observation_points.set_observation_points")

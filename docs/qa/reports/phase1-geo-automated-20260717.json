@@ -1,0 +1,30 @@
+{
+  "phase": "1-geo",
+  "passed": true,
+  "checks": [
+    {
+      "id": "A-05",
+      "title": "GeoContext initialization",
+      "passed": true,
+      "detail": "observation.geo_context module and singleton load correctly"
+    },
+    {
+      "id": "A-04",
+      "title": "Reference observation point + GeoContext behaviour",
+      "passed": true,
+      "detail": "reference=Huelva QA; near=0.111 km; far=2405.4 km; purge_removed=1"
+    },
+    {
+      "id": "A-05d",
+      "title": "coords.py and duna_format delegate to GeoContext",
+      "passed": true,
+      "detail": "no duplicate flat-earth implementation in active helpers"
+    },
+    {
+      "id": "A-11",
+      "title": "No hidden runtime fallback coordinates",
+      "passed": true,
+      "detail": "No forbidden patterns in active runtime paths"
+    }
+  ]
+}

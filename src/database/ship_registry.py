@@ -7,8 +7,24 @@ from threading import Lock
 
 from database.vessel_sync import vessel_sync
 from engines.timeline.arrival_departure_engine import arrival_departure_engine
+from logbook.duna_format import get_direction, get_heading
 from models.ship import Ship
+from observation.geo_context import geo_context
 from timeline.timeline_recorder import timeline_recorder
+
+
+def _apply_observation_distance(ship: Ship) -> None:
+
+    observation = geo_context.ship_observation_fields(ship.lat, ship.lon)
+    distance = observation.get("distance_km")
+
+    if distance is None:
+        return
+
+    direction = get_direction(ship.lat)
+    ship.distance_km = distance
+    ship.direction = direction
+    ship.text_heading = get_heading(ship.course, ship.speed, direction)
 
 
 class ShipRegistry:
@@ -20,6 +36,8 @@ class ShipRegistry:
         self._lock = Lock()
 
     def add(self, ship: Ship):
+
+        _apply_observation_distance(ship)
 
         with self._lock:
 
@@ -89,6 +107,20 @@ class ShipRegistry:
 
         with self._lock:
             self._ships.clear()
+
+    def purge_outside_reference_coverage(self) -> int:
+
+        with self._lock:
+            stale_mmsis = [
+                mmsi
+                for mmsi, ship in self._ships.items()
+                if not geo_context.is_within_coverage(ship.lat, ship.lon)
+            ]
+
+            for mmsi in stale_mmsis:
+                self._ships.pop(mmsi, None)
+
+            return len(stale_mmsis)
 
     def names(self):
 
