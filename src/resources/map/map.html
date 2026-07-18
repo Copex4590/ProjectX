@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <title>Project X Map</title>
 
+    <link rel="stylesheet" href="leaflet/leaflet.css">
     <link rel="stylesheet" href="../theme/colors.css">
     <script src="leaflet/leaflet.js"></script>
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
@@ -488,6 +489,7 @@ function attachLogbookHandlers(popupElement)
 
 initBridge();
 const observationMarkers = {};
+const observationCircles = {};
 let pickEnabled = false;
 let pickMarker = null;
 let pickOverlayVisible = false;
@@ -609,14 +611,58 @@ function clearObservationPoints(message)
         delete observationMarkers[pointId];
     }
 
+    for (const pointId in observationCircles)
+    {
+        map.removeLayer(observationCircles[pointId]);
+        delete observationCircles[pointId];
+    }
+
     resetMapToWorldView();
     showEmptyOverlay(message || "");
+}
+
+function updateReferenceCoverageCircle(point)
+{
+    const pointId = String(point.id);
+    const position = [point.lat, point.lon];
+    const radiusMeters = Number(point.coverage_radius_km) * 1000.0;
+
+    if (!point.reference || !Number.isFinite(radiusMeters) || radiusMeters <= 0)
+    {
+        if (observationCircles[pointId])
+        {
+            map.removeLayer(observationCircles[pointId]);
+            delete observationCircles[pointId];
+        }
+
+        return null;
+    }
+
+    if (!observationCircles[pointId])
+    {
+        observationCircles[pointId] = L.circle(position, {
+            radius: radiusMeters,
+            color: "var(--px-primary-500)",
+            weight: 1.5,
+            fillColor: "var(--px-primary-500)",
+            fillOpacity: 0.08,
+            interactive: false
+        }).addTo(map);
+    }
+    else
+    {
+        observationCircles[pointId].setLatLng(position);
+        observationCircles[pointId].setRadius(radiusMeters);
+    }
+
+    return observationCircles[pointId];
 }
 
 function updateObservationPoints(points)
 {
     const activeIds = new Set();
     const preservePickOverlay = pickEnabled;
+    let referenceCircle = null;
 
     if (!preservePickOverlay)
         showEmptyOverlay("");
@@ -641,6 +687,11 @@ function updateObservationPoints(points)
                 observationIcon(!!point.active)
             );
         }
+
+        const circle = updateReferenceCoverageCircle(point);
+
+        if (circle)
+            referenceCircle = circle;
     }
 
     for (const pointId in observationMarkers)
@@ -649,6 +700,15 @@ function updateObservationPoints(points)
         {
             map.removeLayer(observationMarkers[pointId]);
             delete observationMarkers[pointId];
+        }
+    }
+
+    for (const pointId in observationCircles)
+    {
+        if (!activeIds.has(pointId))
+        {
+            map.removeLayer(observationCircles[pointId]);
+            delete observationCircles[pointId];
         }
     }
 
@@ -661,10 +721,22 @@ function updateObservationPoints(points)
         return;
     }
 
-    if (points.length === 1)
+    const focusPoint = points.find(point => point.reference) || points[0];
+
+    if (referenceCircle)
+    {
+        map.fitBounds(referenceCircle.getBounds(), {
+            animate: false,
+            padding: [48, 48],
+            maxZoom: 12
+        });
+        return;
+    }
+
+    if (focusPoint)
     {
         map.setView(
-            [points[0].lat, points[0].lon],
+            [focusPoint.lat, focusPoint.lon],
             Math.max(map.getZoom(), 11),
             { animate: false }
         );
@@ -901,7 +973,7 @@ function updateShips(list)
     for (const ship of list)
     {
         const mmsi = ship.mmsi;
-        active.add(mmsi);
+        active.add(Number(mmsi));
 
         const pos = [ship.lat, ship.lon];
 

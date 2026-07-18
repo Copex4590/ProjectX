@@ -242,13 +242,12 @@ class AISSetupWidget(QWidget):
         if self.substep_index() != _SUBSTEP_CONFIGURE:
             return False
 
+        if self._test_worker is not None and self._test_worker.isRunning():
+            return False
+
         if self._selected_provider == AISProviderType.AISSTREAM:
             if not self._api_key_input.text().strip():
                 return False
-
-            if not self._last_test_success:
-                if not self._run_aisstream_test(wait=True):
-                    return False
 
             self._save_aisstream_configuration()
         elif self._selected_provider == AISProviderType.LOCAL:
@@ -464,7 +463,7 @@ class AISSetupWidget(QWidget):
 
     def _prompt_configure_provider(self, provider: AISProviderType) -> bool:
 
-        dialog = QMessageBox(self.window())
+        dialog = QMessageBox(self)
         dialog.setIcon(QMessageBox.Icon.Information)
         dialog.setWindowTitle(tr("AIS Providers"))
         dialog.setText(_configuration_prompt(provider))
@@ -518,30 +517,15 @@ class AISSetupWidget(QWidget):
         enabled = self._enabled_providers()
         self._save_enabled_providers(enabled)
 
+        if after_configure:
+            return True
+
         pending = self._unconfigured_enabled_providers(enabled)
         pending = [
             provider
             for provider in pending
             if provider not in self._configure_dismissed
         ]
-
-        if after_configure and self._selected_provider in enabled:
-            if _is_provider_configured(self._selected_provider):
-                pending = [
-                    provider
-                    for provider in pending
-                    if provider != self._selected_provider
-                ]
-            elif self._selected_provider in (
-                AISProviderType.MARINE_TRAFFIC,
-                AISProviderType.AISHUB,
-            ):
-                self._configure_dismissed.add(self._selected_provider)
-                pending = [
-                    provider
-                    for provider in pending
-                    if provider != self._selected_provider
-                ]
 
         while pending:
             next_provider = pending[0]
@@ -572,15 +556,12 @@ class AISSetupWidget(QWidget):
         if self._selected_provider != AISProviderType.AISSTREAM:
             return
 
-        self._run_aisstream_test(wait=False)
+        self._run_aisstream_test()
 
-    def _run_aisstream_test(self, *, wait: bool) -> bool:
+    def _run_aisstream_test(self) -> bool:
 
         if self._test_worker is not None and self._test_worker.isRunning():
-            if wait:
-                self._test_worker.wait()
-            else:
-                return False
+            return False
 
         provider_type = AISProviderType.AISSTREAM.value
         api_key = self._api_key_input.text().strip()
@@ -594,18 +575,6 @@ class AISSetupWidget(QWidget):
             AIS_CATCHER_PORT,
             self,
         )
-
-        if wait:
-            self._test_worker.run()
-            self._test_button.setEnabled(True)
-            result = self._test_worker.result
-
-            if result is not None and result.success:
-                self._last_test_success = True
-                self._save_aisstream_configuration()
-                return True
-
-            return False
 
         self._test_worker.finished.connect(self._on_test_finished)
         self._test_worker.start()

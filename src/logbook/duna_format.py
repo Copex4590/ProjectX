@@ -5,10 +5,9 @@
 
 from __future__ import annotations
 
-import math
 from datetime import datetime
 
-from observation.coords import fallback_coordinates
+from observation.geo_context import geo_context
 
 
 def sanitize_name(name: str | int | None) -> str:
@@ -27,20 +26,17 @@ def format_timestamp(when: datetime | None = None) -> str:
 
 def calc_distance_km(lat: float, lon: float) -> float:
 
-    coords = fallback_coordinates()
+    distance = geo_context.distance_km(lat, lon)
 
-    if coords is None:
+    if distance is None:
         return 0.0
 
-    origin_lat, origin_lon = coords
-    return math.sqrt(
-        (lat - origin_lat) ** 2 + (lon - origin_lon) ** 2
-    ) * 111.0
+    return distance
 
 
 def get_direction(lat: float) -> str:
 
-    coords = fallback_coordinates()
+    coords = geo_context.coordinates()
 
     if coords is None:
         return ""

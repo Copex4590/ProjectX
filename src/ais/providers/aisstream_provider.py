@@ -16,6 +16,9 @@ from engines.ais.ais_protocol import AISProtocol
 
 AISSTREAM_REGISTER_URL = "https://aisstream.io/authenticate"
 
+# Minimal bbox used only for connection tests when no observation point exists yet.
+_TEST_BOUNDING_BOXES = [[[0.0, 0.0], [1.0, 1.0]]]
+
 
 class AISStreamProvider(AISProvider):
 
@@ -52,7 +55,10 @@ class AISStreamProvider(AISProvider):
 
             client.ws.send(
                 json.dumps(
-                    AISProtocol.subscribe_message(key)
+                    AISProtocol.subscribe_message(
+                        key,
+                        bounding_boxes=_TEST_BOUNDING_BOXES,
+                    )
                 )
             )
 

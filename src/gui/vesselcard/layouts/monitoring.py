@@ -177,20 +177,19 @@ def _header_section(translations: dict[str, str], ship: dict) -> str:
 
 def _location_rows(translations: dict[str, str], ship: dict) -> str:
 
-    distance_value = ship.get("camera_distance_km")
-    if is_empty(distance_value):
-        distance_value = ship.get("distance_km")
-
     return "".join([
         _row(
             translations,
             "Direction",
-            _bearing_to_compass(translations, ship.get("camera_bearing_deg")),
+            _bearing_to_compass(
+                translations,
+                ship.get("reference_bearing_deg"),
+            ),
         ),
         _row(
             translations,
             "Distance",
-            format_distance(distance_value),
+            format_distance(ship.get("distance_km")),
         ),
     ])
 

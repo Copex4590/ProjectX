@@ -1,18 +1,25 @@
 # ============================================================================
 # Project X
 # Observation Coordinates Helpers
+#
+# Backward-compatible wrappers around GeoContext. New code should import
+# observation.geo_context.geo_context directly.
 # ============================================================================
 
 from __future__ import annotations
 
 import math
 
+from observation.geo_context import EARTH_RADIUS_KM, geo_context
 from observation.observation_manager import observation_manager
+from observation.observation_point import ObservationPoint
+
+_KM_PER_DEGREE_LAT = 111.0
 
 
 def observation_coordinates() -> tuple[float, float] | None:
 
-    return observation_manager.coordinates()
+    return geo_context.coordinates()
 
 
 def reference_coordinates() -> tuple[float, float] | None:
@@ -20,9 +27,23 @@ def reference_coordinates() -> tuple[float, float] | None:
     return observation_manager.reference_coordinates()
 
 
-def fallback_coordinates() -> tuple[float, float] | None:
+def reference_observation_point() -> ObservationPoint | None:
 
-    return reference_coordinates()
+    return geo_context.reference()
+
+
+def fallback_coordinates() -> tuple[float, float] | None:
+    """Deprecated alias for reference_coordinates()."""
+
+    return geo_context.coordinates()
+
+
+def is_within_reference_coverage(
+    latitude: float | None,
+    longitude: float | None,
+) -> bool:
+
+    return geo_context.is_within_coverage(latitude, longitude)
 
 
 def distance_km_from_origin(
@@ -33,20 +54,12 @@ def distance_km_from_origin(
     origin_lon: float | None = None,
 ) -> float | None:
 
-    if origin_lat is None or origin_lon is None:
-        coords = fallback_coordinates()
-
-        if coords is None:
-            return None
-
-        origin_lat, origin_lon = coords
-
-    delta_lat = latitude - origin_lat
-    delta_lon = longitude - origin_lon
-    return math.sqrt(delta_lat ** 2 + delta_lon ** 2) * 111.0
-
-
-_KM_PER_DEGREE_LAT = 111.0
+    return geo_context.distance_km(
+        latitude,
+        longitude,
+        origin_lat=origin_lat,
+        origin_lon=origin_lon,
+    )
 
 
 def max_observation_radius_km(latitude: float, longitude: float) -> float:
@@ -71,23 +84,11 @@ def coverage_bounding_box(
     coverage_radius_km: float,
 ) -> list[list[float]]:
 
-    if coverage_radius_km <= 0:
-        raise ValueError("coverage_radius_km must be positive")
-
-    lat_delta = coverage_radius_km / _KM_PER_DEGREE_LAT
-    cos_lat = math.cos(math.radians(latitude))
-
-    if abs(cos_lat) < 1e-6:
-        cos_lat = 1e-6
-
-    lon_delta = coverage_radius_km / (_KM_PER_DEGREE_LAT * abs(cos_lat))
-
-    lat_min = max(-90.0, latitude - lat_delta)
-    lat_max = min(90.0, latitude + lat_delta)
-    lon_min = max(-180.0, longitude - lon_delta)
-    lon_max = min(180.0, longitude + lon_delta)
-
-    return [[lat_min, lon_min], [lat_max, lon_max]]
+    return geo_context.coverage_bounding_box(
+        latitude,
+        longitude,
+        coverage_radius_km,
+    )
 
 
 def bearing_deg_from_origin(
@@ -98,23 +99,23 @@ def bearing_deg_from_origin(
     origin_lon: float | None = None,
 ) -> float | None:
 
-    if origin_lat is None or origin_lon is None:
-        coords = fallback_coordinates()
-
-        if coords is None:
-            return None
-
-        origin_lat, origin_lon = coords
-
-    lat1 = math.radians(origin_lat)
-    lat2 = math.radians(latitude)
-    dlon = math.radians(longitude - origin_lon)
-
-    x = math.sin(dlon) * math.cos(lat2)
-    y = (
-        math.cos(lat1) * math.sin(lat2)
-        - math.sin(lat1) * math.cos(lat2) * math.cos(dlon)
+    return geo_context.bearing_deg(
+        latitude,
+        longitude,
+        origin_lat=origin_lat,
+        origin_lon=origin_lon,
     )
 
-    bearing = math.degrees(math.atan2(x, y))
-    return (bearing + 360.0) % 360.0
+
+__all__ = [
+    "EARTH_RADIUS_KM",
+    "bearing_deg_from_origin",
+    "coverage_bounding_box",
+    "distance_km_from_origin",
+    "fallback_coordinates",
+    "is_within_reference_coverage",
+    "max_observation_radius_km",
+    "observation_coordinates",
+    "reference_coordinates",
+    "reference_observation_point",
+]

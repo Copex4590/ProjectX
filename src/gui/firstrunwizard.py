@@ -28,13 +28,16 @@ from gui.theme import (
 )
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button
 from i18n import tr
+from observation import observation_manager
 from preferences import preferences_manager
 
 
 class _FirstRunSuccessDialog(QDialog):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, *, observation_point=None):
         super().__init__(parent)
+
+        self._observation_point = observation_point
 
         self.setModal(True)
         self.setMinimumWidth(460)
@@ -85,12 +88,28 @@ class _FirstRunSuccessDialog(QDialog):
             "✓ "
             + tr("You successfully created your first observation point.")
         )
-        self._body.setText(
-            tr(
-                "To create additional observation points, choose Create new "
-                "on the Dashboard."
+
+        if self._observation_point is not None:
+            point = self._observation_point
+            self._body.setText(
+                tr("Name")
+                + f": {point.name}\n"
+                + tr("Coordinates")
+                + f": {point.latitude:.5f}, {point.longitude:.5f}\n"
+                + tr("Observation radius (km)")
+                + f": {point.coverage_radius_km:.1f}\n\n"
+                + tr(
+                    "To create additional observation points, choose Create new "
+                    "on the Dashboard."
+                )
             )
-        )
+        else:
+            self._body.setText(
+                tr(
+                    "To create additional observation points, choose Create new "
+                    "on the Dashboard."
+                )
+            )
         self._continue_button.setText(tr("Continue"))
 
 
@@ -208,7 +227,10 @@ class FirstRunWizard(QDialog):
 
     def _show_success_dialog(self) -> bool:
 
-        dialog = _FirstRunSuccessDialog(self)
+        dialog = _FirstRunSuccessDialog(
+            self,
+            observation_point=observation_manager.active(),
+        )
         bind_language_refresh(dialog.refresh_translations)
         return dialog.exec() == QDialog.DialogCode.Accepted
 

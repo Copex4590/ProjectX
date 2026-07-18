@@ -5,14 +5,9 @@ from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QKeyEvent, QHideEvent, QShowEvent
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 
-from cameras import camera_manager
 from database import registry
 from engines.camera import camera_selection_engine
-from observation.coords import (
-    bearing_deg_from_origin,
-    distance_km_from_origin,
-    fallback_coordinates,
-)
+from observation.geo_context import geo_context
 from debug.obs_freeze_trace import (
     schedule_traced_single_shot,
     trace_block,
@@ -170,6 +165,17 @@ def _statistics_summary(mmsi: int) -> str:
     return "; ".join(parts)
 
 
+def _apply_reference_observation_fields(ship, payload: dict) -> None:
+
+    observation = geo_context.ship_observation_fields(ship.lat, ship.lon)
+    distance_km = observation.get("distance_km")
+
+    if distance_km is not None:
+        payload["distance_km"] = distance_km
+
+    payload["reference_bearing_deg"] = observation.get("reference_bearing_deg")
+
+
 def _display_camera_for_ship(ship):
 
     match = camera_selection_engine.get_best_camera(ship)
@@ -177,61 +183,25 @@ def _display_camera_for_ship(ship):
     if match is not None:
         return match.camera, match.distance_km
 
-    cameras = camera_manager.enabled()
-
-    if cameras:
-        camera = min(
-            cameras,
-            key=lambda item: item.distance_km_to(ship.lat, ship.lon),
-        )
-        return camera, camera.distance_km_to(ship.lat, ship.lon)
-
     return None, None
 
 
 def _enrich_camera_fields(ship, payload: dict) -> None:
 
-    camera, distance_km = _display_camera_for_ship(ship)
+    camera, camera_distance_km = _display_camera_for_ship(ship)
 
-    if camera is not None:
-        payload["camera_name"] = camera.name
-        payload["camera_distance_km"] = round(distance_km, 2)
-        payload["camera_bearing_deg"] = camera.bearing_deg_to(
-            ship.lat,
-            ship.lon,
-        )
+    if camera is None:
+        payload["camera_name"] = None
+        payload["camera_distance_km"] = None
+        payload["camera_bearing_deg"] = None
         return
 
-    payload["camera_name"] = None
-
-    if ship.lat is not None and ship.lon is not None:
-        origin = fallback_coordinates()
-
-        if origin is None:
-            payload["camera_bearing_deg"] = None
-            payload["camera_distance_km"] = None
-            return
-
-        origin_lat, origin_lon = origin
-        payload["camera_bearing_deg"] = bearing_deg_from_origin(
-            ship.lat,
-            ship.lon,
-            origin_lat=origin_lat,
-            origin_lon=origin_lon,
-        )
-        distance_km = distance_km_from_origin(
-            ship.lat,
-            ship.lon,
-            origin_lat=origin_lat,
-            origin_lon=origin_lon,
-        )
-        payload["camera_distance_km"] = (
-            round(distance_km, 2) if distance_km is not None else None
-        )
-        return
-
-    payload["camera_distance_km"] = None
-    payload["camera_bearing_deg"] = None
+    payload["camera_name"] = camera.name
+    payload["camera_distance_km"] = round(camera_distance_km, 2)
+    payload["camera_bearing_deg"] = camera.bearing_deg_to(
+        ship.lat,
+        ship.lon,
+    )
 
 
 def _enrich_statistics_fields(mmsi: int, payload: dict) -> None:
@@ -286,6 +256,7 @@ def _serialize_ship(ship) -> dict:
 
         payload.update(_serialize_flag(payload.get("flag", "")))
         payload.update(_serialize_photo(ship.mmsi))
+        _apply_reference_observation_fields(ship, payload)
         _enrich_camera_fields(ship, payload)
         _enrich_statistics_fields(ship.mmsi, payload)
         payload["timeline_events"] = _timeline_events(ship.mmsi)
@@ -499,6 +470,19 @@ class MapPage(QWidget):
                 return
 
             self._start_ship_timers()
+            self._update_ship_markers()
+            self._schedule_ships_full(
+                "MapPage._on_pick_mode_changed->NONE"
+            )
+
+    def on_ship_updated(self) -> None:
+
+        with trace_block("MapPage.on_ship_updated"):
+            if not self._map_updates_enabled():
+                trace_event("MapPage.on_ship_updated skipped")
+                return
+
+            self._update_ship_markers()
 
     def select_vessel(self, mmsi: int):
 
@@ -558,7 +542,11 @@ class MapPage(QWidget):
                 f"{getattr(serializer, '__name__', serializer)}"
             ):
                 trace_enter("MapPage._publish_ships.registry.all")
-                ships = list(registry.all())
+                ships = [
+                    ship
+                    for ship in registry.all()
+                    if geo_context.is_within_coverage(ship.lat, ship.lon)
+                ]
                 trace_exit(
                     f"MapPage._publish_ships.registry.all count={len(ships)}"
                 )

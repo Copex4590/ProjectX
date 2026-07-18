@@ -41,10 +41,10 @@ class ObservationPoint:
         )
 
         try:
-            from observation.coords import coverage_bounding_box
+            from observation.geo_context import geo_context
 
             trace_enter("ObservationPoint.ais_bounding_box.coverage_bounding_box")
-            result = coverage_bounding_box(
+            result = geo_context.coverage_bounding_box(
                 self.latitude,
                 self.longitude,
                 self.coverage_radius_km,

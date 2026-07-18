@@ -1,6 +1,5 @@
 import json
 import logging
-import math
 import os
 import subprocess
 import threading
@@ -14,16 +13,15 @@ from database import registry
 from debug.obs_freeze_trace import trace_block
 from engines.ais import AISNmeaDecoder, AISRtlClient
 from engines.ais.ais_catcher_launcher import is_port_open
-from engines.ais.ais_protocol import AISProtocol
+from engines.ais.ais_protocol import AISProtocol, reference_observation_bounding_boxes
 from engines.ais.hybrid_ais_engine import hybrid_ais_engine
 from engines.base_engine import BaseEngine
 from events import eventbus
+from logbook.duna_format import get_direction, get_heading
 from models.ship import Ship
+from observation.geo_context import geo_context
 
 logger = logging.getLogger(__name__)
-
-CAMERA_LAT = 47.501539
-CAMERA_LON = 19.039856
 
 BASE_DIR = "/home/zoli/rtl-monitor"
 HAJOK_DIR = "/home/zoli/Asztal/Ez a gép/Dunamonitor/Hajók"
@@ -42,26 +40,6 @@ def sanitize_name(name):
     return str(name).replace("@", "").strip()
 
 
-def calc_distance_km(lat, lon):
-    return math.sqrt(
-        (lat - CAMERA_LAT) ** 2 +
-        (lon - CAMERA_LON) ** 2
-    ) * 111
-
-
-def get_direction(lat):
-    return "északra" if lat > CAMERA_LAT else "délre"
-
-
-def get_heading(cog, sog, direction):
-    if sog < 0.5:
-        return f"Áll {direction}"
-    elif 90 <= cog <= 270:
-        return "dél felé halad"
-    else:
-        return "észak felé halad"
-
-
 class HybridEngine(BaseEngine):
 
     def __init__(self):
@@ -72,6 +50,8 @@ class HybridEngine(BaseEngine):
         self.rtl_thread = None
         self._rtl_client = None
         self._ws = None
+        self._ws_lock = threading.Lock()
+        self._resubscribe_requested = False
 
         self.ship_names = {}
         self.static_ship_data = {}
@@ -114,12 +94,7 @@ class HybridEngine(BaseEngine):
 
     def on_stop(self):
 
-        if self._ws:
-            try:
-                self._ws.close()
-            except Exception:
-                pass
-            self._ws = None
+        self._close_ws()
 
         if self._rtl_client:
             self._rtl_client.disconnect()
@@ -128,6 +103,25 @@ class HybridEngine(BaseEngine):
         eventbus.publish("rtl.status", status="offline")
 
         print("🛑 Hybrid Engine stopped")
+
+    def on_observation_changed(self) -> None:
+
+        removed = registry.purge_outside_reference_coverage()
+        if removed:
+            print(f"🧹 Removed {removed} ship(s) outside reference coverage")
+
+        self._resubscribe_requested = True
+        self._close_ws()
+
+    def _close_ws(self) -> None:
+
+        with self._ws_lock:
+            if self._ws:
+                try:
+                    self._ws.close()
+                except Exception:
+                    pass
+                self._ws = None
 
     def save_ship_cache(self):
         try:
@@ -295,13 +289,16 @@ class HybridEngine(BaseEngine):
         if lat is None or lon is None:
             return
 
+        if not geo_context.is_within_coverage(lat, lon):
+            return
+
         name = sanitize_name(self.ship_names.get(mmsi, ""))
         if not name:
             name = mmsi
 
         ship_dir = self.ensure_ship_folder(name)
 
-        distance = calc_distance_km(lat, lon)
+        distance = geo_context.distance_km(lat, lon) or 0.0
         direction = get_direction(lat)
         heading = get_heading(cog, sog, direction)
         current_time = datetime.now().strftime("%m.%d - %H:%M")
@@ -428,25 +425,58 @@ class HybridEngine(BaseEngine):
     def aisstream_worker(self):
 
         while self.running:
+            subscribed_boxes = reference_observation_bounding_boxes()
+
+            if subscribed_boxes is None:
+                print("⏳ Waiting for observation reference point before AISStream...")
+                eventbus.publish("ais.status", status="waiting")
+                time.sleep(2)
+                continue
+
             try:
                 print("📡 AISStream kapcsolat...")
 
                 with open(API_KEY_FILE, "r") as f:
                     api_key = f.read().strip()
 
-                self._ws = websocket.create_connection(
-                    f"wss://stream.aisstream.io/v0/stream?apiKey={api_key}"
-                )
+                with self._ws_lock:
+                    self._ws = websocket.create_connection(
+                        f"wss://stream.aisstream.io/v0/stream?apiKey={api_key}"
+                    )
+                    self._ws.settimeout(1.0)
 
                 with trace_block("HybridEngine.aisstream_worker.subscribe_message"):
-                    subscribe_message = AISProtocol.subscribe_message(api_key)
+                    subscribe_message = AISProtocol.subscribe_message(
+                        api_key,
+                        bounding_boxes=subscribed_boxes,
+                    )
 
-                self._ws.send(json.dumps(subscribe_message))
+                with self._ws_lock:
+                    if self._ws is None:
+                        continue
+                    self._ws.send(json.dumps(subscribe_message))
+
+                self._resubscribe_requested = False
                 print("✅ AISStream kapcsolódva")
                 eventbus.publish("ais.status", status="connected")
 
                 while self.running:
-                    message = self._ws.recv()
+                    if self._resubscribe_requested:
+                        break
+
+                    current_boxes = reference_observation_bounding_boxes()
+
+                    if current_boxes != subscribed_boxes:
+                        print("🔄 Observation area changed — resubscribing AISStream...")
+                        break
+
+                    try:
+                        with self._ws_lock:
+                            if self._ws is None:
+                                break
+                            message = self._ws.recv()
+                    except websocket.WebSocketTimeoutException:
+                        continue
 
                     if isinstance(message, bytes):
                         message = message.decode("utf-8")
@@ -531,12 +561,7 @@ class HybridEngine(BaseEngine):
                 eventbus.publish("ais.status", status="offline")
                 time.sleep(5)
             finally:
-                if self._ws:
-                    try:
-                        self._ws.close()
-                    except Exception:
-                        pass
-                    self._ws = None
+                self._close_ws()
 
     # --------------------------------------------------
     # RTL / AIS-CATCHER FŐSZÁL
