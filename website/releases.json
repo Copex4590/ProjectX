@@ -1,10 +1,10 @@
 {
-  "latest": "0.3-alpha",
-  "release_date": "2026-07-05",
+  "latest": "0.3.1-alpha",
+  "release_date": "2026-07-18",
   "status": "Alpha",
   "github": "https://github.com/Copex4590/ProjectX",
   "windows": {
-    "version": "0.3.0-alpha",
+    "version": "0.3.1-alpha",
     "file": "ProjectX-Setup.exe",
     "checksum_file": "SHA256SUMS",
     "platform": "Windows 10+",
@@ -13,7 +13,7 @@
     "size": "TBD"
   },
   "linux": {
-    "version": "0.3.0-alpha",
+    "version": "0.3.1-alpha",
     "file": "ProjectX.deb",
     "secondary_file": "ProjectX.AppImage",
     "checksum_file": "SHA256SUMS",

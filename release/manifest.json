@@ -1,8 +1,8 @@
 {
   "name": "Project X",
-  "version": "0.3.0-alpha",
-  "website_version": "0.3-alpha",
-  "release_date": "2026-07-05",
+  "version": "0.3.1-alpha",
+  "website_version": "0.3.1-alpha",
+  "release_date": "2026-07-18",
   "status": "Alpha",
   "github": "https://github.com/Copex4590/ProjectX",
   "build": {
