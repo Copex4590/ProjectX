@@ -11,12 +11,12 @@ from threading import Lock
 
 from models.vessel_record import VesselRecord
 
-from app.paths import runtime_data_path
+from storage import active_database_path
 
 VESSEL_DATABASE_FILE = Path(
     os.environ.get(
         "PROJECTX_VESSEL_DATABASE_FILE",
-        str(runtime_data_path("vessels.db")),
+        str(active_database_path("vessels.db")),
     )
 )
 

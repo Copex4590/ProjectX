@@ -11,12 +11,12 @@ from threading import Lock
 
 from timeline.timeline_record import TimelineRecord
 
-from app.paths import runtime_data_path
+from storage import active_database_path
 
 TIMELINE_DATABASE_FILE = Path(
     os.environ.get(
         "PROJECTX_TIMELINE_DATABASE_FILE",
-        str(runtime_data_path("timeline.db")),
+        str(active_database_path("timeline.db")),
     )
 )
 
