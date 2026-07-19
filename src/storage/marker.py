@@ -11,6 +11,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from storage.layout import DATA_ROOT_MARKER_NAME, DATA_ROOT_MARKER_SCHEMA
+from storage.exceptions import InvalidDataDirectoryError
 
 _PRODUCT_NAME = "Project X"
 
@@ -74,6 +75,42 @@ def is_valid_data_root(data_root: Path) -> bool:
     """Return True when the directory contains a valid Project X marker."""
 
     return is_valid_marker_payload(read_marker(data_root))
+
+
+def find_marked_data_root(path: Path) -> Path | None:
+    """Return the marked Project X data root containing path, if any."""
+
+    current = Path(path)
+
+    if current.is_file():
+        current = current.parent
+
+    current = current.resolve()
+
+    while True:
+        if is_valid_data_root(current):
+            return current
+
+        parent = current.parent
+
+        if parent == current:
+            return None
+
+        current = parent
+
+
+def require_marked_data_root(path: Path) -> Path:
+    """Require path to be inside a marked Project X data root."""
+
+    marked_root = find_marked_data_root(path)
+
+    if marked_root is None:
+        raise InvalidDataDirectoryError(
+            "Project X marker authority required: path is not inside a valid "
+            f".projectx-data-root directory: {path}"
+        )
+
+    return marked_root
 
 
 def ensure_marker(data_root: Path) -> Path:

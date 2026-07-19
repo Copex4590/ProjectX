@@ -25,6 +25,16 @@ from storage.layout import (
     DEFAULT_DATA_DIRECTORY_NAME,
     STANDARD_DATA_SUBDIRS,
 )
+from storage.legacy import (
+    LegacyDataInventory,
+    collect_legacy_inventory,
+    ensure_legacy_data_layout,
+    legacy_config_root,
+    legacy_data_exists,
+    legacy_data_root,
+    legacy_logs_root,
+    legacy_path_for_subdir,
+)
 from storage.manager import (
     DataDirectoryValidationResult,
     configured_data_root,
@@ -37,8 +47,20 @@ from storage.manager import (
 )
 from storage.marker import (
     ensure_marker,
+    find_marked_data_root,
     is_valid_data_root,
     read_marker,
+    require_marked_data_root,
+)
+from storage.resolver import (
+    ResolvedDataRoot,
+    StorageMode,
+    active_data_path,
+    assert_marker_authority,
+    ensure_active_layout,
+    marked_data_root_for,
+    requires_data_root_setup,
+    resolve_data_root,
 )
 
 __all__ = [
@@ -54,19 +76,37 @@ __all__ = [
     "DataDirectoryValidationError",
     "DataDirectoryValidationResult",
     "InvalidDataDirectoryError",
+    "LegacyDataInventory",
+    "ResolvedDataRoot",
     "STANDARD_DATA_SUBDIRS",
     "StorageError",
+    "StorageMode",
+    "active_data_path",
+    "assert_marker_authority",
     "bootstrap_config_dir",
     "bootstrap_config_path",
     "bootstrap_profile_dir",
+    "collect_legacy_inventory",
     "configured_data_root",
     "data_root",
     "data_subdirectory",
     "default_data_directory",
+    "ensure_active_layout",
     "ensure_data_layout",
+    "ensure_legacy_data_layout",
     "ensure_marker",
+    "find_marked_data_root",
     "is_valid_data_root",
+    "legacy_config_root",
+    "legacy_data_exists",
+    "legacy_data_root",
+    "legacy_logs_root",
+    "legacy_path_for_subdir",
+    "marked_data_root_for",
     "read_marker",
+    "require_marked_data_root",
+    "requires_data_root_setup",
+    "resolve_data_root",
     "validate_data_directory",
     "validate_data_directory_or_raise",
 ]
