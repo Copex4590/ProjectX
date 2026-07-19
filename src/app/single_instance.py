@@ -14,6 +14,8 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from app.paths import runtime_config_dir
 
 _LOCK_FILE_NAME = "projectx.lock"
+# Qt 6 / PySide6: tryLock(timeout_ms) — 0 = non-blocking attempt.
+_TRY_LOCK_TIMEOUT_MS = 0
 _ALREADY_RUNNING_TITLE = "Project X"
 _ALREADY_RUNNING_MESSAGE = (
     "Project X is already running.\n\n"
@@ -54,7 +56,7 @@ def acquire_single_instance_lock() -> SingleInstanceLock | None:
     lock_file = QLockFile(str(_lock_file_path()))
     lock_file.setStaleLockTime(0)
 
-    if lock_file.tryLock():
+    if lock_file.tryLock(_TRY_LOCK_TIMEOUT_MS):
         return SingleInstanceLock(lock_file)
 
     QMessageBox.information(
