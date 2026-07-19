@@ -16,14 +16,14 @@ from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
 from events import eventbus
 from preferences import preferences_manager
 
-from app.paths import runtime_config_path
+from storage import active_config_path
 
 logger = logging.getLogger(__name__)
 
 AIS_API_KEY_FILE = Path(
     os.environ.get(
         "PROJECTX_AIS_API_KEY_FILE",
-        str(runtime_config_path("ais_api_key.txt")),
+        str(active_config_path("ais_api_key.txt")),
     )
 )
 

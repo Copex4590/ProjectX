@@ -6,12 +6,12 @@
 import os
 from pathlib import Path
 
-_CONFIG_DIR = Path(__file__).resolve().parent
+from storage import active_config_path
 
 PLAYBACK_PREFERENCES_FILE = Path(
     os.environ.get(
         "PROJECTX_PLAYBACK_PREFERENCES_FILE",
-        str(_CONFIG_DIR / "playback.json"),
+        str(active_config_path("playback.json")),
     )
 )
 

@@ -23,8 +23,6 @@ from observation.observation_point import (
 
 SCHEMA_VERSION = 3
 
-from app.paths import runtime_config_path
-
 from debug.obs_freeze_trace import (
     begin_delete_trace_session,
     reset_trace_log,
@@ -33,11 +31,12 @@ from debug.obs_freeze_trace import (
     trace_event,
     trace_exit,
 )
+from storage import active_config_path
 
 OBSERVATION_POINTS_FILE = Path(
     os.environ.get(
         "PROJECTX_OBSERVATION_POINTS_FILE",
-        str(runtime_config_path("observation_points.json")),
+        str(active_config_path("observation_points.json")),
     )
 )
 

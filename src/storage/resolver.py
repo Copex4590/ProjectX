@@ -12,6 +12,7 @@ from pathlib import Path
 from storage.exceptions import InvalidDataDirectoryError
 from storage.layout import (
     DATA_SUBDIR_CACHE,
+    DATA_SUBDIR_CONFIG,
     DATA_SUBDIR_DATABASES,
     DATA_SUBDIR_EXPORTS,
     STANDARD_DATA_SUBDIRS,
@@ -93,6 +94,12 @@ def active_database_path(filename: str) -> Path:
     """Resolve a writable SQLite database path under the active storage layout."""
 
     return active_data_path(DATA_SUBDIR_DATABASES, filename)
+
+
+def active_config_path(*parts: str) -> Path:
+    """Resolve a writable configuration path under the active storage layout."""
+
+    return active_data_path(DATA_SUBDIR_CONFIG, *parts)
 
 
 def active_cache_path(*parts: str) -> Path:

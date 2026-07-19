@@ -10,7 +10,25 @@ from pathlib import Path
 
 from database.camera_registry import CameraRegistry, camera_registry
 
-from app.paths import bundled_config_dir, is_frozen, runtime_config_path
+from app.paths import bundled_config_dir, is_frozen
+from storage import StorageMode, active_config_path, resolve_data_root
+
+
+def camera_packs_state_file() -> Path:
+    """Return the active camera pack state file path."""
+
+    override = os.environ.get("PROJECTX_CAMERA_PACKS_STATE_FILE", "").strip()
+
+    if override:
+        return Path(override).expanduser().resolve()
+
+    primary = active_config_path("camera_packs_state.json")
+
+    if resolve_data_root().mode is StorageMode.CONFIGURED or is_frozen():
+        return primary
+
+    return bundled_config_dir() / "camera_packs" / "state.json"
+
 
 CAMERA_PACKS_DIR = Path(
     os.environ.get(
@@ -19,18 +37,7 @@ CAMERA_PACKS_DIR = Path(
     )
 )
 
-_default_state = (
-    runtime_config_path("camera_packs_state.json")
-    if is_frozen()
-    else bundled_config_dir() / "camera_packs" / "state.json"
-)
-
-CAMERA_PACKS_STATE_FILE = Path(
-    os.environ.get(
-        "PROJECTX_CAMERA_PACKS_STATE_FILE",
-        str(_default_state),
-    )
-)
+CAMERA_PACKS_STATE_FILE = camera_packs_state_file()
 
 _REQUIRED_MANIFEST_FIELDS = (
     "id",
