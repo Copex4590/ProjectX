@@ -18,6 +18,7 @@ DRY_RUN=0
 ASSUME_YES=0
 SELF_TEST=0
 PRIVILEGED_ONLY=0
+REMOVE_USER_DATA=1
 APPIMAGE_PATHS=()
 SCRIPT_PATH="$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")"
 
@@ -489,6 +490,49 @@ confirm_uninstall_dialog() {
     esac
 }
 
+confirm_remove_user_data_dialog() {
+    local tool="${1:-}"
+    local message=(
+        "A Project X felhasználói adatai is törlődjenek?"
+        ""
+        "Ha az Igen gombot választod, a Project X által létrehozott összes mappa, a hajóadatok, valamint minden összegyűjtött és mentett információ végleg törlődik a számítógépről."
+        ""
+        "Ha a Nem gombot választod, az adataid megmaradnak, és a Project X következő telepítésekor ott folytathatod a használatát, ahol abbahagytad."
+    )
+    local text=""
+    local line
+
+    for line in "${message[@]}"; do
+        if [[ -z "$text" ]]; then
+            text="$line"
+        else
+            text+=$'\n'"$line"
+        fi
+    done
+
+    case "$tool" in
+        zenity)
+            run_gui_dialog \
+                --question \
+                --title="Project X" \
+                --text="$text" \
+                --ok-label="Igen" \
+                --cancel-label="Nem" \
+                --width=480
+            ;;
+        kdialog)
+            run_gui_dialog \
+                --title "Project X" \
+                --yesno "$text" \
+                --yes-label "Igen" \
+                --no-label "Nem"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 show_success_dialog() {
     local tool="${1:-}"
 
@@ -565,6 +609,42 @@ confirm_uninstall() {
         log "Uninstall cancelled."
         exit 0
     fi
+}
+
+confirm_remove_user_data() {
+    if [[ "$ASSUME_YES" -eq 1 || "$DRY_RUN" -eq 1 || "$SELF_TEST" -eq 1 || "$PRIVILEGED_ONLY" -eq 1 ]]; then
+        REMOVE_USER_DATA=1
+        return 0
+    fi
+
+    local tool=""
+    if tool="$(gui_command)"; then
+        if confirm_remove_user_data_dialog "$tool"; then
+            REMOVE_USER_DATA=1
+        else
+            REMOVE_USER_DATA=0
+        fi
+        return 0
+    fi
+
+    log ""
+    log "A Project X felhasználói adatai is törlődjenek?"
+    log ""
+    log "Ha az Igen gombot választod, a Project X által létrehozott összes mappa, a hajóadatok, valamint minden összegyűjtött és mentett információ végleg törlődik a számítógépről."
+    log ""
+    log "Ha a Nem gombot választod, az adataid megmaradnak, és a Project X következő telepítésekor ott folytathatod a használatát, ahol abbahagytad."
+    log ""
+    printf 'Válasz (Igen/Nem) [Nem]: '
+    local reply
+    read -r reply
+    case "$reply" in
+        Igen|igen|I|i|Yes|yes|Y|y)
+            REMOVE_USER_DATA=1
+            ;;
+        *)
+            REMOVE_USER_DATA=0
+            ;;
+    esac
 }
 
 show_uninstall_complete() {
@@ -648,7 +728,7 @@ run_privileged_phase() {
     fi
 
     show_error_dialog \
-        "Project X could not be completely removed.\n\nThe Debian package removal failed.\n\nYour Project X data was removed, but the installed package may still be present."
+        "Project X could not be completely removed.\n\nThe Debian package removal failed.\n\nThe installed package may still be present."
     return 1
 }
 
@@ -658,11 +738,17 @@ run_user_uninstall() {
     stop_projectx_processes
     discover_appimages "$HOME"
 
-    while IFS= read -r home; do
-        [[ -n "$home" ]] || continue
-        log "Removing user data for: $home"
-        remove_user_state "$home"
-    done < <(collect_target_users)
+    if [[ "$REMOVE_USER_DATA" -eq 1 ]]; then
+        while IFS= read -r home; do
+            [[ -n "$home" ]] || continue
+            log "Removing user data for: $home"
+            remove_user_state "$home"
+        done < <(collect_target_users)
+    elif [[ "$DRY_RUN" -eq 1 ]]; then
+        log "[dry-run] keep Project X user data"
+    else
+        log "Keeping Project X user data."
+    fi
 
     remove_appimages
 }
@@ -791,6 +877,7 @@ main() {
     fi
 
     confirm_uninstall
+    confirm_remove_user_data
     run_uninstall
     show_uninstall_complete
     log "${APP_NAME} uninstall complete."
