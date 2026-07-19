@@ -14,10 +14,10 @@ from logbook.duna_format import build_csv_row, sanitize_name
 from logbook.paths import (
     CSV_FILENAME,
     CSV_HEADER,
-    HAJOK_DIR,
     NOTES_FILENAME,
     PHOTOS_DIRNAME,
     XLSX_FILENAME,
+    logbook_dir,
 )
 from logbook.xlsx_generator import regenerate_xlsx
 
@@ -33,7 +33,7 @@ class LogbookManager:
 
     def __init__(self, base_dir: Path | None = None):
 
-        self._base_dir = Path(base_dir or HAJOK_DIR)
+        self._base_dir = Path(base_dir or logbook_dir())
         self._lock = Lock()
         self._base_dir.mkdir(parents=True, exist_ok=True)
 

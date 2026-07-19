@@ -9,13 +9,13 @@ from logbook.logbook_manager import (
     logbook_manager,
 )
 from logbook.logbook_recorder import LogbookRecorder, logbook_recorder
-from logbook.paths import HAJOK_DIR
+from logbook.paths import logbook_dir
 
 __all__ = [
-    "HAJOK_DIR",
     "LegacyImportResult",
     "LogbookManager",
     "LogbookRecorder",
+    "logbook_dir",
     "logbook_manager",
     "logbook_recorder",
 ]

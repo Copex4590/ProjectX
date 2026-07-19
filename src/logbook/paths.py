@@ -8,16 +8,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from app.paths import runtime_data_dir
-
-DEFAULT_HAJOK_DIR = runtime_data_dir() / "Hajók"
-
-HAJOK_DIR = Path(
-    os.environ.get(
-        "PROJECTX_LOGBOOK_DIR",
-        str(DEFAULT_HAJOK_DIR),
-    )
-)
+from storage import active_data_path
+from storage.layout import DATA_SUBDIR_HAJOK
 
 CSV_FILENAME = "adatlap.csv"
 XLSX_FILENAME = "adatlap.xlsx"
@@ -37,3 +29,14 @@ CSV_HEADER = (
     "Hossz;"
     "Szélesség\n"
 )
+
+
+def logbook_dir() -> Path:
+    """Return the active logbook root directory (Hajók)."""
+
+    override = os.environ.get("PROJECTX_LOGBOOK_DIR", "").strip()
+
+    if override:
+        return Path(override).expanduser().resolve()
+
+    return active_data_path(DATA_SUBDIR_HAJOK)
