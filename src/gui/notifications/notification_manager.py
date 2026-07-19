@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from uuid import uuid4
 
 from PySide6.QtCore import QObject, QTimer
+from PySide6.QtWidgets import QApplication
 
 from gui.notifications.notification_banner import NotificationBanner
 from gui.notifications.severity import NotificationSeverity
@@ -40,6 +41,7 @@ class NotificationManager(QObject):
         self._hide_timer.setSingleShot(True)
         self._hide_timer.timeout.connect(self._hide_current)
         self._is_animating_out = False
+        self._shutdown = False
 
     @classmethod
     def instance(cls) -> NotificationManager:
@@ -59,6 +61,9 @@ class NotificationManager(QObject):
         sticky: bool = False,
         animate: bool = True,
     ) -> str:
+
+        if self._shutdown:
+            return key or ""
 
         item = NotificationItem(
             message=message,
@@ -91,6 +96,9 @@ class NotificationManager(QObject):
         severity: NotificationSeverity | None = None,
     ) -> None:
 
+        if self._shutdown:
+            return
+
         if self._current is not None and self._current.key == key:
             self._current.message = message
 
@@ -112,20 +120,47 @@ class NotificationManager(QObject):
 
     def dismiss(self, key: str) -> None:
 
+        if self._shutdown:
+            return
+
         self._queue = deque(item for item in self._queue if item.key != key)
 
         if self._current is not None and self._current.key == key:
-            self._hide_current()
+            self._hide_current(force=True)
 
     def clear_all(self) -> None:
+
+        if self._shutdown:
+            return
 
         self._hide_timer.stop()
         self._queue.clear()
         self._current = None
         self._is_animating_out = False
-        self._banner.hide()
+        self._banner.close_immediately()
+
+    def shutdown(self) -> None:
+        """Tear down all notification UI before application exit."""
+
+        if self._shutdown:
+            return
+
+        self._shutdown = True
+        self._hide_timer.stop()
+        self._queue.clear()
+        self._current = None
+        self._is_animating_out = False
+        self._banner.destroy_immediately()
+
+        app = QApplication.instance()
+
+        if app is not None:
+            app.processEvents()
 
     def _apply_item(self, item: NotificationItem, *, animate: bool) -> None:
+
+        if self._shutdown:
+            return
 
         self._hide_timer.stop()
         self._current = item
@@ -142,18 +177,28 @@ class NotificationManager(QObject):
         if item.duration_ms is not None and not item.sticky:
             self._hide_timer.start(item.duration_ms)
 
-    def _hide_current(self) -> None:
+    def _hide_current(self, *, force: bool = False) -> None:
+
+        if self._shutdown:
+            return
 
         if self._current is None:
             self._show_next()
             return
 
-        if self._current.sticky:
+        if self._current.sticky and not force:
+            return
+
+        self._hide_timer.stop()
+        self._current = None
+        self._is_animating_out = False
+
+        if force:
+            self._banner.close_immediately()
+            self._show_next()
             return
 
         self._is_animating_out = True
-        self._current = None
-        self._hide_timer.stop()
 
         def _finish_hide() -> None:
             self._is_animating_out = False

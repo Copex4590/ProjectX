@@ -34,6 +34,25 @@ class AisConnectionMonitor(QObject):
         self._countdown_timer = QTimer(self)
         self._countdown_timer.setInterval(1000)
         self._countdown_timer.timeout.connect(self._on_countdown_tick)
+        self._shutdown = False
+
+    def shutdown(self) -> None:
+        """Stop AIS notification timers during application shutdown."""
+
+        if self._shutdown:
+            return
+
+        self._shutdown = True
+        self._countdown_timer.stop()
+        self._countdown_active = False
+        self._awaiting_reconnect = False
+
+    def on_providers_changed(self, *_args) -> None:
+
+        if self._should_monitor_aisstream():
+            return
+
+        self._cancel_connection_monitoring()
 
     def on_status(self, status: str) -> None:
 
@@ -82,6 +101,16 @@ class AisConnectionMonitor(QObject):
                 sticky=False,
                 animate=True,
             )
+
+    def _cancel_connection_monitoring(self) -> None:
+
+        self._countdown_timer.stop()
+        self._countdown_active = False
+        self._countdown_remaining = self.COUNTDOWN_SECONDS
+        self._awaiting_reconnect = False
+        self._vessels_purged = False
+        self._last_status = "offline"
+        self._notifications.dismiss(self.AIS_CONNECTION_KEY)
 
     def _handle_connection_lost(self) -> None:
 

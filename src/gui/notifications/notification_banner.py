@@ -53,6 +53,7 @@ class NotificationBanner(QFrame):
 
         self._slide_animation: QPropertyAnimation | None = None
         self._fade_animation: QPropertyAnimation | None = None
+        self._destroyed = False
 
         self.hide()
 
@@ -145,5 +146,31 @@ class NotificationBanner(QFrame):
     def _stop_animations(self) -> None:
 
         for animation in (self._slide_animation, self._fade_animation):
-            if animation is not None and animation.state() == animation.State.Running:
+            if animation is None:
+                continue
+
+            animation.blockSignals(True)
+
+            if animation.state() == animation.State.Running:
                 animation.stop()
+
+        self._slide_animation = None
+        self._fade_animation = None
+
+    def close_immediately(self) -> None:
+        """Hide the banner without running exit animations."""
+
+        self._stop_animations()
+        self.setWindowOpacity(0.0)
+        self.hide()
+
+    def destroy_immediately(self) -> None:
+        """Remove the top-level banner window during application shutdown."""
+
+        if self._destroyed:
+            return
+
+        self._destroyed = True
+        self.close_immediately()
+        self.close()
+        self.deleteLater()

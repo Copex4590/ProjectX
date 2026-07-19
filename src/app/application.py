@@ -17,6 +17,7 @@ from app.mainwindow import MainWindow
 from app.paths import ensure_runtime_data_dirs
 from app.single_instance import ensure_single_instance
 from branding.assets import app_icon
+from gui.notifications import notification_manager
 from gui.languagewelcome_dialog import run_language_welcome_if_needed
 from gui.splashscreen import create_splash_screen
 from gui.theme import global_stylesheet
@@ -106,6 +107,8 @@ class Application:
 
         self._single_instance_lock = ensure_single_instance()
         _log_startup_phase("single-instance lock acquired")
+
+        self.qt.aboutToQuit.connect(notification_manager().shutdown)
 
         if not run_language_welcome_if_needed():
             raise SystemExit(0)

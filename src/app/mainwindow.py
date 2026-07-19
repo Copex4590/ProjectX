@@ -173,6 +173,13 @@ class MainWindow(QMainWindow):
             ),
             connection,
         )
+        self.event_bridge.providers_changed.connect(
+            trace_slot(
+                "MainWindow->AisConnectionMonitor.on_providers_changed",
+                self._ais_connection_monitor.on_providers_changed,
+            ),
+            connection,
+        )
         self.event_bridge.ais_status.connect(
             trace_slot(
                 "MainWindow->refresh_open_provider_windows(ais)",
@@ -502,5 +509,8 @@ class MainWindow(QMainWindow):
 
         logger.info("Stopping Hybrid Engine")
         self.hybrid_engine.stop()
+
+        self._ais_connection_monitor.shutdown()
+        notification_manager().shutdown()
 
         super().closeEvent(event)
