@@ -15,6 +15,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from app.logging_config import configure_logging
 from app.mainwindow import MainWindow
 from app.paths import ensure_runtime_data_dirs
+from app.single_instance import ensure_single_instance
 from branding.assets import app_icon
 from gui.languagewelcome_dialog import run_language_welcome_if_needed
 from gui.splashscreen import create_splash_screen
@@ -102,6 +103,9 @@ class Application:
         self.qt.setWindowIcon(app_icon())
         self.qt.setStyleSheet(global_stylesheet())
         _log_startup_phase("QApplication created")
+
+        self._single_instance_lock = ensure_single_instance()
+        _log_startup_phase("single-instance lock acquired")
 
         if not run_language_welcome_if_needed():
             raise SystemExit(0)
