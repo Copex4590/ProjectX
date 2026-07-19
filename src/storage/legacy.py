@@ -23,6 +23,7 @@ _LEGACY_LOGS_DIR_NAME = "Project X"
 _LEGACY_DB_NAMES = ("vessels.db", "timeline.db", "alerts.db")
 _LEGACY_CACHE_NAMES = ("ship_cache.json", "obs_freeze.trace")
 _LEGACY_CACHE_DIRS = ("deli_hajok", "vessel_photos", "exports")
+_LEGACY_DATA_SUBDIRS = (DATA_SUBDIR_HAJOK, "vessel_photos")
 _LEGACY_CONFIG_NAMES = (
     "observation_points.json",
     "cameras.json",
@@ -202,10 +203,16 @@ def legacy_data_exists() -> bool:
 def ensure_legacy_data_layout() -> Path:
     """Create legacy runtime directories used before SAVE-107 migration."""
 
-    from app.paths import ensure_runtime_data_dirs
+    data_dir = legacy_data_root()
+    data_dir.mkdir(parents=True, exist_ok=True)
 
-    ensure_runtime_data_dirs()
-    return legacy_data_root()
+    for name in _LEGACY_DATA_SUBDIRS:
+        (data_dir / name).mkdir(parents=True, exist_ok=True)
+
+    legacy_config_root().mkdir(parents=True, exist_ok=True)
+    legacy_logs_root()
+
+    return data_dir
 
 
 def legacy_path_for_subdir(subdir: str, *parts: str) -> Path:

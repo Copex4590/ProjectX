@@ -23,7 +23,7 @@ from storage.legacy import (
     legacy_data_exists,
     legacy_path_for_subdir,
 )
-from storage.manager import configured_data_root, ensure_data_layout
+from storage.manager import configured_data_root
 from storage.marker import find_marked_data_root, is_valid_data_root, require_marked_data_root
 
 
@@ -124,12 +124,9 @@ def active_log_path(*parts: str) -> Path:
 def ensure_active_layout() -> Path:
     """Ensure the active storage layout exists for the current runtime mode."""
 
-    configured = configured_data_root()
+    from storage.manager import ensure_active_storage_layout
 
-    if configured is not None:
-        return ensure_data_layout(configured)
-
-    return ensure_legacy_data_layout()
+    return ensure_active_storage_layout()
 
 
 def assert_marker_authority(path: Path) -> Path:

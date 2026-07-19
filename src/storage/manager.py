@@ -99,6 +99,19 @@ def ensure_data_layout(data_root_path: Path | None = None) -> Path:
     return root
 
 
+def ensure_active_storage_layout() -> Path:
+    """Ensure the active Project X storage layout exists for the current mode."""
+
+    configured = configured_data_root()
+
+    if configured is not None:
+        return ensure_data_layout(configured)
+
+    from storage.legacy import ensure_legacy_data_layout
+
+    return ensure_legacy_data_layout()
+
+
 def _is_forbidden_path(path: Path) -> bool:
     resolved = path.resolve()
 

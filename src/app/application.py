@@ -9,12 +9,15 @@ import logging
 import sys
 import time
 
+from storage import ensure_active_layout
+
+ensure_active_layout()
+
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app.logging_config import configure_logging
 from app.mainwindow import MainWindow
-from app.paths import ensure_runtime_data_dirs
 from app.single_instance import ensure_single_instance
 from branding.assets import app_icon
 from gui.notifications import notification_manager
@@ -94,8 +97,7 @@ class Application:
 
         configure_logging()
         _install_exception_hook()
-        ensure_runtime_data_dirs()
-        _log_startup_phase("logging and runtime directories ready")
+        _log_startup_phase("storage layout and logging ready")
 
         self.qt = QApplication(sys.argv)
         self.qt.setApplicationName(PROJECT_NAME)
