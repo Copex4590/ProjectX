@@ -77,6 +77,12 @@ class PreferencesManager:
 
         return self.save(Preferences.from_dict(current.to_dict()))
 
+    def set_legacy_migration_deferred(self, deferred: bool = True) -> Preferences:
+
+        current = self.get()
+        current.legacy_migration_deferred = bool(deferred)
+        return self.save(Preferences.from_dict(current.to_dict()))
+
     def set_ais_provider_coverage_notice_dismissed(
         self,
         dismissed: bool = True,

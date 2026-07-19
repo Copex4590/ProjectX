@@ -622,5 +622,13 @@
   "Each AIS provider has different geographic coverage.\nService quality also depends on how many receiver stations operate in your area and what data the provider offers.\nWe recommend checking coverage on the provider's website before requesting an API key or subscribing.": "Minden AIS szolgáltató más földrajzi lefedettséggel rendelkezik.\nA szolgáltatás minősége attól is függ, hogy az adott területen hány vevőállomás működik és milyen adatokat biztosít a szolgáltató.\nJavasoljuk, hogy a szolgáltató weboldalán ellenőrizd a lefedettséget, mielőtt API kulcsot igényelsz vagy előfizetsz.",
   "View coverage": "Lefedettség megtekintése",
   "Don't show again": "Ne jelenjen meg többé",
-  "The current release of Project X calculates ship distance and direction relative to only one active observation point at a time.\n\nPlease keep this in mind when you activate a different observation point.": "A Project X jelenlegi kiadása egyszerre csak egy aktív megfigyelési ponthoz viszonyítva számítja a hajók távolságát és irányát.\n\nKérjük, ezt vegye figyelembe, amikor másik megfigyelési pontot tesz aktívvá."
+  "The current release of Project X calculates ship distance and direction relative to only one active observation point at a time.\n\nPlease keep this in mind when you activate a different observation point.": "A Project X jelenlegi kiadása egyszerre csak egy aktív megfigyelési ponthoz viszonyítva számítja a hajók távolságát és irányát.\n\nKérjük, ezt vegye figyelembe, amikor másik megfigyelési pontot tesz aktívvá.",
+  "Project X Data Upgrade": "Project X adatfrissítés",
+  "Move your existing Project X data": "Meglévő Project X adatok áthelyezése",
+  "Project X can now store your ships, logs, and saved data in a dedicated folder at:\n\n{destination}\n\nWe found existing data from a previous version. Would you like to move it there now?": "A Project X mostantól egy külön mappában tárolhatja a hajókat, naplókat és mentett adatokat:\n\n{destination}\n\nKorábbi verzióból származó adatokat találtunk. Szeretné most oda áthelyezni?",
+  "Move my data": "Adatok áthelyezése",
+  "Keep current location for now": "Egyelőre maradjon a jelenlegi helyen",
+  "Moving your Project X data...": "Project X adatok áthelyezése...",
+  "Your Project X data was moved successfully to:\n\n{destination}": "A Project X adatai sikeresen áthelyezésre kerültek ide:\n\n{destination}",
+  "Project X could not move your data automatically.\n\n{details}\n\nYour original data has been left unchanged. Project X will continue using your current data location.": "A Project X nem tudta automatikusan áthelyezni az adatokat.\n\n{details}\n\nAz eredeti adatok változatlanok maradtak. A Project X továbbra is a jelenlegi adathelyet használja."
 }

@@ -58,6 +58,7 @@ class Preferences:
     rtl_setup_completed: bool = False
     ais_provider_coverage_notice_dismissed: bool = False
     observation_point_workflow_notice_dismissed: bool = False
+    legacy_migration_deferred: bool = False
     data_directory: str | None = None
     version: int = SCHEMA_VERSION
 
@@ -86,6 +87,7 @@ class Preferences:
             "observation_point_workflow_notice_dismissed": (
                 self.observation_point_workflow_notice_dismissed
             ),
+            "legacy_migration_deferred": self.legacy_migration_deferred,
             "data_directory": self.data_directory,
         }
 
@@ -173,6 +175,9 @@ class Preferences:
             observation_point_workflow_notice_dismissed=bool(
                 data.get("observation_point_workflow_notice_dismissed", False)
             ),
+            legacy_migration_deferred=bool(
+                data.get("legacy_migration_deferred", False)
+            ),
             data_directory=data_directory,
             version=int(data.get("version", SCHEMA_VERSION)),
         )
@@ -248,6 +253,7 @@ class Preferences:
         )
         migrated.setdefault("ais_provider_coverage_notice_dismissed", False)
         migrated.setdefault("observation_point_workflow_notice_dismissed", False)
+        migrated.setdefault("legacy_migration_deferred", False)
 
         if "data_directory" not in data:
             migrated["data_directory"] = None

@@ -17,9 +17,9 @@ from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app.logging_config import configure_logging
-from app.mainwindow import MainWindow
 from app.single_instance import ensure_single_instance
 from branding.assets import app_icon
+from gui.data_upgrade_dialog import run_data_upgrade_if_needed
 from gui.notifications import notification_manager
 from gui.languagewelcome_dialog import run_language_welcome_if_needed
 from gui.splashscreen import create_splash_screen
@@ -118,6 +118,11 @@ class Application:
         _log_startup_phase("language welcome complete")
 
         self._first_run_pending = _is_first_run_pending()
+
+        if not self._first_run_pending:
+            run_data_upgrade_if_needed(first_run_pending=self._first_run_pending)
+            _log_startup_phase("data upgrade prompt complete")
+
         self._splash = None
 
         if not self._first_run_pending:
@@ -127,6 +132,8 @@ class Application:
             _log_startup_phase("splash screen visible")
 
         self._startup_started = time.monotonic()
+
+        from app.mainwindow import MainWindow
 
         try:
             self.window = MainWindow()
