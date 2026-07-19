@@ -30,6 +30,7 @@ from storage.migration_state import (
     MigrationState,
     MigrationStateStore,
 )
+from storage.resolver import StorageMode, resolve_data_root
 
 _LEGACY_DB_NAMES = ("vessels.db", "timeline.db", "alerts.db")
 _LEGACY_CACHE_FILES = ("ship_cache.json", "obs_freeze.trace")
@@ -399,6 +400,30 @@ def _verify_migration(context: _MigrationContext) -> MigrationVerificationReport
     return report
 
 
+def _verify_post_commit_resolution(destination_root: Path) -> None:
+    """Confirm the storage resolver uses the migrated data root after commit."""
+
+    expected = destination_root.resolve()
+    resolved = resolve_data_root()
+
+    if resolved.path.resolve() != expected:
+        raise MigrationError(
+            "Post-commit resolver verification failed: resolved path "
+            f"{resolved.path} does not match destination {expected}"
+        )
+
+    if resolved.mode is not StorageMode.CONFIGURED:
+        raise MigrationError(
+            "Post-commit resolver verification failed: active storage mode is "
+            f"{resolved.mode.value}, expected configured"
+        )
+
+    if not resolved.has_marker or not is_valid_data_root(expected):
+        raise MigrationError(
+            "Post-commit resolver verification failed: destination marker is invalid"
+        )
+
+
 def _rollback_destination(context: _MigrationContext) -> None:
 
     destination_root = context.destination_root.resolve()
@@ -539,6 +564,25 @@ class DataMigrationService:
             context.state_store.save(context.state)
 
             self._preferences_manager.set_data_directory(str(destination_root))
+
+            try:
+                _verify_post_commit_resolution(destination_root)
+            except MigrationError as exc:
+                message = (
+                    "Fatal migration error: post-commit resolver verification failed: "
+                    f"{exc}"
+                )
+                context.state.touch(phase=MigrationPhase.FAILED, error=message)
+                context.state_store.save(context.state)
+                return MigrationResult(
+                    success=False,
+                    destination_root=destination_root,
+                    phase=MigrationPhase.FAILED,
+                    verification=verification,
+                    copied_files=copied_files,
+                    message=message,
+                    rolled_back=False,
+                )
 
             context.state.touch(phase=MigrationPhase.COMPLETED, error=None)
             context.state_store.save(context.state)

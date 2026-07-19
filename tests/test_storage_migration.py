@@ -25,6 +25,8 @@ from storage import (
     DATA_SUBDIR_HAJOK,
     DATA_SUBDIR_LOGS,
     MigrationPhase,
+    ResolvedDataRoot,
+    StorageMode,
     build_migration_copy_plan,
     is_valid_data_root,
 )
@@ -173,10 +175,14 @@ class MigrationServiceSuccessTests(unittest.TestCase):
         )
 
         with patch(
-            "storage.migration.collect_legacy_inventory",
-            return_value=inventory,
+            "preferences.preferences_manager.preferences_manager",
+            preferences_manager,
         ):
-            result = service.run(destination)
+            with patch(
+                "storage.migration.collect_legacy_inventory",
+                return_value=inventory,
+            ):
+                result = service.run(destination)
 
         return service, destination, result, preferences_manager
 
@@ -256,14 +262,18 @@ class MigrationFailureTests(unittest.TestCase):
             )
 
             with patch(
-                "storage.migration.collect_legacy_inventory",
-                return_value=inventory,
+                "preferences.preferences_manager.preferences_manager",
+                preferences_manager,
             ):
                 with patch(
-                    "storage.migration._verify_sqlite_files",
-                    side_effect=MigrationError("simulated sqlite failure"),
+                    "storage.migration.collect_legacy_inventory",
+                    return_value=inventory,
                 ):
-                    result = service.run(destination)
+                    with patch(
+                        "storage.migration._verify_sqlite_files",
+                        side_effect=MigrationError("simulated sqlite failure"),
+                    ):
+                        result = service.run(destination)
 
             self.assertFalse(result.success)
             self.assertTrue(result.rolled_back)
@@ -285,16 +295,21 @@ class MigrationFailureTests(unittest.TestCase):
                 state_store=MigrationStateStore(state_path),
                 preferences_manager=PreferencesManager(preferences_path),
             )
+            preferences_manager = service._preferences_manager
 
             with patch(
-                "storage.migration.collect_legacy_inventory",
-                return_value=inventory,
+                "preferences.preferences_manager.preferences_manager",
+                preferences_manager,
             ):
                 with patch(
-                    "storage.migration._copy_file",
-                    return_value=CopyAction.SKIPPED_NEWER_DESTINATION,
+                    "storage.migration.collect_legacy_inventory",
+                    return_value=inventory,
                 ):
-                    result = service.run(destination)
+                    with patch(
+                        "storage.migration._copy_file",
+                        return_value=CopyAction.SKIPPED_NEWER_DESTINATION,
+                    ):
+                        result = service.run(destination)
 
             self.assertFalse(result.success)
             self.assertIn("newer", result.message.lower())
@@ -328,16 +343,20 @@ class MigrationFailureTests(unittest.TestCase):
                 return original_copy(source, destination_path)
 
             with patch(
-                "storage.migration.collect_legacy_inventory",
-                return_value=inventory,
+                "preferences.preferences_manager.preferences_manager",
+                preferences_manager,
             ):
-                with patch("storage.migration._copy_file", side_effect=flaky_copy):
-                    first = service.run(destination)
+                with patch(
+                    "storage.migration.collect_legacy_inventory",
+                    return_value=inventory,
+                ):
+                    with patch("storage.migration._copy_file", side_effect=flaky_copy):
+                        first = service.run(destination)
 
-                self.assertFalse(first.success)
-                self.assertTrue(first.rolled_back)
+                    self.assertFalse(first.success)
+                    self.assertTrue(first.rolled_back)
 
-                second = service.run(destination)
+                    second = service.run(destination)
 
             self.assertTrue(second.success)
             self.assertEqual(second.phase, MigrationPhase.COMPLETED)
@@ -382,15 +401,130 @@ class MigrationStateTests(unittest.TestCase):
             )
 
             with patch(
-                "storage.migration.collect_legacy_inventory",
-                return_value=inventory,
+                "preferences.preferences_manager.preferences_manager",
+                preferences_manager,
             ):
-                result = service.run(base / "Project X")
+                with patch(
+                    "storage.migration.collect_legacy_inventory",
+                    return_value=inventory,
+                ):
+                    result = service.run(base / "Project X")
 
             self.assertTrue(result.success)
 
             with self.assertRaises(MigrationError):
                 service.rollback()
+
+
+class MigrationPostCommitTests(unittest.TestCase):
+
+    def test_post_commit_failure_keeps_data_and_marks_state_failed(self) -> None:
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            inventory = _build_synthetic_legacy_layout(base)
+            destination = base / "Project X"
+            state_path = base / "bootstrap" / "migration_state.json"
+            preferences_path = base / "bootstrap" / "preferences.json"
+            state_store = MigrationStateStore(state_path)
+            preferences_manager = PreferencesManager(preferences_path)
+
+            service = DataMigrationService(
+                state_store=state_store,
+                preferences_manager=preferences_manager,
+            )
+
+            legacy_resolved = ResolvedDataRoot(
+                path=inventory.data_root,
+                mode=StorageMode.LEGACY,
+                has_marker=False,
+            )
+
+            with patch(
+                "preferences.preferences_manager.preferences_manager",
+                preferences_manager,
+            ):
+                with patch(
+                    "storage.migration.collect_legacy_inventory",
+                    return_value=inventory,
+                ):
+                    with patch(
+                        "storage.migration.resolve_data_root",
+                        return_value=legacy_resolved,
+                    ):
+                        result = service.run(destination)
+
+            self.assertFalse(result.success)
+            self.assertFalse(result.rolled_back)
+            self.assertIn("Fatal migration error", result.message)
+            self.assertEqual(
+                preferences_manager.get().data_directory,
+                str(destination.resolve()),
+            )
+            self.assertTrue((destination / DATA_SUBDIR_DATABASES / "vessels.db").is_file())
+
+            saved_state = state_store.load()
+            self.assertIsNotNone(saved_state)
+            assert saved_state is not None
+            self.assertEqual(saved_state.phase, MigrationPhase.FAILED)
+            self.assertIn("post-commit", (saved_state.error or "").lower())
+
+
+class UpgradePromptTests(unittest.TestCase):
+
+    def test_should_offer_data_upgrade_for_existing_legacy_user(self) -> None:
+
+        from gui.data_upgrade_dialog import should_offer_data_upgrade
+
+        with patch(
+            "gui.data_upgrade_dialog.preferences_manager.get",
+            return_value=Preferences.defaults(),
+        ):
+            with patch("gui.data_upgrade_dialog.legacy_data_exists", return_value=True):
+                self.assertTrue(
+                    should_offer_data_upgrade(first_run_pending=False)
+                )
+
+    def test_should_not_offer_data_upgrade_for_first_run(self) -> None:
+
+        from gui.data_upgrade_dialog import should_offer_data_upgrade
+
+        with patch(
+            "gui.data_upgrade_dialog.preferences_manager.get",
+            return_value=Preferences.defaults(),
+        ):
+            with patch("gui.data_upgrade_dialog.legacy_data_exists", return_value=True):
+                self.assertFalse(
+                    should_offer_data_upgrade(first_run_pending=True)
+                )
+
+    def test_should_not_offer_data_upgrade_when_deferred(self) -> None:
+
+        from gui.data_upgrade_dialog import should_offer_data_upgrade
+
+        preferences = Preferences.defaults()
+        preferences.legacy_migration_deferred = True
+
+        with patch(
+            "gui.data_upgrade_dialog.preferences_manager.get",
+            return_value=preferences,
+        ):
+            with patch("gui.data_upgrade_dialog.legacy_data_exists", return_value=True):
+                self.assertFalse(
+                    should_offer_data_upgrade(first_run_pending=False)
+                )
+
+
+class PreferencesMigrationDeferTests(unittest.TestCase):
+
+    def test_legacy_migration_deferred_round_trip(self) -> None:
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            manager = PreferencesManager(Path(temp_dir) / "preferences.json")
+            updated = manager.set_legacy_migration_deferred(True)
+
+            self.assertTrue(updated.legacy_migration_deferred)
+            self.assertTrue(manager.get().legacy_migration_deferred)
 
 
 class MigrationCopyPolicyTests(unittest.TestCase):

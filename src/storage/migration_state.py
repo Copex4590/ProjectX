@@ -33,6 +33,9 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+_UNSET = object()
+
+
 @dataclass
 class MigrationState:
     """Restart-safe migration progress persisted in the bootstrap profile."""
@@ -120,13 +123,20 @@ class MigrationState:
             destination_preexisting=destination_preexisting,
         )
 
-    def touch(self, *, phase: MigrationPhase | None = None, error: str | None = None) -> None:
+    def touch(
+        self,
+        *,
+        phase: MigrationPhase | None = None,
+        error: str | None | object = _UNSET,
+    ) -> None:
 
         if phase is not None:
             self.phase = phase
 
+        if error is not _UNSET:
+            self.error = error  # type: ignore[assignment]
+
         self.updated_at = _utc_now_iso()
-        self.error = error
 
 
 class MigrationStateStore:
@@ -164,7 +174,7 @@ class MigrationStateStore:
 
     def save(self, state: MigrationState) -> None:
 
-        state.touch()
+        state.updated_at = _utc_now_iso()
         self._path.parent.mkdir(parents=True, exist_ok=True)
 
         with self._path.open("w", encoding="utf-8") as handle:
