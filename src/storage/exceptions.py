@@ -20,3 +20,7 @@ class InvalidDataDirectoryError(StorageError):
 
 class DataDirectoryValidationError(StorageError):
     """Raised when a candidate data directory fails validation."""
+
+
+class MigrationError(StorageError):
+    """Raised when legacy data migration fails or cannot proceed."""

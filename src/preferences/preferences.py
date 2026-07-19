@@ -16,6 +16,10 @@ PREFERENCES_FILE = Path(
     )
 )
 
+# Data directory migration (SAVE-107-B4) updates `data_directory` only after the
+# standalone storage migration service verifies a successful copy into a marked
+# data root. Legacy source data is never modified or deleted by that process.
+
 SCHEMA_VERSION = 2
 
 DEFAULT_LANGUAGE = "en"
