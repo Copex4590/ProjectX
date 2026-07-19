@@ -27,8 +27,6 @@ AIS_API_KEY_FILE = Path(
     )
 )
 
-_LEGACY_API_KEY_FILE = Path.home() / "duna-monitor" / "api_key.txt"
-
 
 class AISManager:
 
@@ -148,20 +146,20 @@ class AISManager:
     def _sync_api_key_file(self, api_key: str) -> None:
 
         key = str(api_key or "").strip()
-        paths = (AIS_API_KEY_FILE, _LEGACY_API_KEY_FILE)
 
         if not key:
-            for path in paths:
-                try:
-                    if path.exists():
-                        path.unlink()
-                except OSError:
-                    logger.warning("Failed to remove AIS API key file: %s", path)
+            try:
+                if AIS_API_KEY_FILE.exists():
+                    AIS_API_KEY_FILE.unlink()
+            except OSError:
+                logger.warning(
+                    "Failed to remove AIS API key file: %s",
+                    AIS_API_KEY_FILE,
+                )
             return
 
-        for path in paths:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(key + "\n", encoding="utf-8")
+        AIS_API_KEY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        AIS_API_KEY_FILE.write_text(key + "\n", encoding="utf-8")
 
     def _on_ais_status(self, status: str = "", **kwargs) -> None:
 

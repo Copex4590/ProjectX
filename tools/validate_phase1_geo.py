@@ -47,12 +47,26 @@ FORBIDDEN_RUNTIME_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
         "Hardcoded CAMERA_LAT origin",
         re.compile(r"CAMERA_LAT\s*="),
     ),
+    (
+        "Legacy developer path (/home/zoli)",
+        re.compile(r"/home/zoli"),
+    ),
+    (
+        "Legacy Dunamonitor path",
+        re.compile(r"Dunamonitor"),
+    ),
+    (
+        "Legacy rtl-monitor path",
+        re.compile(r"rtl-monitor"),
+    ),
+    (
+        "Legacy duna-monitor path",
+        re.compile(r"duna-monitor"),
+    ),
 )
 
-# Files excluded from fallback scan (dead code, examples, static catalog data).
+# Files excluded from fallback scan (examples, static catalog data).
 FALLBACK_SCAN_SKIP_PARTS = (
-    "hybrid_engine_v2.py",
-    "hybrid_engine.py.bak",
     "observation_points.json.example",
     "config/cameras/",
     "config/camera_packs/",

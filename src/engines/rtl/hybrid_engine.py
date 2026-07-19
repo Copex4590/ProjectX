@@ -1,7 +1,5 @@
 import json
 import logging
-import os
-import subprocess
 import threading
 import time
 from datetime import datetime
@@ -9,7 +7,8 @@ from pathlib import Path
 
 import websocket
 
-from ais.ais_manager import AIS_API_KEY_FILE, _LEGACY_API_KEY_FILE
+from app.paths import runtime_data_dir, runtime_data_path
+from ais.ais_manager import AIS_API_KEY_FILE
 from ais.providers import AISProviderType, normalize_provider_type
 from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
 from database import registry
@@ -20,28 +19,28 @@ from engines.ais.ais_protocol import AISProtocol, reference_observation_bounding
 from engines.ais.hybrid_ais_engine import hybrid_ais_engine
 from engines.base_engine import BaseEngine
 from events import eventbus
-from logbook.duna_format import get_direction, get_heading
+from logbook.duna_format import get_direction, get_heading, sanitize_name
 from models.ship import Ship
 from observation.geo_context import geo_context
 from preferences import preferences_manager
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR = "/home/zoli/rtl-monitor"
-HAJOK_DIR = "/home/zoli/Asztal/Ez a gép/Dunamonitor/Hajók"
-DELI_DIR = os.path.join(BASE_DIR, "deli_hajok")
-CACHE_FILE = os.path.join(BASE_DIR, "ship_cache.json")
-API_KEY_FILE = "/home/zoli/duna-monitor/api_key.txt"
-XLSX_SCRIPT = "/home/zoli/duna-monitor/lista_xlsx.py"
-
-os.makedirs(HAJOK_DIR, exist_ok=True)
-os.makedirs(DELI_DIR, exist_ok=True)
+SHIP_CACHE_FILE = runtime_data_path("ship_cache.json")
 
 
-def sanitize_name(name):
-    if not name:
-        return ""
-    return str(name).replace("@", "").strip()
+def _runtime_export_dir() -> Path:
+
+    export_dir = runtime_data_dir() / "exports"
+    export_dir.mkdir(parents=True, exist_ok=True)
+    return export_dir
+
+
+def _deli_hajok_dir() -> Path:
+
+    deli_dir = runtime_data_dir() / "deli_hajok"
+    deli_dir.mkdir(parents=True, exist_ok=True)
+    return deli_dir
 
 
 class HybridEngine(BaseEngine):
@@ -63,16 +62,12 @@ class HybridEngine(BaseEngine):
         self.ship_names = {}
         self.static_ship_data = {}
         self.radar_data = {}
-        self.last_ship_data = {}
         self.last_printed_state = {}
 
-        # --------------------------------------------------
-        # CACHE BETÖLTÉS
-        # --------------------------------------------------
-        if os.path.exists(CACHE_FILE):
+        if SHIP_CACHE_FILE.exists():
             try:
-                with open(CACHE_FILE, "r", encoding="utf-8") as f:
-                    self.ship_names = json.load(f)
+                with SHIP_CACHE_FILE.open(encoding="utf-8") as handle:
+                    self.ship_names = json.load(handle)
             except Exception:
                 self.ship_names = {}
 
@@ -163,7 +158,6 @@ class HybridEngine(BaseEngine):
 
         for mmsi in stale_mmsis:
             self.radar_data.pop(mmsi, None)
-            self.last_ship_data.pop(mmsi, None)
             self.last_printed_state.pop(mmsi, None)
 
         if removed:
@@ -185,7 +179,6 @@ class HybridEngine(BaseEngine):
 
         for mmsi in stale_mmsis:
             self.radar_data.pop(mmsi, None)
-            self.last_ship_data.pop(mmsi, None)
             self.last_printed_state.pop(mmsi, None)
 
         if removed:
@@ -198,7 +191,7 @@ class HybridEngine(BaseEngine):
         if key:
             return key
 
-        for path in (AIS_API_KEY_FILE, _LEGACY_API_KEY_FILE, Path(API_KEY_FILE)):
+        for path in (AIS_API_KEY_FILE,):
             try:
                 if path.exists():
                     value = path.read_text(encoding="utf-8").strip()
@@ -257,63 +250,51 @@ class HybridEngine(BaseEngine):
                 self._ws = None
 
     def save_ship_cache(self):
+
         try:
-            with open(CACHE_FILE, "w", encoding="utf-8") as f:
-                json.dump(self.ship_names, f, ensure_ascii=False, indent=2)
+            SHIP_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+            with SHIP_CACHE_FILE.open("w", encoding="utf-8") as handle:
+                json.dump(self.ship_names, handle, ensure_ascii=False, indent=2)
         except Exception:
             pass
 
-    def ensure_ship_folder(self, name):
-        ship_dir = os.path.join(HAJOK_DIR, name)
-
-        if not os.path.exists(ship_dir):
-            os.makedirs(ship_dir, exist_ok=True)
-            print(f"📁 Új hajó dosszié létrehozva: {name}")
-
-            csv_file = os.path.join(ship_dir, "adatlap.csv")
-            with open(csv_file, "w", encoding="utf-8") as f:
-                f.write(
-                    "Időpont;"
-                    "Távolság;"
-                    "Haladási irány;"
-                    "Sebesség;"
-                    "Célállomás + ETA;"
-                    "Hívójel;"
-                    "Merülés;"
-                    "MMSI;"
-                    "Hajótípus;"
-                    "Hossz;"
-                    "Szélesség\n"
-                )
-
-        return ship_dir
-
     def write_hajo_txt(self, name, distance, direction, heading, sog):
-        with open(os.path.join(BASE_DIR, "hajo.txt"), "w", encoding="utf-8") as f:
-            f.write(f"{name}\n")
-            f.write(f"{round(distance, 2)} km-re {direction}\n")
-            f.write(f"{heading}\n")
+
+        export_file = _runtime_export_dir() / "hajo.txt"
+
+        with export_file.open("w", encoding="utf-8") as handle:
+            handle.write(f"{name}\n")
+            handle.write(f"{round(distance, 2)} km-re {direction}\n")
+            handle.write(f"{heading}\n")
+
             if sog >= 0.5:
-                f.write(f"{sog:.1f} csomó\n")
+                handle.write(f"{sog:.1f} csomó\n")
             else:
-                f.write("\n")
+                handle.write("\n")
 
     def write_radar_txt(self):
-        with open(os.path.join(BASE_DIR, "radar.txt"), "w", encoding="utf-8") as rf:
-            rf.write("🚢 RADAR\n\n")
+
+        export_file = _runtime_export_dir() / "radar.txt"
+
+        with export_file.open("w", encoding="utf-8") as handle:
+            handle.write("🚢 RADAR\n\n")
 
             for ship in sorted(
                 self.radar_data.values(),
                 key=lambda x: x["distance"]
             )[:10]:
-                rf.write(
+                handle.write(
                     f'{ship["name"][:20]:20} '
                     f'{ship["distance"]:.2f} km '
                     f'{ship["direction"]}\n'
                 )
 
     def write_radar_kml(self):
-        with open(os.path.join(BASE_DIR, "radar.kml"), "w", encoding="utf-8") as kml:
+
+        export_file = _runtime_export_dir() / "radar.kml"
+
+        with export_file.open("w", encoding="utf-8") as kml:
             kml.write("""<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
 <Document>
@@ -390,33 +371,8 @@ class HybridEngine(BaseEngine):
                 "width": static.get("width", "")
             })
 
-        with open(os.path.join(BASE_DIR, "radar.json"), "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-
-    def save_csv_row(self, ship_dir, current_time, distance, direction, heading, sog, mmsi):
-        csv_file = os.path.join(ship_dir, "adatlap.csv")
-        ship_static = self.static_ship_data.get(mmsi, {})
-
-        with open(csv_file, "a", encoding="utf-8") as cf:
-            cf.write(
-                f"{current_time};"
-                f"{round(distance, 2)} km {direction};"
-                f"{heading};"
-                f"{'' if sog < 0.5 else str(round(sog, 1)) + ' csomó'};"
-                f"{ship_static.get('destination', '')} {ship_static.get('eta', '')};"
-                f"{ship_static.get('callsign', '')};"
-                f"{ship_static.get('draught', '')};"
-                f"{ship_static.get('mmsi', mmsi)};"
-                f"{ship_static.get('type', '')};"
-                f"{ship_static.get('length', '')};"
-                f"{ship_static.get('width', '')}\n"
-            )
-
-        subprocess.run(
-            ["python3", XLSX_SCRIPT],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        with (_runtime_export_dir() / "radar.json").open("w", encoding="utf-8") as handle:
+            json.dump(data, handle, ensure_ascii=False, indent=2)
 
     def process_position(self, mmsi, lat, lon, sog, cog, source):
         if lat is None or lon is None:
@@ -428,8 +384,6 @@ class HybridEngine(BaseEngine):
         name = sanitize_name(self.ship_names.get(mmsi, ""))
         if not name:
             name = mmsi
-
-        ship_dir = self.ensure_ship_folder(name)
 
         distance = geo_context.distance_km(lat, lon) or 0.0
         direction = get_direction(lat)
@@ -449,38 +403,13 @@ class HybridEngine(BaseEngine):
         }
 
         if direction == "délre":
-            with open(
-                os.path.join(DELI_DIR, f"{name}.txt"), "a", encoding="utf-8"
-            ) as df:
-                df.write(
+            deli_file = _deli_hajok_dir() / f"{name}.txt"
+
+            with deli_file.open("a", encoding="utf-8") as handle:
+                handle.write(
                     f"{round(distance, 2)} km | {heading} | "
                     f"{round(sog,1)} csomó | {current_time}\n"
                 )
-
-        current_distance = round(distance, 2)
-
-        if mmsi not in self.last_ship_data:
-            self.last_ship_data[mmsi] = {
-                "distance": current_distance,
-                "speed": sog
-            }
-            should_save = True
-        else:
-            last_distance = self.last_ship_data[mmsi]["distance"]
-            should_save = (
-                abs(current_distance - last_distance) >= 0.01
-                or sog >= 0.5
-            )
-
-        if should_save:
-            self.save_csv_row(
-                ship_dir, current_time, distance, direction, heading, sog, mmsi
-            )
-
-        self.last_ship_data[mmsi] = {
-            "distance": current_distance,
-            "speed": sog
-        }
 
         # --------------------------------------------------
         # KIÍRÁSI LOGIKA:
