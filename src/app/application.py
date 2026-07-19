@@ -9,6 +9,23 @@ import logging
 import sys
 import time
 
+from preferences.preferences_manager import preferences_manager
+
+
+def _prepare_storage_for_startup() -> None:
+    """Activate a deferred configured data root on a fresh application launch."""
+
+    preferences = preferences_manager.get()
+
+    if (
+        preferences.has_data_directory()
+        and preferences.storage_activation_deferred_until_restart
+    ):
+        preferences_manager.set_storage_activation_deferred_until_restart(False)
+
+
+_prepare_storage_for_startup()
+
 from storage import ensure_active_layout
 
 ensure_active_layout()
@@ -17,9 +34,10 @@ from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app.logging_config import configure_logging
+from app.restart import request_application_restart
 from app.single_instance import ensure_single_instance
 from branding.assets import app_icon
-from gui.data_upgrade_dialog import run_data_upgrade_if_needed
+from gui.data_upgrade_dialog import UpgradeStartupResult, run_data_upgrade_if_needed
 from gui.notifications import notification_manager
 from gui.languagewelcome_dialog import run_language_welcome_if_needed
 from gui.splashscreen import create_splash_screen
@@ -120,8 +138,15 @@ class Application:
         self._first_run_pending = _is_first_run_pending()
 
         if not self._first_run_pending:
-            run_data_upgrade_if_needed(first_run_pending=self._first_run_pending)
+            upgrade_result = run_data_upgrade_if_needed(
+                first_run_pending=self._first_run_pending,
+            )
             _log_startup_phase("data upgrade prompt complete")
+
+            if upgrade_result is UpgradeStartupResult.RESTART_REQUESTED:
+                _log_startup_phase("application restart requested after migration")
+                request_application_restart(self.qt, self._single_instance_lock)
+                raise SystemExit(0)
 
         self._splash = None
 

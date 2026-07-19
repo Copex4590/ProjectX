@@ -56,6 +56,9 @@ def configured_data_root() -> Path | None:
     if not configured:
         return None
 
+    if preferences.storage_activation_deferred_until_restart:
+        return None
+
     return Path(configured).expanduser().resolve()
 
 

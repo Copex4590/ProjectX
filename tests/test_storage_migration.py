@@ -28,6 +28,7 @@ from storage import (
     ResolvedDataRoot,
     StorageMode,
     build_migration_copy_plan,
+    configured_data_root,
     is_valid_data_root,
 )
 from storage.exceptions import MigrationError
@@ -525,6 +526,70 @@ class PreferencesMigrationDeferTests(unittest.TestCase):
 
             self.assertTrue(updated.legacy_migration_deferred)
             self.assertTrue(manager.get().legacy_migration_deferred)
+
+    def test_storage_activation_deferred_until_restart_round_trip(self) -> None:
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            manager = PreferencesManager(Path(temp_dir) / "preferences.json")
+            updated = manager.set_storage_activation_deferred_until_restart(True)
+
+            self.assertTrue(updated.storage_activation_deferred_until_restart)
+            self.assertTrue(manager.get().storage_activation_deferred_until_restart)
+
+
+class ConfiguredRootDeferTests(unittest.TestCase):
+
+    def test_configured_data_root_ignored_while_activation_deferred(self) -> None:
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "Project X"
+            preferences_path = Path(temp_dir) / "preferences.json"
+            manager = PreferencesManager(preferences_path)
+            manager.set_data_directory(str(root))
+            manager.set_storage_activation_deferred_until_restart(True)
+
+            with patch(
+                "preferences.preferences_manager.preferences_manager",
+                manager,
+            ):
+                self.assertIsNone(configured_data_root())
+
+    def test_startup_prepare_clears_deferred_activation(self) -> None:
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "Project X"
+            preferences_path = Path(temp_dir) / "preferences.json"
+            manager = PreferencesManager(preferences_path)
+            manager.set_data_directory(str(root))
+            manager.set_storage_activation_deferred_until_restart(True)
+
+            with patch(
+                "preferences.preferences_manager.preferences_manager",
+                manager,
+            ):
+                from app.application import _prepare_storage_for_startup
+
+                _prepare_storage_for_startup()
+                self.assertFalse(
+                    manager.get().storage_activation_deferred_until_restart
+                )
+
+
+class MigrationRestartTests(unittest.TestCase):
+
+    def test_relaunch_command_in_development_mode(self) -> None:
+
+        from app.restart import relaunch_command
+
+        with patch("app.restart.sys") as mock_sys:
+            mock_sys.frozen = False
+            mock_sys.executable = "/usr/bin/python3"
+            mock_sys.argv = ["main.py"]
+
+            command = relaunch_command()
+
+        self.assertEqual(command[0], "/usr/bin/python3")
+        self.assertTrue(str(command[1]).endswith("main.py"))
 
 
 class MigrationCopyPolicyTests(unittest.TestCase):

@@ -83,6 +83,15 @@ class PreferencesManager:
         current.legacy_migration_deferred = bool(deferred)
         return self.save(Preferences.from_dict(current.to_dict()))
 
+    def set_storage_activation_deferred_until_restart(
+        self,
+        deferred: bool = True,
+    ) -> Preferences:
+
+        current = self.get()
+        current.storage_activation_deferred_until_restart = bool(deferred)
+        return self.save(Preferences.from_dict(current.to_dict()))
+
     def set_ais_provider_coverage_notice_dismissed(
         self,
         dismissed: bool = True,

@@ -630,5 +630,10 @@
   "Keep current location for now": "Keep current location for now",
   "Moving your Project X data...": "Moving your Project X data...",
   "Your Project X data was moved successfully to:\n\n{destination}": "Your Project X data was moved successfully to:\n\n{destination}",
-  "Project X could not move your data automatically.\n\n{details}\n\nYour original data has been left unchanged. Project X will continue using your current data location.": "Project X could not move your data automatically.\n\n{details}\n\nYour original data has been left unchanged. Project X will continue using your current data location."
+  "Project X could not move your data automatically.\n\n{details}\n\nYour original data has been left unchanged. Project X will continue using your current data location.": "Project X could not move your data automatically.\n\n{details}\n\nYour original data has been left unchanged. Project X will continue using your current data location.",
+  "Migration complete": "Migration complete",
+  "Your data has been successfully migrated.\n\nProject X will now restart to begin using the new storage location.": "Your data has been successfully migrated.\n\nProject X will now restart to begin using the new storage location.",
+  "Restart now": "Restart now",
+  "Restart later": "Restart later",
+  "Your data has been migrated successfully.\n\nThe new storage location will become active the next time you start Project X. This session will continue using your previous storage location.": "Your data has been migrated successfully.\n\nThe new storage location will become active the next time you start Project X. This session will continue using your previous storage location."
 }

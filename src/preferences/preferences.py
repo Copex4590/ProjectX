@@ -59,6 +59,7 @@ class Preferences:
     ais_provider_coverage_notice_dismissed: bool = False
     observation_point_workflow_notice_dismissed: bool = False
     legacy_migration_deferred: bool = False
+    storage_activation_deferred_until_restart: bool = False
     data_directory: str | None = None
     version: int = SCHEMA_VERSION
 
@@ -88,6 +89,9 @@ class Preferences:
                 self.observation_point_workflow_notice_dismissed
             ),
             "legacy_migration_deferred": self.legacy_migration_deferred,
+            "storage_activation_deferred_until_restart": (
+                self.storage_activation_deferred_until_restart
+            ),
             "data_directory": self.data_directory,
         }
 
@@ -178,6 +182,9 @@ class Preferences:
             legacy_migration_deferred=bool(
                 data.get("legacy_migration_deferred", False)
             ),
+            storage_activation_deferred_until_restart=bool(
+                data.get("storage_activation_deferred_until_restart", False)
+            ),
             data_directory=data_directory,
             version=int(data.get("version", SCHEMA_VERSION)),
         )
@@ -254,6 +261,7 @@ class Preferences:
         migrated.setdefault("ais_provider_coverage_notice_dismissed", False)
         migrated.setdefault("observation_point_workflow_notice_dismissed", False)
         migrated.setdefault("legacy_migration_deferred", False)
+        migrated.setdefault("storage_activation_deferred_until_restart", False)
 
         if "data_directory" not in data:
             migrated["data_directory"] = None

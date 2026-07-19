@@ -630,5 +630,10 @@
   "Keep current location for now": "Egyelőre maradjon a jelenlegi helyen",
   "Moving your Project X data...": "Project X adatok áthelyezése...",
   "Your Project X data was moved successfully to:\n\n{destination}": "A Project X adatai sikeresen áthelyezésre kerültek ide:\n\n{destination}",
-  "Project X could not move your data automatically.\n\n{details}\n\nYour original data has been left unchanged. Project X will continue using your current data location.": "A Project X nem tudta automatikusan áthelyezni az adatokat.\n\n{details}\n\nAz eredeti adatok változatlanok maradtak. A Project X továbbra is a jelenlegi adathelyet használja."
+  "Project X could not move your data automatically.\n\n{details}\n\nYour original data has been left unchanged. Project X will continue using your current data location.": "A Project X nem tudta automatikusan áthelyezni az adatokat.\n\n{details}\n\nAz eredeti adatok változatlanok maradtak. A Project X továbbra is a jelenlegi adathelyet használja.",
+  "Migration complete": "Migráció kész",
+  "Your data has been successfully migrated.\n\nProject X will now restart to begin using the new storage location.": "Az adatai sikeresen át lettek helyezve.\n\nA Project X most újraindul, hogy az új tárolási helyet használja.",
+  "Restart now": "Újraindítás most",
+  "Restart later": "Újraindítás később",
+  "Your data has been migrated successfully.\n\nThe new storage location will become active the next time you start Project X. This session will continue using your previous storage location.": "Az adatai sikeresen át lettek helyezve.\n\nAz új tárolási hely a Project X következő indításakor lesz aktív. Ez a munkamenet továbbra is a korábbi tárolási helyet használja."
 }
