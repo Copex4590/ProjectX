@@ -15,6 +15,7 @@ from storage.layout import (
     DATA_SUBDIR_CONFIG,
     DATA_SUBDIR_DATABASES,
     DATA_SUBDIR_EXPORTS,
+    DATA_SUBDIR_LOGS,
     STANDARD_DATA_SUBDIRS,
 )
 from storage.legacy import (
@@ -112,6 +113,12 @@ def active_export_path(*parts: str) -> Path:
     """Resolve a writable export path under the active storage layout."""
 
     return active_data_path(DATA_SUBDIR_EXPORTS, *parts)
+
+
+def active_log_path(*parts: str) -> Path:
+    """Resolve a writable log path under the active storage layout."""
+
+    return active_data_path(DATA_SUBDIR_LOGS, *parts)
 
 
 def ensure_active_layout() -> Path:
