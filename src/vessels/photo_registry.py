@@ -9,18 +9,22 @@ from datetime import datetime
 from pathlib import Path
 from threading import Lock
 
-from app.paths import runtime_data_dir
+from storage import active_cache_path
 from vessels.photo_record import PhotoRecord
 
-_DEFAULT_VESSEL_PHOTOS_DIR = runtime_data_dir() / "vessel_photos"
 
-VESSEL_PHOTOS_DIR = Path(
-    os.environ.get(
-        "PROJECTX_VESSEL_PHOTOS_DIR",
-        str(_DEFAULT_VESSEL_PHOTOS_DIR),
-    )
-)
+def vessel_photos_dir() -> Path:
+    """Return the active vessel photo cache directory."""
 
+    override = os.environ.get("PROJECTX_VESSEL_PHOTOS_DIR", "").strip()
+
+    if override:
+        return Path(override).expanduser().resolve()
+
+    return active_cache_path("vessel_photos")
+
+
+VESSEL_PHOTOS_DIR = vessel_photos_dir()
 PHOTO_DATABASE_FILE = VESSEL_PHOTOS_DIR / "photos.db"
 
 _SCHEMA_SQL = """

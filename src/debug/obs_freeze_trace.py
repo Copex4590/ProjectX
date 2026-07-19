@@ -10,7 +10,7 @@ import time
 from contextlib import contextmanager
 from typing import Callable, TypeVar
 
-from app.paths import runtime_data_path
+from storage import active_cache_path
 
 _LOGGER = logging.getLogger("obs_freeze.trace")
 _LOGGER.setLevel(logging.INFO)
@@ -23,7 +23,7 @@ if not _LOGGER.handlers:
     _LOGGER.addHandler(_stream_handler)
     _LOGGER.propagate = False
 
-_TRACE_PATH = runtime_data_path("obs_freeze.trace")
+_TRACE_PATH = active_cache_path("obs_freeze.trace")
 _LOCK = threading.Lock()
 _SEQ = 0
 

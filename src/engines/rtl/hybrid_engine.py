@@ -7,7 +7,6 @@ from pathlib import Path
 
 import websocket
 
-from app.paths import runtime_data_dir, runtime_data_path
 from ais.ais_manager import AIS_API_KEY_FILE
 from ais.providers import AISProviderType, normalize_provider_type
 from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
@@ -23,22 +22,23 @@ from logbook.duna_format import get_direction, get_heading, sanitize_name
 from models.ship import Ship
 from observation.geo_context import geo_context
 from preferences import preferences_manager
+from storage import active_cache_path, active_export_path
 
 logger = logging.getLogger(__name__)
 
-SHIP_CACHE_FILE = runtime_data_path("ship_cache.json")
+SHIP_CACHE_FILE = active_cache_path("ship_cache.json")
 
 
 def _runtime_export_dir() -> Path:
 
-    export_dir = runtime_data_dir() / "exports"
+    export_dir = active_export_path()
     export_dir.mkdir(parents=True, exist_ok=True)
     return export_dir
 
 
 def _deli_hajok_dir() -> Path:
 
-    deli_dir = runtime_data_dir() / "deli_hajok"
+    deli_dir = active_cache_path("deli_hajok")
     deli_dir.mkdir(parents=True, exist_ok=True)
     return deli_dir
 

@@ -10,7 +10,12 @@ from enum import Enum
 from pathlib import Path
 
 from storage.exceptions import InvalidDataDirectoryError
-from storage.layout import DATA_SUBDIR_DATABASES, STANDARD_DATA_SUBDIRS
+from storage.layout import (
+    DATA_SUBDIR_CACHE,
+    DATA_SUBDIR_DATABASES,
+    DATA_SUBDIR_EXPORTS,
+    STANDARD_DATA_SUBDIRS,
+)
 from storage.legacy import (
     ensure_legacy_data_layout,
     legacy_data_exists,
@@ -88,6 +93,18 @@ def active_database_path(filename: str) -> Path:
     """Resolve a writable SQLite database path under the active storage layout."""
 
     return active_data_path(DATA_SUBDIR_DATABASES, filename)
+
+
+def active_cache_path(*parts: str) -> Path:
+    """Resolve a writable cache path under the active storage layout."""
+
+    return active_data_path(DATA_SUBDIR_CACHE, *parts)
+
+
+def active_export_path(*parts: str) -> Path:
+    """Resolve a writable export path under the active storage layout."""
+
+    return active_data_path(DATA_SUBDIR_EXPORTS, *parts)
 
 
 def ensure_active_layout() -> Path:
