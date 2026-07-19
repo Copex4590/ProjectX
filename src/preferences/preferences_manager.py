@@ -66,6 +66,17 @@ class PreferencesManager:
         current.first_run_completed = bool(completed)
         return self.save(Preferences.from_dict(current.to_dict()))
 
+    def set_data_directory(self, data_directory: str | None) -> Preferences:
+
+        current = self.get()
+
+        if data_directory is None:
+            current.data_directory = None
+        else:
+            current.data_directory = str(data_directory).strip() or None
+
+        return self.save(Preferences.from_dict(current.to_dict()))
+
     def set_ais_provider_coverage_notice_dismissed(
         self,
         dismissed: bool = True,

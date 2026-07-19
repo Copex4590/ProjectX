@@ -24,6 +24,12 @@ def bundle_dir() -> Path:
 
 
 def user_data_dir() -> Path:
+    """Legacy user profile directory; prefer storage.bootstrap.bootstrap_profile_dir()."""
+
+    return _bootstrap_profile_dir()
+
+
+def _bootstrap_profile_dir() -> Path:
 
     if os.name == "nt":
         base = Path(os.environ.get("APPDATA") or Path.home())
@@ -33,6 +39,20 @@ def user_data_dir() -> Path:
 
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def bootstrap_config_dir() -> Path:
+    """Bootstrap profile configuration directory (preferences, metadata)."""
+
+    from storage.bootstrap import bootstrap_config_dir as _bootstrap_config_dir
+
+    return _bootstrap_config_dir()
+
+
+def bootstrap_config_path(filename: str) -> Path:
+    """Resolve a bootstrap configuration file path."""
+
+    return bootstrap_config_dir() / filename
 
 
 def runtime_config_dir() -> Path:

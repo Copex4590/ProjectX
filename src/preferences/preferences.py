@@ -7,16 +7,16 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from app.paths import runtime_config_path
+from storage.bootstrap import bootstrap_config_path
 
 PREFERENCES_FILE = Path(
     os.environ.get(
         "PROJECTX_PREFERENCES_FILE",
-        str(runtime_config_path("preferences.json")),
+        str(bootstrap_config_path("preferences.json")),
     )
 )
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 DEFAULT_LANGUAGE = "en"
 DEFAULT_VESSEL_CARD_LAYOUT = "standard"
@@ -54,6 +54,7 @@ class Preferences:
     rtl_setup_completed: bool = False
     ais_provider_coverage_notice_dismissed: bool = False
     observation_point_workflow_notice_dismissed: bool = False
+    data_directory: str | None = None
     version: int = SCHEMA_VERSION
 
     def to_dict(self) -> dict:
@@ -81,6 +82,7 @@ class Preferences:
             "observation_point_workflow_notice_dismissed": (
                 self.observation_point_workflow_notice_dismissed
             ),
+            "data_directory": self.data_directory,
         }
 
     @classmethod
@@ -134,6 +136,13 @@ class Preferences:
         else:
             rtl_sdr_owned = bool(owned_value)
 
+        raw_data_directory = data.get("data_directory")
+
+        if raw_data_directory is None:
+            data_directory = None
+        else:
+            data_directory = str(raw_data_directory).strip() or None
+
         return cls(
             language=language,
             language_selected=language_selected,
@@ -160,8 +169,14 @@ class Preferences:
             observation_point_workflow_notice_dismissed=bool(
                 data.get("observation_point_workflow_notice_dismissed", False)
             ),
+            data_directory=data_directory,
             version=int(data.get("version", SCHEMA_VERSION)),
         )
+
+    def has_data_directory(self) -> bool:
+        """Return True when a user data directory has been configured."""
+
+        return bool((self.data_directory or "").strip())
 
     @classmethod
     def migrate(cls, data: dict) -> dict:
@@ -189,16 +204,17 @@ class Preferences:
         if layout not in SUPPORTED_VESSEL_CARD_LAYOUTS:
             migrated["vessel_card_layout"] = DEFAULT_VESSEL_CARD_LAYOUT
 
-        migrated["first_run_completed"] = bool(
-            migrated.get("first_run_completed", False)
+        migrated["first_run_completed"] = (
+            False
+            if "first_run_completed" not in data
+            else bool(migrated.get("first_run_completed", False))
         )
 
-        if "language_selected" not in data:
-            migrated["language_selected"] = bool(data)
-        else:
-            migrated["language_selected"] = bool(
-                migrated.get("language_selected", False)
-            )
+        migrated["language_selected"] = (
+            False
+            if "language_selected" not in data
+            else bool(migrated.get("language_selected", False))
+        )
         migrated.setdefault("ais_provider", DEFAULT_AIS_PROVIDER)
         migrated.setdefault("ais_enabled_providers", None)
         migrated.setdefault("aisstream_api_key", "")
@@ -221,8 +237,26 @@ class Preferences:
         migrated.setdefault("rtl_sdr_configured", False)
         migrated.setdefault("rtl_auto_start_ais_catcher", True)
         migrated.setdefault("rtl_setup_os", "")
-        migrated.setdefault("rtl_setup_completed", False)
+        migrated["rtl_setup_completed"] = (
+            False
+            if "rtl_setup_completed" not in data
+            else bool(migrated.get("rtl_setup_completed", False))
+        )
         migrated.setdefault("ais_provider_coverage_notice_dismissed", False)
         migrated.setdefault("observation_point_workflow_notice_dismissed", False)
+
+        if "data_directory" not in data:
+            migrated["data_directory"] = None
+        else:
+            raw_data_directory = migrated.get("data_directory")
+
+            if raw_data_directory is None:
+                migrated["data_directory"] = None
+            else:
+                migrated["data_directory"] = (
+                    str(raw_data_directory).strip() or None
+                )
+
+        migrated["version"] = SCHEMA_VERSION
 
         return migrated

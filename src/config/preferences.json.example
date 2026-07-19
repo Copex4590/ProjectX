@@ -1,8 +1,10 @@
 {
-  "version": 1,
+  "version": 2,
   "language": "en",
+  "language_selected": false,
   "vessel_card_layout": "standard",
   "first_run_completed": false,
+  "data_directory": null,
   "ais_provider": "later",
   "aisstream_api_key": "",
   "ais_local_host": "localhost",
