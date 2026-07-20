@@ -7,11 +7,16 @@ from __future__ import annotations
 
 import math
 
-from observation.observation_manager import observation_manager
 from observation.observation_point import ObservationPoint
 
 EARTH_RADIUS_KM = 6371.0
 _KM_PER_DEGREE_LAT = 111.0
+
+
+def _observation_manager():
+    from observation.observation_manager import get_observation_manager
+
+    return get_observation_manager()
 
 
 def haversine_distance_km(
@@ -63,11 +68,11 @@ class GeoContext:
 
     def reference(self) -> ObservationPoint | None:
 
-        return observation_manager.reference()
+        return _observation_manager().reference()
 
     def coordinates(self) -> tuple[float, float] | None:
 
-        return observation_manager.reference_coordinates()
+        return _observation_manager().reference_coordinates()
 
     def radius_km(self) -> float | None:
 
@@ -218,7 +223,7 @@ class GeoContext:
     @property
     def changed(self):
 
-        return observation_manager.changed
+        return _observation_manager().changed
 
 
 geo_context = GeoContext()

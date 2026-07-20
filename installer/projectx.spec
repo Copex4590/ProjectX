@@ -5,7 +5,7 @@
 #
 # Bundled runtime assets (via datas below):
 #   - Qt WebEngine (collect_all hooks)
-#   - Leaflet (src/resources/map/leaflet/)
+#   - Cesium (src/resources/map/cesium/)
 #   - Translations (src/resources/translations/)
 #   - Icons / flags / branding logos (src/resources/)
 #   - Map HTML / CSS / JavaScript (src/resources/map/)
@@ -32,6 +32,7 @@ _config_datas = [
     (str(CONFIG / "preferences.json.example"), "config"),
     (str(CONFIG / "cameras.json.example"), "config"),
     (str(CONFIG / "observation_points.json.example"), "config"),
+    (str(CONFIG / "maptiler_api_key.txt"), "config"),
 ]
 
 _resource_datas = [

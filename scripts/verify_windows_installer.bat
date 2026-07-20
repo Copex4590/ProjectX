@@ -67,8 +67,8 @@ if not exist "%TEST_DIR%\resources\translations\hu.json" (
     echo [FAIL] Bundled translation missing: hu.json
     exit /b 1
 )
-if not exist "%TEST_DIR%\resources\map\leaflet\leaflet.js" (
-    echo [FAIL] Bundled map resource missing: leaflet.js
+if not exist "%TEST_DIR%\resources\map\cesium\Cesium.js" (
+    echo [FAIL] Bundled map resource missing: Cesium.js
     exit /b 1
 )
 if not exist "%TEST_DIR%\resources\branding\projectx-logo.png" (

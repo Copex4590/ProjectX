@@ -24,3 +24,7 @@ class DataDirectoryValidationError(StorageError):
 
 class MigrationError(StorageError):
     """Raised when legacy data migration fails or cannot proceed."""
+
+
+class InitializationError(StorageError):
+    """Raised when first-run data root initialization fails verification."""

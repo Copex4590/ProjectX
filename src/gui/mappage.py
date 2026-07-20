@@ -396,6 +396,7 @@ class MapPage(QWidget):
         with trace_block("MapPage._on_map_ready"):
             self.apply_personalization()
             self._map_controller.refresh_observation_points()
+            self._map_controller.refresh_cameras()
 
     def refresh_observation_point(self) -> None:
 

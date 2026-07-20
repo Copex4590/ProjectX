@@ -72,7 +72,11 @@ class Preferences:
             "vessel_card_layout": self.vessel_card_layout,
             "first_run_completed": self.first_run_completed,
             "ais_provider": self.ais_provider,
-            "ais_enabled_providers": list(self.ais_enabled_providers or []),
+            "ais_enabled_providers": (
+                None
+                if self.ais_enabled_providers is None
+                else list(self.ais_enabled_providers)
+            ),
             "aisstream_api_key": self.aisstream_api_key,
             "ais_local_host": self.ais_local_host,
             "ais_local_port": self.ais_local_port,

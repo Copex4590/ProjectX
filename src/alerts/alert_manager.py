@@ -7,7 +7,7 @@ import math
 from datetime import datetime
 
 from alerts.alert_event import AlertEvent, EvaluationEvent
-from alerts.alert_registry import AlertRegistry, alert_registry
+from alerts.alert_registry import AlertRegistry
 from alerts.alert_rule import (
     RULE_TYPE_CAMERA_LOST,
     RULE_TYPE_CAMERA_VISIBLE,
@@ -103,11 +103,23 @@ def _matches_mmsi_filter(mmsi: int, conditions: dict) -> bool:
     return int(filter_mmsi) == int(mmsi)
 
 
+from storage.lazy_singleton import LazySingleton, lazy_module_getattr
+
+
 class AlertManager:
 
     def __init__(self, registry: AlertRegistry | None = None):
 
-        self._registry = registry or alert_registry
+        self._registry = registry
+
+    def _registry_instance(self) -> AlertRegistry:
+
+        if self._registry is None:
+            from alerts.alert_registry import get_alert_registry
+
+            self._registry = get_alert_registry()
+
+        return self._registry
 
     def register_rule(self, rule: AlertRule) -> AlertRule:
 
@@ -116,19 +128,19 @@ class AlertManager:
         if event_type and event_type not in SUPPORTED_RULE_TYPES:
             raise ValueError(f"Unsupported alert rule type: {event_type}")
 
-        return self._registry.register_rule(rule)
+        return self._registry_instance().register_rule(rule)
 
     def remove_rule(self, rule_id: int) -> bool:
 
-        return self._registry.remove_rule(rule_id)
+        return self._registry_instance().remove_rule(rule_id)
 
     def rules(self) -> list[AlertRule]:
 
-        return self._registry.rules()
+        return self._registry_instance().rules()
 
     def events(self) -> list[AlertEvent]:
 
-        return self._registry.events()
+        return self._registry_instance().events()
 
     def evaluate(self, event) -> list[AlertEvent]:
 
@@ -139,12 +151,12 @@ class AlertManager:
 
         matched_events: list[AlertEvent] = []
 
-        for rule in self._registry.rules():
+        for rule in self._registry_instance().rules():
             if not self._rule_matches(rule, evaluation):
                 continue
 
             alert_event = self._build_alert_event(rule, evaluation)
-            saved = self._registry.append_event(alert_event)
+            saved = self._registry_instance().append_event(alert_event)
             matched_events.append(saved)
 
         return matched_events
@@ -224,4 +236,13 @@ class AlertManager:
         )
 
 
-alert_manager = AlertManager()
+get_alert_manager = LazySingleton(AlertManager)
+
+
+def __getattr__(name: str):
+    return lazy_module_getattr(
+        name,
+        module_name=__name__,
+        export_name="alert_manager",
+        getter=get_alert_manager,
+    )

@@ -11,14 +11,14 @@ from threading import Lock
 
 from models.vessel_record import VesselRecord
 
-from storage import active_database_path
+from storage.deferred_paths import deferred_database_path
+from storage.lazy_singleton import LazySingleton
 
-VESSEL_DATABASE_FILE = Path(
-    os.environ.get(
-        "PROJECTX_VESSEL_DATABASE_FILE",
-        str(active_database_path("vessels.db")),
-    )
-)
+
+def vessel_database_file() -> Path:
+    """Return the active vessel database file path."""
+
+    return deferred_database_path("PROJECTX_VESSEL_DATABASE_FILE", "vessels.db")
 
 _SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS vessels (
@@ -96,7 +96,7 @@ class VesselDatabase:
 
     def __init__(self, db_path: Path | str | None = None):
 
-        self._db_path = Path(db_path or VESSEL_DATABASE_FILE)
+        self._db_path = Path(db_path or vessel_database_file())
         self._lock = Lock()
         self._ensure_schema()
 
@@ -218,4 +218,18 @@ class VesselDatabase:
         return connection
 
 
-vessel_database = VesselDatabase()
+from storage.lazy_singleton import LazySingleton, lazy_module_getattr
+
+
+get_vessel_database = LazySingleton(VesselDatabase)
+
+
+def __getattr__(name: str):
+    if name == "VESSEL_DATABASE_FILE":
+        return vessel_database_file()
+    return lazy_module_getattr(
+        name,
+        module_name=__name__,
+        export_name="vessel_database",
+        getter=get_vessel_database,
+    )

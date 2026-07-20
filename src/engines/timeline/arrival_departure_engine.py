@@ -10,7 +10,8 @@ from queue import Empty, Queue
 from threading import Lock, Thread
 
 from models.ship import Ship
-from timeline.timeline_manager import TimelineManager, timeline_manager
+from storage.lazy_singleton import LazySingleton, lazy_module_getattr
+from timeline.timeline_manager import TimelineManager
 from timeline.timeline_record import TimelineRecord
 
 EVENT_ARRIVAL = "ARRIVAL"
@@ -100,7 +101,7 @@ class ArrivalDepartureEngine:
         absence_timeout_seconds: float | None = None,
     ):
 
-        self._manager = manager or timeline_manager
+        self._manager = manager
         self._absence_timeout = timedelta(
             seconds=absence_timeout_seconds or DEFAULT_ABSENCE_TIMEOUT_SECONDS
         )
@@ -109,6 +110,15 @@ class ArrivalDepartureEngine:
         self._queue: Queue[PresenceObservation] = Queue()
         self._worker_lock = Lock()
         self._worker: Thread | None = None
+
+    def _manager_instance(self) -> TimelineManager:
+
+        if self._manager is None:
+            from timeline.timeline_manager import get_timeline_manager
+
+            self._manager = get_timeline_manager()
+
+        return self._manager
 
     @property
     def absence_timeout(self) -> timedelta:
@@ -140,9 +150,9 @@ class ArrivalDepartureEngine:
 
     def _registry(self):
 
-        from database import registry
+        from database.ship_registry import get_ship_registry
 
-        return registry
+        return get_ship_registry()
 
     def _ensure_worker(self) -> None:
 
@@ -285,7 +295,16 @@ class ArrivalDepartureEngine:
             source=observation.source,
         )
 
-        return self._manager.append(record)
+        return self._manager_instance().append(record)
 
 
-arrival_departure_engine = ArrivalDepartureEngine()
+get_arrival_departure_engine = LazySingleton(ArrivalDepartureEngine)
+
+
+def __getattr__(name: str):
+    return lazy_module_getattr(
+        name,
+        module_name=__name__,
+        export_name="arrival_departure_engine",
+        getter=get_arrival_departure_engine,
+    )

@@ -474,7 +474,19 @@ class DataMigrationService:
 
     def run(self, destination: Path) -> MigrationResult:
 
-        destination_root = validate_data_directory_or_raise(Path(destination)).resolve()
+        destination_candidate = Path(destination).expanduser()
+        existing_state = self._state_store.load()
+        allow_existing_root = (
+            existing_state is not None
+            and existing_state.phase != MigrationPhase.COMPLETED
+            and Path(existing_state.destination_root).expanduser().resolve()
+            == destination_candidate.resolve()
+        )
+
+        destination_root = validate_data_directory_or_raise(
+            destination_candidate,
+            allow_existing_root=allow_existing_root,
+        ).resolve()
 
         preferences = self._preferences_manager.get()
 
@@ -494,7 +506,6 @@ class DataMigrationService:
             )
 
         source_inventory = collect_legacy_inventory()
-        existing_state = self._state_store.load()
 
         if (
             existing_state is not None

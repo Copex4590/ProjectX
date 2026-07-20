@@ -20,14 +20,14 @@ from camera.camera_registry import CameraRegistry
 
 SCHEMA_VERSION = 1
 
-from storage import active_config_path
+from storage.deferred_paths import deferred_config_path
+from storage.lazy_singleton import LazySingleton, lazy_module_getattr
 
-CAMERAS_FILE = Path(
-    os.environ.get(
-        "PROJECTX_CAMERAS_FILE",
-        str(active_config_path("cameras.json")),
-    )
-)
+
+def cameras_file() -> Path:
+    """Return the active cameras configuration file path."""
+
+    return deferred_config_path("PROJECTX_CAMERAS_FILE", "cameras.json")
 
 
 def _utc_now() -> datetime:
@@ -47,7 +47,7 @@ class CameraManager(QObject):
 
         super().__init__()
 
-        self._path = path or CAMERAS_FILE
+        self._path = path or cameras_file()
         self._registry = registry or CameraRegistry()
         self._lock = Lock()
         self._load()
@@ -280,4 +280,15 @@ class CameraManager(QObject):
             handle.write("\n")
 
 
-camera_manager = CameraManager()
+get_camera_manager = LazySingleton(CameraManager)
+
+
+def __getattr__(name: str):
+    if name == "CAMERAS_FILE":
+        return cameras_file()
+    return lazy_module_getattr(
+        name,
+        module_name=__name__,
+        export_name="camera_manager",
+        getter=get_camera_manager,
+    )

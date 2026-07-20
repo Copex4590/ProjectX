@@ -115,6 +115,22 @@ class GeoContextReferenceTests(unittest.TestCase):
         self.assertLess(lon_min, -6.87653)
         self.assertGreater(lon_max, -6.87653)
 
+    def test_coverage_bounding_box_on_geo_context_instance(self) -> None:
+
+        box = geo_context.coverage_bounding_box(37.14881, -6.87653, 25.0)
+        self.assertEqual(len(box), 2)
+        self.assertEqual(len(box[0]), 2)
+        self.assertEqual(len(box[1]), 2)
+
+    def test_observation_package_exports_geo_context_singleton(self) -> None:
+
+        import observation
+        from observation import geo_context as package_geo_context
+
+        self.assertIs(package_geo_context, geo_context)
+        self.assertIsInstance(package_geo_context, GeoContext)
+        self.assertTrue(callable(package_geo_context.coverage_bounding_box))
+
     def test_registry_distance_uses_haversine_via_geo_context(self) -> None:
 
         from database.ship_registry import registry

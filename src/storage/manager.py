@@ -6,32 +6,24 @@
 from __future__ import annotations
 
 import os
-import tempfile
-from dataclasses import dataclass
 from pathlib import Path
 
-from app.paths import bundle_dir, is_frozen
 from storage.exceptions import (
     DataDirectoryNotConfiguredError,
     DataDirectoryValidationError,
     InvalidDataDirectoryError,
 )
 from storage.layout import DEFAULT_DATA_DIRECTORY_NAME, STANDARD_DATA_SUBDIRS
+from storage.data_root_validation import (
+    DataRootValidationResult,
+    DataRootValidationService,
+)
 from storage.marker import ensure_marker, is_valid_data_root
 
 _ENV_DATA_DIRECTORY = "PROJECTX_DATA_DIRECTORY"
-_FORBIDDEN_PREFIXES = (
-    Path("/opt/projectx"),
-)
 
-
-@dataclass(frozen=True)
-class DataDirectoryValidationResult:
-    """Outcome of validating a candidate user data directory."""
-
-    path: Path
-    valid: bool
-    message: str = ""
+DataDirectoryValidationResult = DataRootValidationResult
+_default_data_root_validator = DataRootValidationService()
 
 
 def default_data_directory() -> Path:
@@ -110,90 +102,45 @@ def ensure_active_storage_layout() -> Path:
     if configured is not None:
         return ensure_data_layout(configured)
 
+    from storage.resolver import requires_data_root_setup
+
+    if requires_data_root_setup():
+        raise DataDirectoryNotConfiguredError(
+            "Project X data directory setup is required before storage can be "
+            "initialized."
+        )
+
     from storage.legacy import ensure_legacy_data_layout
 
     return ensure_legacy_data_layout()
 
 
-def _is_forbidden_path(path: Path) -> bool:
-    resolved = path.resolve()
-
-    for prefix in _FORBIDDEN_PREFIXES:
-        try:
-            resolved.relative_to(prefix.resolve())
-            return True
-        except ValueError:
-            continue
-
-    if is_frozen():
-        bundle = bundle_dir().resolve()
-
-        try:
-            resolved.relative_to(bundle)
-            return True
-        except ValueError:
-            pass
-
-    return False
-
-
-def validate_data_directory(path: Path) -> DataDirectoryValidationResult:
+def validate_data_directory(
+    path: Path,
+    *,
+    allow_existing_root: bool = False,
+) -> DataDirectoryValidationResult:
     """Validate that a candidate path can be used as a Project X data root."""
 
-    candidate = Path(path).expanduser()
-
-    if not str(candidate).strip():
-        return DataDirectoryValidationResult(
-            path=candidate,
-            valid=False,
-            message="A folder must be selected.",
-        )
-
-    if _is_forbidden_path(candidate):
-        return DataDirectoryValidationResult(
-            path=candidate,
-            valid=False,
-            message="Project X cannot store data inside the application install folder.",
-        )
-
-    try:
-        candidate.mkdir(parents=True, exist_ok=True)
-    except OSError as exc:
-        return DataDirectoryValidationResult(
-            path=candidate,
-            valid=False,
-            message=f"Could not create the selected folder: {exc}",
-        )
-
-    resolved = candidate.resolve()
-
-    try:
-        with tempfile.NamedTemporaryFile(
-            dir=resolved,
-            prefix=".projectx-write-test-",
-            delete=True,
-        ):
-            pass
-    except OSError as exc:
-        return DataDirectoryValidationResult(
-            path=resolved,
-            valid=False,
-            message=f"The selected folder is not writable: {exc}",
-        )
-
-    return DataDirectoryValidationResult(
-        path=resolved,
-        valid=True,
-        message="",
+    return _default_data_root_validator.validate(
+        path,
+        allow_existing_root=allow_existing_root,
     )
 
 
-def validate_data_directory_or_raise(path: Path) -> Path:
+def validate_data_directory_or_raise(
+    path: Path,
+    *,
+    allow_existing_root: bool = False,
+) -> Path:
     """Validate a candidate data directory or raise DataDirectoryValidationError."""
 
-    result = validate_data_directory(path)
+    result = validate_data_directory(
+        path,
+        allow_existing_root=allow_existing_root,
+    )
 
-    if not result.valid:
+    if result.blocks_completion:
         raise DataDirectoryValidationError(result.message)
 
     return result.path

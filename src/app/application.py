@@ -28,7 +28,19 @@ _prepare_storage_for_startup()
 
 from storage import ensure_active_layout
 
-ensure_active_layout()
+from app.startup_mode import determine_startup_mode, needs_deferred_storage_layout
+
+
+def _prepare_initial_storage_layout() -> None:
+    """Prepare storage layout unless first-run data root setup is still pending."""
+
+    if needs_deferred_storage_layout():
+        return
+
+    ensure_active_layout()
+
+
+_prepare_initial_storage_layout()
 
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QMessageBox
@@ -36,8 +48,10 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from app.logging_config import configure_logging
 from app.restart import request_application_restart
 from app.single_instance import ensure_single_instance
+from app.startup_mode import StartupPlan
 from branding.assets import app_icon
 from gui.data_upgrade_dialog import UpgradeStartupResult, run_data_upgrade_if_needed
+from gui.data_location_wizard import run_data_location_setup_if_needed
 from gui.notifications import notification_manager
 from gui.languagewelcome_dialog import run_language_welcome_if_needed
 from gui.splashscreen import create_splash_screen
@@ -61,13 +75,6 @@ def _startup_elapsed_ms() -> int:
 def _log_startup_phase(phase: str) -> None:
 
     logger.info("Startup timing: %s at %d ms", phase, _startup_elapsed_ms())
-
-
-def _is_first_run_pending() -> bool:
-
-    from observation import observation_manager
-
-    return not observation_manager.all()
 
 
 def _install_exception_hook() -> None:
@@ -135,22 +142,14 @@ class Application:
 
         _log_startup_phase("language welcome complete")
 
-        self._first_run_pending = _is_first_run_pending()
+        self._startup_plan = determine_startup_mode()
+        _log_startup_phase(f"startup mode resolved: {self._startup_plan.mode.value}")
 
-        if not self._first_run_pending:
-            upgrade_result = run_data_upgrade_if_needed(
-                first_run_pending=self._first_run_pending,
-            )
-            _log_startup_phase("data upgrade prompt complete")
-
-            if upgrade_result is UpgradeStartupResult.RESTART_REQUESTED:
-                _log_startup_phase("application restart requested after migration")
-                request_application_restart(self.qt, self._single_instance_lock)
-                raise SystemExit(0)
+        self._run_startup_path(self._startup_plan)
 
         self._splash = None
 
-        if not self._first_run_pending:
+        if self._startup_plan.show_splash:
             self._splash = create_splash_screen()
             self._splash.show()
             self.qt.processEvents()
@@ -176,9 +175,30 @@ class Application:
 
         _log_startup_phase("MainWindow constructed")
 
+    def _run_startup_path(self, plan: StartupPlan) -> None:
+
+        if plan.needs_data_root_wizard:
+            if not run_data_location_setup_if_needed():
+                raise SystemExit(0)
+
+            ensure_active_layout()
+            from observation.observation_manager import reset_observation_manager
+
+            reset_observation_manager()
+            _log_startup_phase("data root setup complete")
+
+        if plan.needs_legacy_upgrade:
+            upgrade_result = run_data_upgrade_if_needed()
+            _log_startup_phase("data upgrade prompt complete")
+
+            if upgrade_result is UpgradeStartupResult.RESTART_REQUESTED:
+                _log_startup_phase("application restart requested after migration")
+                request_application_restart(self.qt, self._single_instance_lock)
+                raise SystemExit(0)
+
     def run(self):
 
-        if self._first_run_pending:
+        if self._startup_plan.needs_observation_wizard:
             _log_startup_phase("first-run startup scheduled")
             self.window.show()
             QTimer.singleShot(0, self._begin_first_run)

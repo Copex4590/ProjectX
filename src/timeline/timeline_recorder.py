@@ -9,7 +9,8 @@ from queue import Empty, Queue
 from threading import Lock, Thread
 
 from models.ship import Ship
-from timeline.timeline_manager import TimelineManager, timeline_manager
+from storage.lazy_singleton import LazySingleton, lazy_module_getattr
+from timeline.timeline_manager import TimelineManager
 from timeline.timeline_record import TimelineRecord
 
 EVENT_POSITION_UPDATE = "POSITION_UPDATE"
@@ -100,12 +101,21 @@ class TimelineRecorder:
 
     def __init__(self, manager: TimelineManager | None = None):
 
-        self._manager = manager or timeline_manager
+        self._manager = manager
         self._queue: Queue[TimelineObservation] = Queue()
         self._worker_lock = Lock()
         self._worker: Thread | None = None
         self._last_positions: dict[int, tuple[float, float]] = {}
         self._position_lock = Lock()
+
+    def _manager_instance(self) -> TimelineManager:
+
+        if self._manager is None:
+            from timeline.timeline_manager import get_timeline_manager
+
+            self._manager = get_timeline_manager()
+
+        return self._manager
 
     def enqueue(self, ship: Ship | None) -> None:
 
@@ -204,7 +214,7 @@ class TimelineRecorder:
             source=observation.source,
         )
 
-        saved = self._manager.append(record)
+        saved = self._manager_instance().append(record)
         self._remember_position(
             observation.mmsi,
             observation.latitude,
@@ -214,4 +224,13 @@ class TimelineRecorder:
         return saved
 
 
-timeline_recorder = TimelineRecorder()
+get_timeline_recorder = LazySingleton(TimelineRecorder)
+
+
+def __getattr__(name: str):
+    return lazy_module_getattr(
+        name,
+        module_name=__name__,
+        export_name="timeline_recorder",
+        getter=get_timeline_recorder,
+    )

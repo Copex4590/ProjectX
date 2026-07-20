@@ -99,7 +99,7 @@ exit /b 0
 
 :check_bundled_assets
 set "MISSING="
-if not exist "%ROOT%\src\resources\map\leaflet\leaflet.js" set "MISSING=!MISSING! leaflet"
+if not exist "%ROOT%\src\resources\map\cesium\Cesium.js" set "MISSING=!MISSING! cesium"
 if not exist "%ROOT%\src\resources\translations\en.json" set "MISSING=!MISSING! translations"
 if not exist "%ROOT%\src\resources\branding\projectx.ico" set "MISSING=!MISSING! branding"
 if not defined MISSING (
@@ -109,14 +109,14 @@ if not defined MISSING (
 )
 echo [FAIL] Missing bundled assets:!MISSING!
 echo        Pull the latest repository on Linux, commit bundled assets, then try again.
-echo        Leaflet fetch (Linux): scripts/fetch_leaflet.sh
+echo        Cesium fetch (Linux): scripts/fetch_cesium.sh
 exit /b 1
 
 :verify_data_tree
-echo Verifying data/ tree contains no runtime artifacts ...
-"%VENV_PY%" "%ROOT%\scripts\verify_data_tree_clean.py"
+echo Preparing release hygiene...
+bash "%ROOT%\scripts\prepare_release_hygiene.sh"
 if errorlevel 1 exit /b 1
-echo [OK] data/ tree is clean.
+echo [OK] Release hygiene verified.
 echo.
 exit /b 0
 
@@ -154,7 +154,7 @@ set "MISSING="
 if not exist "%BUNDLE%\projectx.exe" set "MISSING=!MISSING! projectx.exe"
 if not exist "%BUNDLE%\resources\translations\en.json" set "MISSING=!MISSING! resources\translations\en.json"
 if not exist "%BUNDLE%\resources\translations\hu.json" set "MISSING=!MISSING! resources\translations\hu.json"
-if not exist "%BUNDLE%\resources\map\leaflet\leaflet.js" set "MISSING=!MISSING! resources\map\leaflet\leaflet.js"
+if not exist "%BUNDLE%\resources\map\cesium\Cesium.js" set "MISSING=!MISSING! resources\map\cesium\Cesium.js"
 if not exist "%BUNDLE%\resources\branding\projectx-logo.png" set "MISSING=!MISSING! resources\branding\projectx-logo.png"
 if not exist "%BUNDLE%\projectx.ico" set "MISSING=!MISSING! projectx.ico"
 if not exist "%BUNDLE%\config\playback.json" set "MISSING=!MISSING! config\playback.json"

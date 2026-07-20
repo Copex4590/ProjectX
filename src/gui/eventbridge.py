@@ -3,10 +3,14 @@
 # Event Bridge (EventBus -> Qt signals)
 # ============================================================================
 
+import logging
+
 from PySide6.QtCore import QObject, Signal
 
 from debug.obs_freeze_trace import trace_block
 from events import eventbus
+
+logger = logging.getLogger(__name__)
 
 
 class EventBridge(QObject):
@@ -33,6 +37,7 @@ class EventBridge(QObject):
     def _on_ais_status(self, status):
 
         with trace_block("EventBridge._on_ais_status"):
+            logger.debug("Forwarding ais.status=%s to Qt UI", status)
             self.ais_status.emit(status)
 
     def _on_rtl_status(self, status):

@@ -61,18 +61,12 @@ class LoggerSetupTests(unittest.TestCase):
 
         self.assertTrue(str(LOG_FILE).endswith("projectx.log"))
 
-    def test_logger_has_single_rotating_file_handler(self) -> None:
+    def test_logger_has_single_deferred_file_handler(self) -> None:
 
         from core.logger import logger
 
-        file_handlers = [
-            handler
-            for handler in logger.handlers
-            if isinstance(handler, RotatingFileHandler)
-        ]
-
-        self.assertEqual(len(file_handlers), 1)
         self.assertEqual(len(logger.handlers), 1)
+        self.assertEqual(logger.handlers[0].__class__.__name__, "_DeferredRotatingFileHandler")
 
     def test_logger_writes_to_resolved_log_file(self) -> None:
 

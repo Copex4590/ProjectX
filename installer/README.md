@@ -100,7 +100,7 @@ Options:
 - `--appimage PATH` — also remove a portable AppImage file
 - `--self-test` — run built-in verification
 
-Removes program files, configuration, observation points, cache, logs, language/first-run state, icons, desktop entries, and Project X autostart entries. Does **not** remove exported files, unrelated backups, or the development source tree at `~/ProjectX`.
+Removes program files, configuration, observation points, cache, logs, language/first-run state, icons, desktop entries, and Project X autostart entries. When the user confirms removal of Project X user data, the uninstaller also removes the configured data root referenced by `preferences.json` (for example `~/Project X/`). Does **not** remove exported files, unrelated backups, or the development source tree at `~/ProjectX`.
 
 ## Windows installer (SAVE-076)
 

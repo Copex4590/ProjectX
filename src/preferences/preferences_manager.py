@@ -4,6 +4,7 @@
 # ============================================================================
 
 import json
+import logging
 from copy import deepcopy
 from threading import Lock
 
@@ -11,6 +12,8 @@ from preferences.preferences import (
     PREFERENCES_FILE,
     Preferences,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class PreferencesManager:
@@ -192,6 +195,13 @@ class PreferencesManager:
         if data != migrated:
             self._write(preferences)
 
+        logger.info(
+            "Loaded preferences from %s (ais_provider=%s enabled=%s configured=%s)",
+            self._path,
+            preferences.ais_provider,
+            preferences.ais_enabled_providers,
+            preferences.ais_configured,
+        )
         return preferences
 
     def _write(self, preferences: Preferences) -> None:

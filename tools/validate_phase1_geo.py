@@ -70,7 +70,8 @@ FALLBACK_SCAN_SKIP_PARTS = (
     "observation_points.json.example",
     "config/cameras/",
     "config/camera_packs/",
-    "resources/map/camera_map.html",
+    "config/preferences.json",
+    "config/migration_state.json",
     "resources/map/map.html.save",
     "resources/translations/",
     "gui/rulespage.py",  # D4 pending — not Phase 1 blocker
@@ -178,7 +179,7 @@ def check_geocontext_module_importable() -> CheckResult:
 
 def check_reference_and_geocontext_behavior() -> CheckResult:
 
-    import observation.geo_context as geo_module
+    geo_module = importlib.import_module("observation.geo_context")
     import observation.observation_manager as om_module
     from models.ship import Ship
     from observation.observation_manager import ObservationManager
@@ -398,7 +399,7 @@ def check_reference_and_geocontext_behavior() -> CheckResult:
 def check_coords_delegates_to_geocontext() -> CheckResult:
 
     import observation.coords as coords
-    import observation.geo_context as geo_module
+    geo_module = importlib.import_module("observation.geo_context")
 
     if coords.geo_context is not geo_module.geo_context:
         return CheckResult(
@@ -436,7 +437,7 @@ def check_coords_delegates_to_geocontext() -> CheckResult:
 
 def check_large_observation_radius_pipeline() -> CheckResult:
 
-    import observation.geo_context as geo_module
+    geo_module = importlib.import_module("observation.geo_context")
     import observation.observation_manager as om_module
     from observation.observation_manager import ObservationManager
 

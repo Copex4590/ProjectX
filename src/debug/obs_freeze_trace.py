@@ -8,9 +8,10 @@ import logging
 import threading
 import time
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Callable, TypeVar
 
-from storage import active_cache_path
+from storage.deferred_paths import deferred_cache_path
 
 _LOGGER = logging.getLogger("obs_freeze.trace")
 _LOGGER.setLevel(logging.INFO)
@@ -23,29 +24,34 @@ if not _LOGGER.handlers:
     _LOGGER.addHandler(_stream_handler)
     _LOGGER.propagate = False
 
-_TRACE_PATH = active_cache_path("obs_freeze.trace")
 _LOCK = threading.Lock()
 _SEQ = 0
 
 F = TypeVar("F", bound=Callable)
 
 
+def _trace_path() -> Path:
+    return deferred_cache_path("PROJECTX_OBS_FREEZE_TRACE_FILE", "obs_freeze.trace")
+
+
 def trace_path() -> str:
 
-    return str(_TRACE_PATH)
+    return str(_trace_path())
 
 
 def reset_trace_log() -> None:
 
     global _SEQ
 
+    path = _trace_path()
+
     with _LOCK:
         _SEQ = 0
-        _TRACE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        _TRACE_PATH.write_text("", encoding="utf-8")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("", encoding="utf-8")
 
     trace_event("=== OBS_FREEZE TRACE RESET ===")
-    trace_event(f"trace_file={_TRACE_PATH}")
+    trace_event(f"trace_file={path}")
 
 
 def begin_delete_trace_session(point_id: str) -> None:
@@ -66,10 +72,11 @@ def trace_event(label: str) -> None:
     ts = time.monotonic()
     message = f"[{seq:06d}] t={ts:.6f} thr={thread} {label}"
     line = f"{message}\n"
+    path = _trace_path()
 
     with _LOCK:
-        _TRACE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with _TRACE_PATH.open("a", encoding="utf-8") as handle:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
             handle.write(line)
             handle.flush()
 

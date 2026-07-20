@@ -176,6 +176,7 @@ class CameraWizard(QDialog):
         )
         self._heading_label.setText(tr("Heading"))
         self._heading_hint.setText(tr("Enter a heading from 0–359°."))
+        self._pick_heading_button.setText(tr("Select heading on Map"))
         self._update_position_coords_label()
 
         self._step_title_labels[_STEP_FOV].setText(tr("Step 6 — Field of View"))
@@ -395,6 +396,10 @@ class CameraWizard(QDialog):
         self._heading_hint.setWordWrap(True)
         self._heading_hint.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10pt;")
         layout.addWidget(self._heading_hint)
+
+        self._pick_heading_button = QPushButton()
+        layout.addWidget(self._pick_heading_button)
+
         layout.addStretch()
         self._stack.addWidget(page)
 
@@ -565,6 +570,7 @@ class CameraWizard(QDialog):
         self._source_group.idClicked.connect(self._on_source_changed)
         self._position_group.idClicked.connect(self._on_position_mode_changed)
         self._pick_map_button.clicked.connect(self._start_map_pick)
+        self._pick_heading_button.clicked.connect(self._start_heading_pick)
         self._heading_input.valueChanged.connect(self._on_heading_changed)
         self._test_button.clicked.connect(self._run_stream_test)
         self._url_input.textChanged.connect(self._clear_url_error)
@@ -656,6 +662,20 @@ class CameraWizard(QDialog):
             host=self.window(),
         )
 
+    def _start_heading_pick(self) -> None:
+
+        MapController.instance().begin_heading_pick(
+            self._on_heading_selected,
+            self._latitude,
+            self._longitude,
+            host=self.window(),
+        )
+
+    def _on_heading_selected(self, heading: float) -> None:
+
+        self._heading = float(heading) % 360.0
+        self._heading_input.setValue(int(self._heading))
+
     def _on_position_selected(self, latitude: float, longitude: float) -> None:
 
         self._latitude = latitude
@@ -720,6 +740,9 @@ class CameraWizard(QDialog):
                 if point is not None:
                     self._latitude = point.latitude
                     self._longitude = point.longitude
+
+        if step == _STEP_HEADING:
+            MapController.instance().cancel_pick_mode()
 
         if step >= _STEP_SUMMARY:
             return

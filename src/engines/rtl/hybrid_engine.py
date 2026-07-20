@@ -7,10 +7,10 @@ from pathlib import Path
 
 import websocket
 
-from ais.ais_manager import AIS_API_KEY_FILE
+from ais.ais_manager import ais_api_key_file
 from ais.providers import AISProviderType, normalize_provider_type
 from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
-from database import registry
+from app.paths import is_frozen
 from debug.obs_freeze_trace import trace_block
 from engines.ais import AISNmeaDecoder, AISRtlClient
 from engines.ais.ais_catcher_launcher import is_port_open
@@ -21,15 +21,23 @@ from events import eventbus
 from logbook.duna_format import get_direction, get_heading, sanitize_name
 from models.ship import Ship
 from observation.geo_context import geo_context
+from observation.observation_manager import observation_points_file
 from preferences import preferences_manager
-from storage import active_cache_path, active_export_path
+from preferences.preferences import PREFERENCES_FILE
+from storage.deferred_paths import deferred_cache_path
 
 logger = logging.getLogger(__name__)
 
-SHIP_CACHE_FILE = active_cache_path("ship_cache.json")
+
+def ship_cache_file() -> Path:
+    """Return the active ship name cache file path."""
+
+    return deferred_cache_path("PROJECTX_SHIP_CACHE_FILE", "ship_cache.json")
 
 
 def _runtime_export_dir() -> Path:
+
+    from storage import active_export_path
 
     export_dir = active_export_path()
     export_dir.mkdir(parents=True, exist_ok=True)
@@ -38,9 +46,15 @@ def _runtime_export_dir() -> Path:
 
 def _deli_hajok_dir() -> Path:
 
-    deli_dir = active_cache_path("deli_hajok")
+    deli_dir = deferred_cache_path("PROJECTX_DELI_HAJOK_DIR", "deli_hajok")
     deli_dir.mkdir(parents=True, exist_ok=True)
     return deli_dir
+
+
+def _ship_registry():
+    from database.ship_registry import get_ship_registry
+
+    return get_ship_registry()
 
 
 class HybridEngine(BaseEngine):
@@ -64,9 +78,11 @@ class HybridEngine(BaseEngine):
         self.radar_data = {}
         self.last_printed_state = {}
 
-        if SHIP_CACHE_FILE.exists():
+        cache_file = ship_cache_file()
+
+        if cache_file.exists():
             try:
-                with SHIP_CACHE_FILE.open(encoding="utf-8") as handle:
+                with cache_file.open(encoding="utf-8") as handle:
                     self.ship_names = json.load(handle)
             except Exception:
                 self.ship_names = {}
@@ -88,6 +104,47 @@ class HybridEngine(BaseEngine):
                 daemon=True,
             )
             self.rtl_thread.start()
+
+    def _publish_ais_status(self, status: str, *, reason: str = "") -> None:
+
+        normalized = str(status or "offline")
+        previous = getattr(self, "_last_ais_status_logged", None)
+
+        if previous != normalized:
+            detail = f" ({reason})" if reason else ""
+            logger.info("AISStream worker status -> %s%s", normalized, detail)
+            self._last_ais_status_logged = normalized
+
+        eventbus.publish("ais.status", status=normalized)
+
+    def _log_aisstream_runtime_context(self, *, phase: str) -> None:
+
+        from ais.user_provider_service import (
+            get_enabled_provider_ids,
+            is_provider_configured,
+        )
+
+        preferences = preferences_manager.get()
+        enabled_ids = get_enabled_provider_ids()
+        api_key = self._aisstream_api_key()
+        boxes = reference_observation_bounding_boxes()
+        key_file = ais_api_key_file()
+
+        logger.info(
+            "AISStream runtime context [%s]: frozen=%s preferences=%s "
+            "observation_points=%s ais_api_key_file=%s enabled=%s "
+            "legacy_provider=%s configured=%s key_len=%s reference=%s",
+            phase,
+            is_frozen(),
+            PREFERENCES_FILE,
+            observation_points_file(),
+            key_file,
+            enabled_ids,
+            preferences.ais_provider,
+            is_provider_configured(AISProviderType.AISSTREAM),
+            len(api_key),
+            "yes" if boxes else "no",
+        )
 
     def sync_enabled_providers(self, enabled_ids: list[str] | None = None) -> None:
 
@@ -112,16 +169,22 @@ class HybridEngine(BaseEngine):
             and is_provider_configured(AISProviderType.LOCAL)
         )
 
+        logger.info(
+            "AISStream sync_enabled_providers: enabled=%s want_aisstream=%s want_rtl=%s",
+            sorted(enabled),
+            want_aisstream,
+            want_rtl,
+        )
+        self._log_aisstream_runtime_context(phase="sync")
+
         with self._runtime_lock:
             if want_aisstream:
                 self._aisstream_active = True
                 self._resubscribe_requested = True
-                self._close_ws()
             elif self._aisstream_active:
                 self._aisstream_active = False
                 self._resubscribe_requested = False
-                self._close_ws()
-                eventbus.publish("ais.status", status="offline")
+                self._publish_ais_status("offline", reason="provider disabled")
                 self._purge_ais_runtime_state()
 
             if want_rtl:
@@ -148,7 +211,7 @@ class HybridEngine(BaseEngine):
 
     def _purge_ais_runtime_state(self) -> None:
 
-        removed = registry.purge_ais_only_ships()
+        removed = _ship_registry().purge_ais_only_ships()
 
         stale_mmsis = [
             mmsi
@@ -169,7 +232,7 @@ class HybridEngine(BaseEngine):
 
     def _purge_rtl_runtime_state(self) -> None:
 
-        removed = registry.purge_rtl_only_ships()
+        removed = _ship_registry().purge_rtl_only_ships()
 
         stale_mmsis = [
             mmsi
@@ -189,18 +252,32 @@ class HybridEngine(BaseEngine):
         key = preferences_manager.get().aisstream_api_key.strip()
 
         if key:
+            logger.debug(
+                "AISStream API key loaded from preferences (len=%s)", len(key)
+            )
             return key
 
-        for path in (AIS_API_KEY_FILE,):
+        for path in (ais_api_key_file(),):
             try:
                 if path.exists():
                     value = path.read_text(encoding="utf-8").strip()
 
                     if value:
+                        logger.info(
+                            "AISStream API key loaded from file %s (len=%s)",
+                            path,
+                            len(value),
+                        )
                         return value
+
+                    logger.warning("AISStream API key file is empty: %s", path)
             except OSError:
                 logger.warning("Failed to read AIS API key file: %s", path)
 
+        logger.warning(
+            "AISStream API key missing in preferences and %s",
+            ais_api_key_file(),
+        )
         return ""
 
     def _aisstream_enabled(self) -> bool:
@@ -222,22 +299,22 @@ class HybridEngine(BaseEngine):
         self._close_ws()
         self._disconnect_rtl_client()
 
-        eventbus.publish("ais.status", status="offline")
+        self._publish_ais_status("offline", reason="engine stopped")
         eventbus.publish("rtl.status", status="offline")
 
         print("🛑 Hybrid Engine stopped")
 
     def on_observation_changed(self) -> None:
 
-        removed = registry.purge_outside_reference_coverage()
+        removed = _ship_registry().purge_outside_reference_coverage()
         if removed:
             print(f"🧹 Removed {removed} ship(s) outside reference coverage")
 
         if not self._aisstream_enabled():
             return
 
-        self._resubscribe_requested = True
-        self._close_ws()
+        with self._runtime_lock:
+            self._resubscribe_requested = True
 
     def _close_ws(self) -> None:
 
@@ -252,9 +329,10 @@ class HybridEngine(BaseEngine):
     def save_ship_cache(self):
 
         try:
-            SHIP_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+            cache_file = ship_cache_file()
+            cache_file.parent.mkdir(parents=True, exist_ok=True)
 
-            with SHIP_CACHE_FILE.open("w", encoding="utf-8") as handle:
+            with cache_file.open("w", encoding="utf-8") as handle:
                 json.dump(self.ship_names, handle, ensure_ascii=False, indent=2)
         except Exception:
             pass
@@ -431,7 +509,7 @@ class HybridEngine(BaseEngine):
 
         static = self.static_ship_data.get(mmsi, {})
         mmsi_int = int(mmsi)
-        existing = registry.get(mmsi_int)
+        existing = _ship_registry().get(mmsi_int)
 
         ship = Ship(
             mmsi=mmsi_int,
@@ -486,38 +564,53 @@ class HybridEngine(BaseEngine):
     # --------------------------------------------------
     def aisstream_worker(self):
 
+        self._log_aisstream_runtime_context(phase="worker-start")
+
         while self.running:
             if not self._aisstream_enabled():
                 self._close_ws()
-                eventbus.publish("ais.status", status="offline")
+                self._publish_ais_status("offline", reason="provider inactive")
                 time.sleep(1)
                 continue
 
             subscribed_boxes = reference_observation_bounding_boxes()
 
             if subscribed_boxes is None:
-                print("⏳ Waiting for observation reference point before AISStream...")
-                eventbus.publish("ais.status", status="waiting")
+                logger.info(
+                    "AISStream waiting for observation reference point "
+                    "(file=%s)",
+                    observation_points_file(),
+                )
+                self._publish_ais_status(
+                    "waiting",
+                    reason="observation reference missing",
+                )
                 time.sleep(2)
                 continue
 
             api_key = self._aisstream_api_key()
 
             if not api_key:
-                print("⏳ AISStream disabled or missing API key...")
+                logger.warning("AISStream offline: API key unavailable")
                 self._close_ws()
-                eventbus.publish("ais.status", status="offline")
+                self._publish_ais_status("offline", reason="missing API key")
                 time.sleep(2)
                 continue
 
             try:
-                print("📡 AISStream kapcsolat...")
+                ws_url = f"wss://stream.aisstream.io/v0/stream?apiKey={api_key}"
+                logger.info(
+                    "AISStream connecting to %s (key_len=%s bbox=%s)",
+                    "wss://stream.aisstream.io/v0/stream?apiKey=<redacted>",
+                    len(api_key),
+                    subscribed_boxes,
+                )
 
                 with self._ws_lock:
-                    self._ws = websocket.create_connection(
-                        f"wss://stream.aisstream.io/v0/stream?apiKey={api_key}"
-                    )
+                    self._ws = websocket.create_connection(ws_url, timeout=10)
                     self._ws.settimeout(1.0)
+
+                logger.info("AISStream WebSocket connected")
 
                 with trace_block("HybridEngine.aisstream_worker.subscribe_message"):
                     subscribe_message = AISProtocol.subscribe_message(
@@ -525,14 +618,21 @@ class HybridEngine(BaseEngine):
                         bounding_boxes=subscribed_boxes,
                     )
 
+                logger.info(
+                    "AISStream sending subscription "
+                    "(message_types=%s bbox_count=%s)",
+                    subscribe_message.get("FilterMessageTypes"),
+                    len(subscribe_message.get("BoundingBoxes") or []),
+                )
+
                 with self._ws_lock:
                     if self._ws is None:
                         continue
                     self._ws.send(json.dumps(subscribe_message))
 
                 self._resubscribe_requested = False
-                print("✅ AISStream kapcsolódva")
-                eventbus.publish("ais.status", status="connected")
+                logger.info("AISStream subscription sent; marking connected")
+                self._publish_ais_status("connected", reason="subscription sent")
 
                 while self.running:
                     if not self._aisstream_enabled():
@@ -544,7 +644,9 @@ class HybridEngine(BaseEngine):
                     current_boxes = reference_observation_bounding_boxes()
 
                     if current_boxes != subscribed_boxes:
-                        print("🔄 Observation area changed — resubscribing AISStream...")
+                        logger.info(
+                            "AISStream observation area changed; resubscribing"
+                        )
                         break
 
                     try:
@@ -634,8 +736,8 @@ class HybridEngine(BaseEngine):
             except Exception as e:
                 if not self.running:
                     break
-                print("❌ AISStream hiba:", e)
-                eventbus.publish("ais.status", status="offline")
+                logger.exception("AISStream connection error: %s", e)
+                self._publish_ais_status("offline", reason=f"connection error: {e}")
                 time.sleep(5)
             finally:
                 self._close_ws()

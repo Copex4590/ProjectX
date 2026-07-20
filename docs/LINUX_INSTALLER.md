@@ -101,6 +101,8 @@ sudo dpkg -r projectx
 
 Or remove **Project X** from Software Manager (package name `projectx`). The menu entry, system icons, and desktop shortcut (for the installing user) are removed automatically. **User configuration is kept** under `~/.local/share/projectx/` after uninstall (RC1 policy — reinstall restores settings). To wipe data manually: `rm -rf ~/.local/share/projectx/`.
 
+**Complete uninstall (remove user data):** run **Project X Uninstall** from the applications menu, or `ProjectX-uninstall.sh`, and choose **Yes** when asked to remove user data. This removes bootstrap profile data, cache, and the configured Project X data root referenced in `preferences.json` (for example `~/Project X/`). Standard `sudo dpkg -r projectx` does **not** remove user data.
+
 ---
 
 ## Portable AppImage (advanced)

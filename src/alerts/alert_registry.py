@@ -12,14 +12,14 @@ from threading import Lock
 from alerts.alert_event import AlertEvent
 from alerts.alert_rule import AlertRule
 
-from storage import active_database_path
+from storage.deferred_paths import deferred_database_path
+from storage.lazy_singleton import LazySingleton, lazy_module_getattr
 
-ALERT_DATABASE_FILE = Path(
-    os.environ.get(
-        "PROJECTX_ALERT_DATABASE_FILE",
-        str(active_database_path("alerts.db")),
-    )
-)
+
+def alert_database_file() -> Path:
+    """Return the active alert database file path."""
+
+    return deferred_database_path("PROJECTX_ALERT_DATABASE_FILE", "alerts.db")
 
 _RULES_SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS alert_rules (
@@ -105,7 +105,7 @@ class AlertRegistry:
 
     def __init__(self, db_path: Path | str | None = None):
 
-        self._db_path = Path(db_path or ALERT_DATABASE_FILE)
+        self._db_path = Path(db_path or alert_database_file())
         self._lock = Lock()
         self._ensure_schema()
 
@@ -268,4 +268,15 @@ class AlertRegistry:
         return connection
 
 
-alert_registry = AlertRegistry()
+get_alert_registry = LazySingleton(AlertRegistry)
+
+
+def __getattr__(name: str):
+    if name == "ALERT_DATABASE_FILE":
+        return alert_database_file()
+    return lazy_module_getattr(
+        name,
+        module_name=__name__,
+        export_name="alert_registry",
+        getter=get_alert_registry,
+    )

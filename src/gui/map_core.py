@@ -14,3 +14,4 @@ class PickMode(str, Enum):
 
     NONE = "none"
     LOCATION = "location"
+    HEADING = "heading"

@@ -6,14 +6,16 @@
 import os
 from pathlib import Path
 
-from storage import active_config_path
+from storage.deferred_paths import deferred_config_path
 
-PLAYBACK_PREFERENCES_FILE = Path(
-    os.environ.get(
+
+def playback_preferences_file() -> Path:
+    """Return the active playback preferences file path."""
+
+    return deferred_config_path(
         "PROJECTX_PLAYBACK_PREFERENCES_FILE",
-        str(active_config_path("playback.json")),
+        "playback.json",
     )
-)
 
 DEFAULT_PLAYBACK_MODE = os.environ.get(
     "PROJECTX_PLAYBACK_MODE",
@@ -34,3 +36,9 @@ DEFAULT_CUSTOM_ARGUMENTS = os.environ.get(
     "PROJECTX_PLAYBACK_CUSTOM_ARGUMENTS",
     "",
 ).strip()
+
+
+def __getattr__(name: str):
+    if name == "PLAYBACK_PREFERENCES_FILE":
+        return playback_preferences_file()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

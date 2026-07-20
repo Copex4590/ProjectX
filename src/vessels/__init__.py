@@ -1,4 +1,4 @@
-from vessels.photo_manager import PhotoManager, photo_manager
+from vessels.photo_manager import PhotoManager
 from vessels.photo_provider import (
     PhotoProvider,
     PhotoProviderRegistry,
@@ -6,7 +6,8 @@ from vessels.photo_provider import (
     photo_provider_registry,
 )
 from vessels.photo_record import PhotoRecord
-from vessels.photo_registry import PhotoRegistry, VESSEL_PHOTOS_DIR, photo_registry
+from vessels.photo_registry import PhotoRegistry
+from storage.lazy_singleton import lazy_submodule_export
 
 __all__ = [
     "PhotoManager",
@@ -20,3 +21,15 @@ __all__ = [
     "photo_provider_registry",
     "photo_registry",
 ]
+
+
+def __getattr__(name: str):
+    if name == "photo_registry":
+        return lazy_submodule_export(__name__, name)
+    if name == "photo_manager":
+        return lazy_submodule_export(__name__, name)
+    if name == "VESSEL_PHOTOS_DIR":
+        from vessels.photo_registry import vessel_photos_dir
+
+        return vessel_photos_dir()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

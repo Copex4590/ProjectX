@@ -5,12 +5,10 @@
 
 from threading import Lock
 
-from database.vessel_sync import vessel_sync
-from engines.timeline.arrival_departure_engine import arrival_departure_engine
 from logbook.duna_format import get_direction, get_heading
 from models.ship import Ship
 from observation.geo_context import geo_context
-from timeline.timeline_recorder import timeline_recorder
+from storage.lazy_singleton import LazySingleton
 
 
 def _apply_observation_distance(ship: Ship) -> None:
@@ -79,9 +77,13 @@ class ShipRegistry:
 
             merged = self._ships.get(ship.mmsi)
 
-        vessel_sync.enqueue(merged)
-        timeline_recorder.enqueue(merged)
-        arrival_departure_engine.notify(merged)
+        from database.vessel_sync import get_vessel_sync
+        from engines.timeline.arrival_departure_engine import get_arrival_departure_engine
+        from timeline.timeline_recorder import get_timeline_recorder
+
+        get_vessel_sync().enqueue(merged)
+        get_timeline_recorder().enqueue(merged)
+        get_arrival_departure_engine().notify(merged)
 
     def get(self, mmsi: int):
 
@@ -165,4 +167,10 @@ class ShipRegistry:
             return mmsi in self._ships
 
 
-registry = ShipRegistry()
+get_ship_registry = LazySingleton(ShipRegistry)
+
+
+def __getattr__(name: str):
+    if name == "registry":
+        return get_ship_registry()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

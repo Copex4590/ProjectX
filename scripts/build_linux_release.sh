@@ -39,8 +39,9 @@ Options:
   -h, --help       Show this help
 
 Environment:
-  PROJECTX_PYTHON   Python for build (default: .venv/bin/python)
-  SKIP_DEB=1        Skip .deb generation
+  PROJECTX_PYTHON            Python for build (default: .venv/bin/python)
+  PROJECTX_MAPTILER_API_KEY  MapTiler API key when maptiler_api_key.txt is absent
+  SKIP_DEB=1                 Skip .deb generation
 EOF
 }
 
@@ -98,10 +99,10 @@ ensure_build_python() {
 }
 
 prepare_assets() {
-    if [[ ! -f "$ROOT/src/resources/map/leaflet/leaflet.js" ]]; then
-        echo "Fetching Leaflet assets..."
+    if [[ ! -f "$ROOT/src/resources/map/cesium/Cesium.js" ]]; then
+        echo "Fetching Cesium assets..."
         require_command curl
-        bash "$ROOT/scripts/fetch_leaflet.sh"
+        bash "$ROOT/scripts/fetch_cesium.sh"
     fi
     for asset in projectx-logo.png projectx.ico; do
         if [[ ! -f "$ROOT/src/resources/branding/$asset" ]]; then
@@ -110,6 +111,34 @@ prepare_assets() {
             break
         fi
     done
+}
+
+ensure_maptiler_api_key() {
+    local key_file="$ROOT/src/config/maptiler_api_key.txt"
+
+    if [[ -f "$key_file" ]]; then
+        if [[ -s "$key_file" ]]; then
+            echo "[OK] MapTiler API key present: src/config/maptiler_api_key.txt"
+            return
+        fi
+        echo "[FAIL] MapTiler API key file is empty: src/config/maptiler_api_key.txt" >&2
+        exit 1
+    fi
+
+    if [[ -n "${PROJECTX_MAPTILER_API_KEY:-}" ]]; then
+        printf '%s\n' "$PROJECTX_MAPTILER_API_KEY" >"$key_file"
+        echo "[OK] MapTiler API key written from PROJECTX_MAPTILER_API_KEY"
+        return
+    fi
+
+    echo "[FAIL] MapTiler API key required for release build." >&2
+    echo "       Create src/config/maptiler_api_key.txt or set PROJECTX_MAPTILER_API_KEY." >&2
+    exit 1
+}
+
+prepare_release_hygiene() {
+    echo "Preparing release hygiene..."
+    bash "$ROOT/scripts/prepare_release_hygiene.sh"
 }
 
 verify_runtime_resources() {
@@ -124,7 +153,7 @@ from app import paths
 required = [
     paths.resource_path("translations", "en.json"),
     paths.resource_path("translations", "hu.json"),
-    paths.resource_path("map", "leaflet", "leaflet.js"),
+    paths.resource_path("map", "cesium", "Cesium.js"),
     paths.resource_path("map", "map.html"),
     paths.resource_path("branding", "projectx-logo.png"),
     paths.resource_path("branding", "projectx.ico"),
@@ -167,7 +196,7 @@ verify_bundle_contents() {
         "$bundle/projectx"
         "$bundle/resources/translations/en.json"
         "$bundle/resources/translations/hu.json"
-        "$bundle/resources/map/leaflet/leaflet.js"
+        "$bundle/resources/map/cesium/Cesium.js"
         "$bundle/resources/branding/projectx-logo.png"
         "$bundle/projectx.ico"
         "$bundle/config/playback.json"
@@ -458,6 +487,7 @@ require_command curl
 read_version
 
 prepare_assets
+prepare_release_hygiene
 verify_runtime_resources
 
 if [[ "$PREPARE_ONLY" == "1" ]]; then
@@ -467,6 +497,7 @@ fi
 
 clean_release_builds
 ensure_build_python
+ensure_maptiler_api_key
 install_build_deps
 run_pyinstaller
 verify_bundle_contents

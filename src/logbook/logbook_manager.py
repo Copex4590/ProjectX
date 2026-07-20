@@ -20,6 +20,7 @@ from logbook.paths import (
     logbook_dir,
 )
 from logbook.xlsx_generator import regenerate_xlsx
+from storage.lazy_singleton import LazySingleton, lazy_module_getattr
 
 
 @dataclass(frozen=True)
@@ -33,14 +34,21 @@ class LogbookManager:
 
     def __init__(self, base_dir: Path | None = None):
 
-        self._base_dir = Path(base_dir or logbook_dir())
+        self._base_dir = Path(base_dir) if base_dir is not None else None
         self._lock = Lock()
-        self._base_dir.mkdir(parents=True, exist_ok=True)
+
+    def _ensure_base_dir(self) -> Path:
+
+        if self._base_dir is None:
+            self._base_dir = logbook_dir()
+            self._base_dir.mkdir(parents=True, exist_ok=True)
+
+        return self._base_dir
 
     @property
     def base_dir(self) -> Path:
 
-        return self._base_dir
+        return self._ensure_base_dir()
 
     def ship_folder_name(self, ship) -> str:
 
@@ -61,18 +69,18 @@ class LogbookManager:
             if not candidate:
                 continue
 
-            path = self._base_dir / candidate
+            path = self.base_dir / candidate
 
             if path.exists():
                 return path
 
-        return self._base_dir / (name or mmsi)
+        return self.base_dir / (name or mmsi)
 
     def resolve_ship_dir_by_mmsi(self, mmsi: int) -> Path | None:
 
-        from database import registry
+        from database.ship_registry import get_ship_registry
 
-        ship = registry.get(int(mmsi))
+        ship = get_ship_registry().get(int(mmsi))
 
         if ship is not None:
             path = self.resolve_ship_dir(ship)
@@ -80,13 +88,13 @@ class LogbookManager:
             if path.exists():
                 return path
 
-        fallback = self._base_dir / str(int(mmsi))
+        fallback = self.base_dir / str(int(mmsi))
 
         if fallback.exists():
             return fallback
 
-        if self._base_dir.exists():
-            for child in self._base_dir.iterdir():
+        if self.base_dir.exists():
+            for child in self.base_dir.iterdir():
                 if not child.is_dir():
                     continue
 
@@ -171,13 +179,13 @@ class LogbookManager:
         skipped = 0
 
         with self._lock:
-            self._base_dir.mkdir(parents=True, exist_ok=True)
+            self.base_dir.mkdir(parents=True, exist_ok=True)
 
             for child in sorted(source.iterdir()):
                 if not child.is_dir():
                     continue
 
-                destination = self._base_dir / child.name
+                destination = self.base_dir / child.name
 
                 if destination.exists():
                     skipped += 1
@@ -209,4 +217,13 @@ class LogbookManager:
         return QDesktopServices.openUrl(QUrl.fromLocalFile(str(xlsx_file.resolve())))
 
 
-logbook_manager = LogbookManager()
+get_logbook_manager = LazySingleton(LogbookManager)
+
+
+def __getattr__(name: str):
+    return lazy_module_getattr(
+        name,
+        module_name=__name__,
+        export_name="logbook_manager",
+        getter=get_logbook_manager,
+    )

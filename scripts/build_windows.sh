@@ -74,10 +74,10 @@ is_wsl() {
 }
 
 prepare_assets() {
-    if [[ ! -f "$ROOT/src/resources/map/leaflet/leaflet.js" ]]; then
-        echo "Fetching Leaflet assets..."
+    if [[ ! -f "$ROOT/src/resources/map/cesium/Cesium.js" ]]; then
+        echo "Fetching Cesium assets..."
         require_command curl
-        bash "$ROOT/scripts/fetch_leaflet.sh"
+        bash "$ROOT/scripts/fetch_cesium.sh"
     fi
 
     for asset in projectx-logo.png projectx.ico; do
@@ -90,8 +90,8 @@ prepare_assets() {
 }
 
 verify_data_tree() {
-    echo "Verifying data/ tree contains no runtime artifacts..."
-    "$HOST_PYTHON" "$ROOT/scripts/verify_data_tree_clean.py"
+    echo "Preparing release hygiene..."
+    bash "$ROOT/scripts/prepare_release_hygiene.sh"
 }
 
 verify_paths() {
@@ -106,7 +106,7 @@ sys.path.insert(0, str(Path("src").resolve()))
 from app import paths
 
 assert paths.resource_path("translations", "en.json").exists(), "en.json missing"
-assert paths.resource_path("map", "leaflet", "leaflet.js").exists(), "leaflet.js missing"
+assert paths.resource_path("map", "cesium", "Cesium.js").exists(), "Cesium.js missing"
 assert paths.resource_path("branding", "projectx.ico").exists(), "projectx.ico missing"
 assert paths.resource_path("map", "map.html").exists(), "map.html missing"
 

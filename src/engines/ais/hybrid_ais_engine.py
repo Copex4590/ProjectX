@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 from debug.obs_freeze_trace import trace_block
-from database import registry
 from engines.ais.runtime_provider import AISRuntimeProvider, ShipCallback
 from events import eventbus
 from models.ship import Ship
@@ -44,7 +43,9 @@ class HybridAisEngine:
     def publish_ship(self, ship: Ship) -> None:
         """Publish one ship update through the single registry ingestion path."""
 
-        registry.add(ship)
+        from database.ship_registry import get_ship_registry
+
+        get_ship_registry().add(ship)
         with trace_block(
             f"HybridAisEngine.publish_ship mmsi={ship.mmsi} source={ship.source}"
         ):

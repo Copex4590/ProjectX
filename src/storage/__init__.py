@@ -11,6 +11,7 @@ from storage.bootstrap import (
 from storage.exceptions import (
     DataDirectoryNotConfiguredError,
     DataDirectoryValidationError,
+    InitializationError,
     InvalidDataDirectoryError,
     MigrationError,
     StorageError,
@@ -38,6 +39,15 @@ from storage.legacy import (
 )
 from storage.migration import DataMigrationService, MigrationResult, build_migration_copy_plan
 from storage.migration_state import MigrationPhase, MigrationState, MigrationStateStore
+from storage.data_root_initialization import (
+    DataRootInitializationResult,
+    DataRootInitializationService,
+)
+from storage.data_root_validation import (
+    DataRootValidationResult,
+    DataRootValidationService,
+    ValidationSeverity,
+)
 from storage.manager import (
     DataDirectoryValidationResult,
     configured_data_root,
@@ -84,7 +94,13 @@ __all__ = [
     "DataDirectoryNotConfiguredError",
     "DataDirectoryValidationError",
     "DataDirectoryValidationResult",
+    "DataRootInitializationResult",
+    "DataRootInitializationService",
+    "DataRootValidationResult",
+    "DataRootValidationService",
+    "ValidationSeverity",
     "InvalidDataDirectoryError",
+    "InitializationError",
     "LegacyDataInventory",
     "MigrationError",
     "MigrationPhase",

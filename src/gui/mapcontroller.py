@@ -4,17 +4,20 @@ from collections.abc import Callable
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal
 
+from camera import camera_manager
 from debug.obs_freeze_trace import trace_block, trace_enter, trace_exit, trace_event, trace_timer_callback
 from gui.map_core import MAP_PAGE_INDEX, PickMode
 from gui.observationreferencedialog import ObservationReferenceDialog
 from gui.widgets.mapwidget import MapWidget
 from i18n import tr
+from observation.geo_context import geo_context
 from observation import observation_manager
 from PySide6.QtWidgets import QApplication, QDialog, QWidget
 from shiboken6 import isValid
 
 
 LocationPickCallback = Callable[[float, float], None]
+HeadingPickCallback = Callable[[float], None]
 
 
 class MapController(QObject):
@@ -33,6 +36,8 @@ class MapController(QObject):
         self._reference_prompt_open = False
         self._pick_mode = PickMode.NONE
         self._location_pick_callback: LocationPickCallback | None = None
+        self._heading_pick_callback: HeadingPickCallback | None = None
+        self._heading_pick_origin: tuple[float, float] | None = None
         self._pick_host: QDialog | None = None
         self._pick_host_was_modal = False
         self._show_parent_during_pick = True
@@ -41,6 +46,10 @@ class MapController(QObject):
         self._widget = MapWidget()
         self._widget.locationSelected.connect(
             self._on_location_selected,
+            Qt.ConnectionType.QueuedConnection,
+        )
+        self._widget.headingSelected.connect(
+            self._on_heading_selected,
             Qt.ConnectionType.QueuedConnection,
         )
 
@@ -100,6 +109,49 @@ class MapController(QObject):
             ),
         )
 
+    def begin_heading_pick(
+        self,
+        callback: HeadingPickCallback,
+        latitude: float,
+        longitude: float,
+        *,
+        overlay_message: str | None = None,
+        host: QWidget | None = None,
+    ) -> None:
+
+        self._heading_pick_callback = callback
+        self._heading_pick_origin = (float(latitude), float(longitude))
+        self._set_pick_mode(PickMode.HEADING)
+        self._pending_pick_message = overlay_message or tr(
+            "Click the map to set the camera heading. Press Esc to cancel."
+        )
+        self._pending_pick_host = host
+        self.request_show_map()
+        QTimer.singleShot(
+            0,
+            trace_timer_callback(
+                "MapController.begin_heading_pick->QTimer._start_heading_pick",
+                self._start_heading_pick_session,
+            ),
+        )
+
+    def _start_heading_pick_session(self) -> None:
+
+        if self._pick_mode != PickMode.HEADING:
+            return
+
+        host = self._pending_pick_host
+        self._pending_pick_host = None
+        self._suspend_pick_host(host)
+
+        if self._heading_pick_origin is None:
+            return
+
+        lat, lon = self._heading_pick_origin
+        message = self._pending_pick_message or ""
+        self._pending_pick_message = None
+        self._widget.begin_heading_pick(message, lat, lon)
+
     def _start_pick_session(self) -> None:
 
         if self._pick_mode != PickMode.LOCATION:
@@ -128,26 +180,29 @@ class MapController(QObject):
         with trace_block("MapController.on_map_page_visible"):
             self.clear_stale_pick_mode()
 
-            if self._pick_mode != PickMode.LOCATION:
+            if self._pick_mode == PickMode.LOCATION:
+                self.activate_location_pick()
+
+                for delay_ms in (50, 150):
+                    QTimer.singleShot(
+                        delay_ms,
+                        trace_timer_callback(
+                            f"MapController.on_map_page_visible->refresh({delay_ms}ms)",
+                            self._widget.refresh_location_pick_view,
+                        ),
+                    )
+                    QTimer.singleShot(
+                        delay_ms,
+                        trace_timer_callback(
+                            f"MapController.on_map_page_visible->focus({delay_ms}ms)",
+                            self._focus_map_for_pick,
+                        ),
+                    )
                 return
 
-            self.activate_location_pick()
-
-            for delay_ms in (50, 150):
-                QTimer.singleShot(
-                    delay_ms,
-                    trace_timer_callback(
-                        f"MapController.on_map_page_visible->refresh({delay_ms}ms)",
-                        self._widget.refresh_location_pick_view,
-                    ),
-                )
-                QTimer.singleShot(
-                    delay_ms,
-                    trace_timer_callback(
-                        f"MapController.on_map_page_visible->focus({delay_ms}ms)",
-                        self._focus_map_for_pick,
-                    ),
-                )
+            if self._pick_mode == PickMode.HEADING:
+                self._start_heading_pick_session()
+                return
 
     def _focus_map_for_pick(self) -> None:
 
@@ -171,8 +226,11 @@ class MapController(QObject):
             self._pending_pick_host = None
             self._pending_pick_message = None
             self._location_pick_callback = None
+            self._heading_pick_callback = None
+            self._heading_pick_origin = None
             self._set_pick_mode(PickMode.NONE)
             self._widget.end_location_pick()
+            self._widget.end_heading_pick()
             self.release_application_modality()
 
             if restore_host:
@@ -187,16 +245,24 @@ class MapController(QObject):
 
     def clear_stale_pick_mode(self) -> None:
 
-        if self._pick_mode != PickMode.LOCATION:
+        if self._pick_mode == PickMode.LOCATION:
+            if self._location_pick_callback is not None:
+                return
+
+            trace_event(
+                "MapController.clear_stale_pick_mode orphaned PickMode.LOCATION"
+            )
+            self.cancel_pick_mode(restore_host=False)
             return
 
-        if self._location_pick_callback is not None:
-            return
+        if self._pick_mode == PickMode.HEADING:
+            if self._heading_pick_callback is not None:
+                return
 
-        trace_event(
-            "MapController.clear_stale_pick_mode orphaned PickMode.LOCATION"
-        )
-        self.cancel_pick_mode(restore_host=False)
+            trace_event(
+                "MapController.clear_stale_pick_mode orphaned PickMode.HEADING"
+            )
+            self.cancel_pick_mode(restore_host=False)
 
     def refresh_observation_points(self) -> None:
 
@@ -211,7 +277,7 @@ class MapController(QObject):
             trace_exit("MapController.refresh_observation_points.observation_manager.reference")
 
             def _point_payload(point) -> dict:
-                return {
+                payload = {
                     "id": point.id,
                     "name": point.name,
                     "lat": point.latitude,
@@ -219,12 +285,25 @@ class MapController(QObject):
                     "active": point.active,
                     "reference": point.id == reference_id,
                     "coverage_radius_km": point.coverage_radius_km,
+                    "coverage_visible": point.id == reference_id,
                 }
+
+                if point.id == reference_id:
+                    payload["coverage_bbox"] = geo_context.coverage_bounding_box(
+                        point.latitude,
+                        point.longitude,
+                        point.coverage_radius_km,
+                    )
+
+                return payload
 
             if self._pick_mode == PickMode.LOCATION:
                 if points:
                     payload = [_point_payload(point) for point in points]
                     self._widget.set_observation_points(payload)
+                return
+
+            if self._pick_mode == PickMode.HEADING:
                 return
 
             if not points:
@@ -242,6 +321,31 @@ class MapController(QObject):
             trace_enter("MapController.refresh_observation_points.set_observation_points")
             self._widget.set_observation_points(payload)
             trace_exit("MapController.refresh_observation_points.set_observation_points")
+
+    def refresh_cameras(self) -> None:
+
+        with trace_block("MapController.refresh_cameras"):
+            active = observation_manager.active()
+
+            if active is None:
+                self._widget.clear_cameras()
+                return
+
+            cameras = camera_manager.by_observation(active.id)
+            payload = [
+                {
+                    "id": camera.id,
+                    "name": camera.name,
+                    "lat": camera.latitude,
+                    "lon": camera.longitude,
+                    "heading_deg": camera.heading,
+                    "fov_deg": camera.field_of_view,
+                    "max_distance_km": camera.max_distance,
+                    "enabled": camera.enabled,
+                }
+                for camera in cameras
+            ]
+            self._widget.set_cameras(payload)
 
     def update_ships(self, payload: str) -> None:
 
@@ -321,6 +425,30 @@ class MapController(QObject):
         except RuntimeError:
             trace_event(
                 "MapController._on_location_selected ignored deleted pick host"
+            )
+
+    def _on_heading_selected(self, heading: float) -> None:
+
+        if self._pick_mode != PickMode.HEADING:
+            return
+
+        callback = self._heading_pick_callback
+
+        if callback is None:
+            return
+
+        self._heading_pick_callback = None
+        self._heading_pick_origin = None
+        self._set_pick_mode(PickMode.NONE)
+        self._widget.end_heading_pick()
+        self._clear_pick_host()
+        self.release_application_modality()
+
+        try:
+            callback(float(heading))
+        except RuntimeError:
+            trace_event(
+                "MapController._on_heading_selected ignored deleted pick host"
             )
 
     def _set_pick_mode(self, mode: PickMode) -> None:

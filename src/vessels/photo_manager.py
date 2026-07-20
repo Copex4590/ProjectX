@@ -11,11 +11,7 @@ from vessels.photo_provider import (
     photo_provider_registry,
 )
 from vessels.photo_record import PhotoRecord
-from vessels.photo_registry import (
-    PhotoRegistry,
-    VESSEL_PHOTOS_DIR,
-    photo_registry,
-)
+from vessels.photo_registry import PhotoRegistry, get_photo_registry, vessel_photos_dir
 
 
 class PhotoManager:
@@ -27,9 +23,9 @@ class PhotoManager:
         storage_dir: Path | str | None = None,
     ):
 
-        self._registry = registry or photo_registry
+        self._registry = registry or get_photo_registry()
         self._provider_registry = provider_registry or photo_provider_registry
-        self._storage_dir = Path(storage_dir or VESSEL_PHOTOS_DIR)
+        self._storage_dir = Path(storage_dir or vessel_photos_dir())
 
     @property
     def storage_dir(self) -> Path:
@@ -171,4 +167,16 @@ class PhotoManager:
         path.unlink(missing_ok=True)
 
 
-photo_manager = PhotoManager()
+from storage.lazy_singleton import LazySingleton, lazy_module_getattr
+
+
+get_photo_manager = LazySingleton(PhotoManager)
+
+
+def __getattr__(name: str):
+    return lazy_module_getattr(
+        name,
+        module_name=__name__,
+        export_name="photo_manager",
+        getter=get_photo_manager,
+    )

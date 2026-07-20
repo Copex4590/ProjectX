@@ -8,17 +8,27 @@ from __future__ import annotations
 from threading import Lock
 
 from events import eventbus
-from logbook.logbook_manager import logbook_manager
+from logbook.logbook_manager import LogbookManager
+from storage.lazy_singleton import LazySingleton, lazy_module_getattr
 
 
 class LogbookRecorder:
 
-    def __init__(self, manager=None):
+    def __init__(self, manager: LogbookManager | None = None):
 
-        self._manager = manager or logbook_manager
+        self._manager = manager
         self._lock = Lock()
         self._last_ship_data: dict[int, dict[str, float]] = {}
         self._started = False
+
+    def _manager_instance(self) -> LogbookManager:
+
+        if self._manager is None:
+            from logbook.logbook_manager import get_logbook_manager
+
+            self._manager = get_logbook_manager()
+
+        return self._manager
 
     def start(self) -> None:
 
@@ -75,7 +85,16 @@ class LogbookRecorder:
                 "speed": speed,
             }
 
-        self._manager.append_observation(ship)
+        self._manager_instance().append_observation(ship)
 
 
-logbook_recorder = LogbookRecorder()
+get_logbook_recorder = LazySingleton(LogbookRecorder)
+
+
+def __getattr__(name: str):
+    return lazy_module_getattr(
+        name,
+        module_name=__name__,
+        export_name="logbook_recorder",
+        getter=get_logbook_recorder,
+    )

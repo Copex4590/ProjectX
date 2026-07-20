@@ -8,9 +8,10 @@ from datetime import datetime
 from queue import Empty, Queue
 from threading import Lock, Thread
 
-from database.vessel_database import VesselDatabase, vessel_database
+from database.vessel_database import VesselDatabase
 from models.ship import Ship
 from models.vessel_record import VesselRecord
+from storage.lazy_singleton import LazySingleton, lazy_module_getattr
 
 _TEXT_FIELDS = ("imo", "name", "callsign", "ship_type", "flag")
 _FLOAT_FIELDS = ("length", "width", "draft")
@@ -161,10 +162,19 @@ class VesselSync:
 
     def __init__(self, database: VesselDatabase | None = None):
 
-        self._database = database or vessel_database
+        self._database = database
         self._queue: Queue[VesselObservation] = Queue()
         self._worker_lock = Lock()
         self._worker: Thread | None = None
+
+    def _database_instance(self) -> VesselDatabase:
+
+        if self._database is None:
+            from database.vessel_database import get_vessel_database
+
+            self._database = get_vessel_database()
+
+        return self._database
 
     def enqueue(self, ship: Ship | None) -> None:
 
@@ -218,7 +228,8 @@ class VesselSync:
         observation: VesselObservation,
     ) -> VesselRecord | None:
 
-        existing = self._database.get(observation.mmsi)
+        database = self._database_instance()
+        existing = database.get(observation.mmsi)
 
         if existing is None:
             now = _normalize_timestamp(datetime.now())
@@ -237,14 +248,23 @@ class VesselSync:
                 created_at=now,
                 updated_at=now,
             )
-            return self._database.upsert(record)
+            return database.upsert(record)
 
         merged, changed = _merge_observation(existing, observation)
 
         if not changed:
             return existing
 
-        return self._database.upsert(merged)
+        return database.upsert(merged)
 
 
-vessel_sync = VesselSync()
+get_vessel_sync = LazySingleton(VesselSync)
+
+
+def __getattr__(name: str):
+    return lazy_module_getattr(
+        name,
+        module_name=__name__,
+        export_name="vessel_sync",
+        getter=get_vessel_sync,
+    )

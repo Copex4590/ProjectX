@@ -46,7 +46,7 @@ try {
     }
 
     $requiredAssets = @(
-        (Join-Path $Root "src\resources\map\leaflet\leaflet.js"),
+        (Join-Path $Root "src\resources\map\cesium\Cesium.js"),
         (Join-Path $Root "src\resources\translations\en.json"),
         (Join-Path $Root "src\resources\branding\projectx.ico")
     )
@@ -57,10 +57,10 @@ try {
     }
     Write-Host "[OK] Bundled assets present in repository.`n"
 
-    Write-Host "Verifying data/ tree contains no runtime artifacts ..."
-    & $venvPython (Join-Path $Root "scripts\verify_data_tree_clean.py")
-    if ($LASTEXITCODE -ne 0) { throw "data/ tree contains developer runtime artifacts." }
-    Write-Host "[OK] data/ tree is clean.`n"
+    Write-Host "Preparing release hygiene ..."
+    bash (Join-Path $Root "scripts/prepare_release_hygiene.sh")
+    if ($LASTEXITCODE -ne 0) { throw "Release hygiene verification failed." }
+    Write-Host "[OK] Release hygiene verified.`n"
 
     Write-Host "Upgrading pip ..."
     & $venvPython -m pip install --upgrade pip
@@ -78,7 +78,7 @@ try {
         (Join-Path $bundleRoot "projectx.exe"),
         (Join-Path $bundleRoot "resources\translations\en.json"),
         (Join-Path $bundleRoot "resources\translations\hu.json"),
-        (Join-Path $bundleRoot "resources\map\leaflet\leaflet.js"),
+        (Join-Path $bundleRoot "resources\map\cesium\Cesium.js"),
         (Join-Path $bundleRoot "resources\branding\projectx-logo.png"),
         (Join-Path $bundleRoot "projectx.ico"),
         (Join-Path $bundleRoot "config\playback.json")

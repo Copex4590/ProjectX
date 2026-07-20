@@ -16,16 +16,16 @@ from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
 from events import eventbus
 from preferences import preferences_manager
 
-from storage import active_config_path
+from storage.deferred_paths import deferred_config_path
+from storage.lazy_singleton import LazySingleton, lazy_module_getattr
 
 logger = logging.getLogger(__name__)
 
-AIS_API_KEY_FILE = Path(
-    os.environ.get(
-        "PROJECTX_AIS_API_KEY_FILE",
-        str(active_config_path("ais_api_key.txt")),
-    )
-)
+
+def ais_api_key_file() -> Path:
+    """Return the active AIS API key file path."""
+
+    return deferred_config_path("PROJECTX_AIS_API_KEY_FILE", "ais_api_key.txt")
 
 
 class AISManager:
@@ -146,25 +146,32 @@ class AISManager:
     def _sync_api_key_file(self, api_key: str) -> None:
 
         key = str(api_key or "").strip()
+        api_key_file = ais_api_key_file()
 
         if not key:
             try:
-                if AIS_API_KEY_FILE.exists():
-                    AIS_API_KEY_FILE.unlink()
+                if api_key_file.exists():
+                    api_key_file.unlink()
             except OSError:
                 logger.warning(
                     "Failed to remove AIS API key file: %s",
-                    AIS_API_KEY_FILE,
+                    api_key_file,
                 )
             return
 
-        AIS_API_KEY_FILE.parent.mkdir(parents=True, exist_ok=True)
-        AIS_API_KEY_FILE.write_text(key + "\n", encoding="utf-8")
+        api_key_file.parent.mkdir(parents=True, exist_ok=True)
+        api_key_file.write_text(key + "\n", encoding="utf-8")
 
     def _on_ais_status(self, status: str = "", **kwargs) -> None:
 
+        normalized = str(status or "offline")
+
         with self._lock:
-            self._ais_status = str(status or "offline")
+            previous = self._ais_status
+            self._ais_status = normalized
+
+        if previous != normalized:
+            logger.info("AIS connection status: %s -> %s", previous, normalized)
 
     def _on_rtl_status(self, status: str = "", **kwargs) -> None:
 
@@ -172,4 +179,15 @@ class AISManager:
             self._rtl_status = str(status or "offline")
 
 
-ais_manager = AISManager()
+get_ais_manager = LazySingleton(AISManager)
+
+
+def __getattr__(name: str):
+    if name == "AIS_API_KEY_FILE":
+        return ais_api_key_file()
+    return lazy_module_getattr(
+        name,
+        module_name=__name__,
+        export_name="ais_manager",
+        getter=get_ais_manager,
+    )

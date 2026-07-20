@@ -12,7 +12,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from isolated_paths import isolated_temp_dir
 from preferences.preferences import Preferences
 from storage import (
     DATA_ROOT_MARKER_NAME,
@@ -87,7 +89,7 @@ class StorageLayoutTests(unittest.TestCase):
 
     def test_validate_data_directory_accepts_writable_folder(self) -> None:
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with isolated_temp_dir() as temp_dir:
             candidate = Path(temp_dir) / "Project X"
             result = validate_data_directory(candidate)
             self.assertTrue(result.valid)

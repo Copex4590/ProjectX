@@ -9,7 +9,10 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-from storage.exceptions import InvalidDataDirectoryError
+from storage.exceptions import (
+    DataDirectoryNotConfiguredError,
+    InvalidDataDirectoryError,
+)
 from storage.layout import (
     DATA_SUBDIR_CACHE,
     DATA_SUBDIR_CONFIG,
@@ -57,6 +60,12 @@ def resolve_data_root() -> ResolvedDataRoot:
             path=configured,
             mode=StorageMode.CONFIGURED,
             has_marker=True,
+        )
+
+    if requires_data_root_setup():
+        raise DataDirectoryNotConfiguredError(
+            "Project X data directory setup is required before storage can be "
+            "used."
         )
 
     legacy_root = ensure_legacy_data_layout()

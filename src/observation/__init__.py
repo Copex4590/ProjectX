@@ -11,12 +11,9 @@ from observation.coords import (
     observation_coordinates,
     reference_observation_point,
 )
-from observation.observation_manager import (
-    OBSERVATION_POINTS_FILE,
-    ObservationManager,
-    observation_manager,
-)
+from observation.geo_context import GeoContext, geo_context
 from observation.observation_point import ObservationPoint
+from storage.lazy_singleton import lazy_submodule_export
 
 __all__ = [
     "OBSERVATION_POINTS_FILE",
@@ -35,15 +32,14 @@ __all__ = [
 
 
 def __getattr__(name: str):
+    if name == "ObservationManager":
+        from observation.observation_manager import ObservationManager
 
-    if name == "geo_context":
-        from observation.geo_context import geo_context
+        return ObservationManager
+    if name == "observation_manager":
+        return lazy_submodule_export(__name__, name)
+    if name == "OBSERVATION_POINTS_FILE":
+        from observation.observation_manager import observation_points_file
 
-        return geo_context
-
-    if name == "GeoContext":
-        from observation.geo_context import GeoContext
-
-        return GeoContext
-
+        return observation_points_file()
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

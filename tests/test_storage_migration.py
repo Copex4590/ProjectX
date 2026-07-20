@@ -13,7 +13,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from isolated_paths import isolated_temp_dir
 from preferences.preferences import Preferences
 from preferences.preferences_manager import PreferencesManager
 from storage import (
@@ -139,7 +141,7 @@ class MigrationCopyPlanTests(unittest.TestCase):
 
     def test_copy_plan_maps_legacy_paths_to_configured_layout(self) -> None:
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with isolated_temp_dir() as temp_dir:
             base = Path(temp_dir)
             inventory = _build_synthetic_legacy_layout(base)
             destination = base / "Project X"
@@ -189,7 +191,7 @@ class MigrationServiceSuccessTests(unittest.TestCase):
 
     def test_successful_migration_copies_verifies_and_commits(self) -> None:
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with isolated_temp_dir() as temp_dir:
             base = Path(temp_dir)
             inventory = _build_synthetic_legacy_layout(base)
             source_snapshot = {
@@ -222,7 +224,7 @@ class MigrationServiceSuccessTests(unittest.TestCase):
 
     def test_source_files_remain_unmodified(self) -> None:
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with isolated_temp_dir() as temp_dir:
             base = Path(temp_dir)
             inventory = _build_synthetic_legacy_layout(base)
             before = {
@@ -248,7 +250,7 @@ class MigrationFailureTests(unittest.TestCase):
 
     def test_verification_failure_rolls_back_and_leaves_preferences_unset(self) -> None:
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with isolated_temp_dir() as temp_dir:
             base = Path(temp_dir)
             inventory = _build_synthetic_legacy_layout(base)
             destination = base / "Project X"
@@ -285,7 +287,7 @@ class MigrationFailureTests(unittest.TestCase):
 
     def test_newer_destination_file_aborts_migration(self) -> None:
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with isolated_temp_dir() as temp_dir:
             base = Path(temp_dir)
             inventory = _build_synthetic_legacy_layout(base)
             destination = base / "Project X"
@@ -317,7 +319,7 @@ class MigrationFailureTests(unittest.TestCase):
 
     def test_interrupted_migration_can_restart_after_rollback(self) -> None:
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with isolated_temp_dir() as temp_dir:
             base = Path(temp_dir)
             inventory = _build_synthetic_legacy_layout(base)
             destination = base / "Project X"
@@ -368,7 +370,7 @@ class MigrationStateTests(unittest.TestCase):
 
     def test_migration_state_persists_across_store_round_trip(self) -> None:
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with isolated_temp_dir() as temp_dir:
             store = MigrationStateStore(Path(temp_dir) / "migration_state.json")
             state = MigrationState.new(
                 Path(temp_dir) / "Project X",
@@ -388,7 +390,7 @@ class MigrationStateTests(unittest.TestCase):
 
     def test_completed_migration_refuses_rollback(self) -> None:
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with isolated_temp_dir() as temp_dir:
             base = Path(temp_dir)
             inventory = _build_synthetic_legacy_layout(base)
             state_path = base / "migration_state.json"
@@ -421,7 +423,7 @@ class MigrationPostCommitTests(unittest.TestCase):
 
     def test_post_commit_failure_keeps_data_and_marks_state_failed(self) -> None:
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with isolated_temp_dir() as temp_dir:
             base = Path(temp_dir)
             inventory = _build_synthetic_legacy_layout(base)
             destination = base / "Project X"
@@ -478,49 +480,37 @@ class UpgradePromptTests(unittest.TestCase):
         from gui.data_upgrade_dialog import should_offer_data_upgrade
 
         with patch(
-            "gui.data_upgrade_dialog.preferences_manager.get",
-            return_value=Preferences.defaults(),
+            "app.startup_mode.should_offer_legacy_upgrade",
+            return_value=True,
         ):
-            with patch("gui.data_upgrade_dialog.legacy_data_exists", return_value=True):
-                self.assertTrue(
-                    should_offer_data_upgrade(first_run_pending=False)
-                )
+            self.assertTrue(should_offer_data_upgrade(first_run_pending=False))
 
     def test_should_not_offer_data_upgrade_for_first_run(self) -> None:
 
         from gui.data_upgrade_dialog import should_offer_data_upgrade
 
         with patch(
-            "gui.data_upgrade_dialog.preferences_manager.get",
-            return_value=Preferences.defaults(),
+            "app.startup_mode.should_offer_legacy_upgrade",
+            return_value=False,
         ):
-            with patch("gui.data_upgrade_dialog.legacy_data_exists", return_value=True):
-                self.assertFalse(
-                    should_offer_data_upgrade(first_run_pending=True)
-                )
+            self.assertFalse(should_offer_data_upgrade(first_run_pending=True))
 
     def test_should_not_offer_data_upgrade_when_deferred(self) -> None:
 
         from gui.data_upgrade_dialog import should_offer_data_upgrade
 
-        preferences = Preferences.defaults()
-        preferences.legacy_migration_deferred = True
-
         with patch(
-            "gui.data_upgrade_dialog.preferences_manager.get",
-            return_value=preferences,
+            "app.startup_mode.should_offer_legacy_upgrade",
+            return_value=False,
         ):
-            with patch("gui.data_upgrade_dialog.legacy_data_exists", return_value=True):
-                self.assertFalse(
-                    should_offer_data_upgrade(first_run_pending=False)
-                )
+            self.assertFalse(should_offer_data_upgrade(first_run_pending=False))
 
 
 class PreferencesMigrationDeferTests(unittest.TestCase):
 
     def test_legacy_migration_deferred_round_trip(self) -> None:
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with isolated_temp_dir() as temp_dir:
             manager = PreferencesManager(Path(temp_dir) / "preferences.json")
             updated = manager.set_legacy_migration_deferred(True)
 
@@ -529,7 +519,7 @@ class PreferencesMigrationDeferTests(unittest.TestCase):
 
     def test_storage_activation_deferred_until_restart_round_trip(self) -> None:
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with isolated_temp_dir() as temp_dir:
             manager = PreferencesManager(Path(temp_dir) / "preferences.json")
             updated = manager.set_storage_activation_deferred_until_restart(True)
 
@@ -541,7 +531,7 @@ class ConfiguredRootDeferTests(unittest.TestCase):
 
     def test_configured_data_root_ignored_while_activation_deferred(self) -> None:
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with isolated_temp_dir() as temp_dir:
             root = Path(temp_dir) / "Project X"
             preferences_path = Path(temp_dir) / "preferences.json"
             manager = PreferencesManager(preferences_path)
@@ -556,7 +546,7 @@ class ConfiguredRootDeferTests(unittest.TestCase):
 
     def test_startup_prepare_clears_deferred_activation(self) -> None:
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with isolated_temp_dir() as temp_dir:
             root = Path(temp_dir) / "Project X"
             preferences_path = Path(temp_dir) / "preferences.json"
             manager = PreferencesManager(preferences_path)
@@ -596,7 +586,7 @@ class MigrationCopyPolicyTests(unittest.TestCase):
 
     def test_copy_skips_identical_destination_file(self) -> None:
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with isolated_temp_dir() as temp_dir:
             source = Path(temp_dir) / "source.txt"
             destination = Path(temp_dir) / "dest.txt"
             source.write_text("same", encoding="utf-8")

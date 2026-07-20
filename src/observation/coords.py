@@ -11,7 +11,6 @@ from __future__ import annotations
 import math
 
 from observation.geo_context import EARTH_RADIUS_KM, geo_context
-from observation.observation_manager import observation_manager
 from observation.observation_point import ObservationPoint
 
 _KM_PER_DEGREE_LAT = 111.0
@@ -24,7 +23,7 @@ def observation_coordinates() -> tuple[float, float] | None:
 
 def reference_coordinates() -> tuple[float, float] | None:
 
-    return observation_manager.reference_coordinates()
+    return geo_context.coordinates()
 
 
 def reference_observation_point() -> ObservationPoint | None:

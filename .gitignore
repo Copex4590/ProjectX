@@ -13,7 +13,9 @@ __pycache__/
 src/config/cameras.json
 src/config/observation_points.json
 src/config/preferences.json
+src/config/migration_state.json
 src/config/ais_api_key.txt
+src/config/maptiler_api_key.txt
 src/config/camera_packs/state.json
 
 # Runtime databases (development)
@@ -24,6 +26,9 @@ data/*.db
 data/vessel_photos/*.db
 data/Hajók/*/
 !data/Hajók/.gitkeep
+data/.qa-home/
+data/.qa-validation-logs/
+data/obs_freeze.trace
 
 # Build artifacts
 build/
@@ -41,3 +46,5 @@ release/linux/*.deb
 website/downloads/linux/*.AppImage
 website/downloads/linux/*.deb
 .cache/
+.projectx-test-workspace/
+tests/.projectx-test-workspace/

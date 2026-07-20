@@ -8,21 +8,23 @@ from collections import Counter
 from datetime import datetime, timedelta
 from threading import Lock
 
-from database.vessel_database import VesselDatabase, vessel_database
+from database.vessel_database import VesselDatabase
 from engines.timeline.arrival_departure_engine import (
     EVENT_ARRIVAL,
     EVENT_DEPARTURE,
 )
 from models.vessel_record import VesselRecord
+from storage.lazy_singleton import LazySingleton, lazy_module_getattr
+from timeline.timeline_manager import TimelineManager
+from timeline.timeline_recorder import EVENT_POSITION_UPDATE
+from timeline.timeline_record import TimelineRecord
+
 from .statistics_record import (
     ActiveVesselEntry,
     DashboardStatistics,
     GlobalStatistics,
     VesselStatistics,
 )
-from timeline.timeline_manager import TimelineManager, timeline_manager
-from timeline.timeline_recorder import EVENT_POSITION_UPDATE
-from timeline.timeline_record import TimelineRecord
 
 DEFAULT_REFRESH_INTERVAL_SECONDS = float(
     os.environ.get("PROJECTX_STATISTICS_REFRESH_INTERVAL_SECONDS", "30")
@@ -98,8 +100,8 @@ class StatisticsManager:
         refresh_interval_seconds: float | None = None,
     ):
 
-        self._vessel_database = database or vessel_database
-        self._timeline_manager = timeline or timeline_manager
+        self._vessel_database = database
+        self._timeline_manager = timeline
         self._refresh_interval = timedelta(
             seconds=refresh_interval_seconds or DEFAULT_REFRESH_INTERVAL_SECONDS
         )
@@ -110,6 +112,24 @@ class StatisticsManager:
         self._timeline_by_mmsi: dict[int, list[TimelineRecord]] = {}
         self._vessels_by_mmsi: dict[int, VesselRecord] = {}
         self._cache_timestamp: datetime | None = None
+
+    def _vessel_database_instance(self) -> VesselDatabase:
+
+        if self._vessel_database is None:
+            from database.vessel_database import get_vessel_database
+
+            self._vessel_database = get_vessel_database()
+
+        return self._vessel_database
+
+    def _timeline_manager_instance(self) -> TimelineManager:
+
+        if self._timeline_manager is None:
+            from timeline.timeline_manager import get_timeline_manager
+
+            self._timeline_manager = get_timeline_manager()
+
+        return self._timeline_manager
 
     @property
     def refresh_interval(self) -> timedelta:
@@ -179,8 +199,8 @@ class StatisticsManager:
 
     def _rebuild_cache_locked(self) -> None:
 
-        vessels = self._vessel_database.all()
-        timeline_records = self._timeline_manager.all()
+        vessels = self._vessel_database_instance().all()
+        timeline_records = self._timeline_manager_instance().all()
         now = datetime.now()
         today = now.date()
 
@@ -387,4 +407,13 @@ class StatisticsManager:
         )
 
 
-statistics_manager = StatisticsManager()
+get_statistics_manager = LazySingleton(StatisticsManager)
+
+
+def __getattr__(name: str):
+    return lazy_module_getattr(
+        name,
+        module_name=__name__,
+        export_name="statistics_manager",
+        getter=get_statistics_manager,
+    )

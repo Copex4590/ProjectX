@@ -13,7 +13,7 @@ from config.playback import (
     DEFAULT_CUSTOM_EXECUTABLE,
     DEFAULT_PLAYBACK_MODE,
     DEFAULT_PREFERRED_BACKEND,
-    PLAYBACK_PREFERENCES_FILE,
+    playback_preferences_file,
 )
 from engines.camera.providers.base_provider import ProviderSession
 from engines.playback import BackendRegistry, backend_registry
@@ -112,7 +112,7 @@ def load_playback_preferences(
     path: Path | None = None,
 ) -> PlaybackPreferences:
 
-    preferences_file = Path(path or PLAYBACK_PREFERENCES_FILE)
+    preferences_file = Path(path or playback_preferences_file())
 
     if not preferences_file.exists():
         return PlaybackPreferences.defaults()
@@ -128,7 +128,7 @@ def save_playback_preferences(
     path: Path | None = None,
 ) -> Path:
 
-    preferences_file = Path(path or PLAYBACK_PREFERENCES_FILE)
+    preferences_file = Path(path or playback_preferences_file())
     preferences_file.parent.mkdir(parents=True, exist_ok=True)
 
     with preferences_file.open("w", encoding="utf-8") as handle:

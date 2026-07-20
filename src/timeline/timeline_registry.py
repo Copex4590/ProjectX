@@ -11,14 +11,14 @@ from threading import Lock
 
 from timeline.timeline_record import TimelineRecord
 
-from storage import active_database_path
+from storage.deferred_paths import deferred_database_path
+from storage.lazy_singleton import LazySingleton, lazy_module_getattr
 
-TIMELINE_DATABASE_FILE = Path(
-    os.environ.get(
-        "PROJECTX_TIMELINE_DATABASE_FILE",
-        str(active_database_path("timeline.db")),
-    )
-)
+
+def timeline_database_file() -> Path:
+    """Return the active timeline database file path."""
+
+    return deferred_database_path("PROJECTX_TIMELINE_DATABASE_FILE", "timeline.db")
 
 _SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS vessel_timeline (
@@ -85,7 +85,7 @@ class TimelineRegistry:
 
     def __init__(self, db_path: Path | str | None = None):
 
-        self._db_path = Path(db_path or TIMELINE_DATABASE_FILE)
+        self._db_path = Path(db_path or timeline_database_file())
         self._lock = Lock()
         self._ensure_schema()
 
@@ -231,4 +231,15 @@ class TimelineRegistry:
         return connection
 
 
-timeline_registry = TimelineRegistry()
+get_timeline_registry = LazySingleton(TimelineRegistry)
+
+
+def __getattr__(name: str):
+    if name == "TIMELINE_DATABASE_FILE":
+        return timeline_database_file()
+    return lazy_module_getattr(
+        name,
+        module_name=__name__,
+        export_name="timeline_registry",
+        getter=get_timeline_registry,
+    )

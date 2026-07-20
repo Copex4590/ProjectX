@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ais.ais_manager import ais_manager
+from ais.ais_manager import ais_api_key_file, ais_manager
 from ais.providers import AISProviderType, normalize_provider_type
 from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
 from events import eventbus
@@ -130,12 +130,27 @@ def ordered_provider_ids(provider_ids: list[str] | None = None) -> list[str]:
     return ordered
 
 
+def _aisstream_key_configured() -> bool:
+
+    preferences = preferences_manager.get()
+
+    if preferences.aisstream_api_key.strip():
+        return True
+
+    path = ais_api_key_file()
+
+    try:
+        return path.is_file() and bool(path.read_text(encoding="utf-8").strip())
+    except OSError:
+        return False
+
+
 def is_provider_configured(provider: AISProviderType) -> bool:
 
     preferences = preferences_manager.get()
 
     if provider == AISProviderType.AISSTREAM:
-        return bool(preferences.aisstream_api_key.strip())
+        return _aisstream_key_configured()
 
     if provider == AISProviderType.LOCAL:
         return bool(preferences.rtl_sdr_configured)
@@ -167,8 +182,16 @@ def provider_display_status(provider_id: str) -> ProviderStatus:
         icon = "⚪" if provider == AISProviderType.LOCAL else "🟡"
         return ProviderStatus(icon, tr("Not configured"))
 
-    if provider_connection_status(provider_id) == "connected":
+    connection_status = provider_connection_status(provider_id)
+
+    if connection_status == "connected":
         return ProviderStatus("🟢", tr("Connected"))
+
+    if connection_status == "waiting":
+        return ProviderStatus("🟡", tr("Waiting for observation point"))
+
+    if connection_status == "connecting":
+        return ProviderStatus("🟡", tr("Connecting"))
 
     return ProviderStatus("🔴", tr("Disconnected"))
 

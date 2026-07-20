@@ -6,6 +6,8 @@
 # a machine where Project X has never been installed.
 #
 # Does NOT remove exported files, user-selected backups, or unrelated data.
+# When the user chooses to remove Project X user data, the configured data root
+# referenced by preferences.json is removed in addition to bootstrap/cache paths.
 # Does NOT remove the development source tree at ~/ProjectX unless it was
 # installed via installer/linux/install.sh into ~/.local/share/projectx.
 # ============================================================================
@@ -20,6 +22,7 @@ SELF_TEST=0
 PRIVILEGED_ONLY=0
 REMOVE_USER_DATA=1
 APPIMAGE_PATHS=()
+CONFIGURED_DATA_ROOTS=()
 SCRIPT_PATH="$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")"
 
 usage() {
@@ -113,6 +116,192 @@ remove_path() {
 
     rm -rf -- "$target"
     log "Removed: $target"
+}
+
+expand_user_path() {
+    local home="$1"
+    local target="$2"
+
+    if [[ -z "$target" ]]; then
+        return 0
+    fi
+
+    if [[ "$target" == "~" ]]; then
+        printf '%s' "$home"
+        return 0
+    fi
+
+    if [[ "${target:0:2}" == "~/" ]]; then
+        printf '%s' "$home/${target:2}"
+        return 0
+    fi
+
+    if [[ "${target:0:6}" == '$HOME/' ]]; then
+        printf '%s' "$home/${target:6}"
+        return 0
+    fi
+
+    printf '%s' "$target"
+}
+
+resolve_existing_path() {
+    local target="$1"
+
+    if [[ -z "$target" ]]; then
+        return 0
+    fi
+
+    if [[ -e "$target" || -L "$target" ]]; then
+        readlink -f "$target" 2>/dev/null || printf '%s' "$target"
+        return 0
+    fi
+
+    printf '%s' "$target"
+}
+
+read_json_string_field() {
+    local file="$1"
+    local field="$2"
+    local line=""
+    local value=""
+
+    if [[ ! -f "$file" ]]; then
+        return 0
+    fi
+
+    line="$(grep -E "\"${field}\"[[:space:]]*:" "$file" | head -n 1 || true)"
+    if [[ -z "$line" ]]; then
+        return 0
+    fi
+
+    if grep -Eq "\"${field}\"[[:space:]]*:[[:space:]]*null" <<<"$line"; then
+        return 0
+    fi
+
+    value="$(sed -n 's/^[[:space:]]*.*"'"${field}"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' <<<"$line")"
+    if [[ -n "$value" ]]; then
+        printf '%s' "$value"
+    fi
+}
+
+read_configured_data_directory() {
+    local home="$1"
+    local preferences="$home/.local/share/projectx/config/preferences.json"
+    local configured=""
+
+    if [[ ! -f "$preferences" ]]; then
+        return 0
+    fi
+
+    configured="$(read_json_string_field "$preferences" "data_directory")"
+    if [[ -n "$configured" ]]; then
+        printf '%s' "$configured"
+    fi
+}
+
+is_valid_projectx_data_root() {
+    local target="$1"
+    local marker="$target/.projectx-data-root"
+    local schema=""
+
+    [[ -d "$target" && -f "$marker" ]] || return 1
+
+    if ! grep -q '"product"[[:space:]]*:[[:space:]]*"Project X"' "$marker"; then
+        return 1
+    fi
+
+    schema="$(
+        grep -E '"schema"[[:space:]]*:' "$marker" | head -n 1 \
+            | sed -n 's/.*"schema"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p'
+    )"
+    [[ -n "$schema" && "$schema" -ge 1 ]]
+}
+
+is_safe_data_root_removal() {
+    local home="$1"
+    local target="$2"
+    local resolved=""
+
+    if [[ -z "$target" ]]; then
+        return 1
+    fi
+
+    resolved="$(resolve_existing_path "$target")"
+
+    case "$resolved" in
+        /|/home|/usr|/etc|/var|/tmp)
+            return 1
+            ;;
+    esac
+
+    if [[ "$resolved" == "$home" ]]; then
+        return 1
+    fi
+
+    return 0
+}
+
+remove_configured_data_root_from_value() {
+    local home="$1"
+    local configured="$2"
+    local expanded=""
+    local resolved=""
+
+    if [[ -z "$configured" ]]; then
+        return 0
+    fi
+
+    expanded="$(expand_user_path "$home" "$configured")"
+    resolved="$(resolve_existing_path "$expanded")"
+
+    log "Configured data_directory resolved to: $resolved"
+
+    if ! is_safe_data_root_removal "$home" "$resolved"; then
+        warn "Skipping unsafe configured data directory: $configured"
+        return 0
+    fi
+
+    if ! is_valid_projectx_data_root "$resolved"; then
+        warn "Skipping configured path without a valid Project X marker: $configured"
+        return 0
+    fi
+
+    log "Removing configured Project X data root: $resolved"
+    remove_path "$resolved"
+}
+
+cache_configured_data_roots() {
+    local home=""
+    local configured=""
+    local preferences=""
+
+    CONFIGURED_DATA_ROOTS=()
+
+    while IFS= read -r home; do
+        [[ -n "$home" ]] || continue
+        preferences="$home/.local/share/projectx/config/preferences.json"
+        configured="$(read_configured_data_directory "$home")"
+        if [[ -n "$configured" ]]; then
+            CONFIGURED_DATA_ROOTS+=("${home}|${configured}")
+            log "Queued configured data root for removal (${home}): ${configured}"
+        elif [[ -f "$preferences" ]]; then
+            log "Bootstrap preferences found but data_directory is unset in $preferences"
+        else
+            log "No bootstrap preferences file at $preferences"
+        fi
+    done < <(collect_target_users)
+}
+
+remove_cached_configured_data_roots() {
+    local entry=""
+    local home=""
+    local configured=""
+
+    for entry in "${CONFIGURED_DATA_ROOTS[@]}"; do
+        home="${entry%%|*}"
+        configured="${entry#*|}"
+        remove_configured_data_root_from_value "$home" "$configured"
+    done
 }
 
 user_home_dir() {
@@ -739,6 +928,8 @@ run_user_uninstall() {
     discover_appimages "$HOME"
 
     if [[ "$REMOVE_USER_DATA" -eq 1 ]]; then
+        cache_configured_data_roots
+        remove_cached_configured_data_roots
         while IFS= read -r home; do
             [[ -n "$home" ]] || continue
             log "Removing user data for: $home"
@@ -784,6 +975,7 @@ run_self_test() {
         "$HOME/.local/share/projectx/data/Hajók" \
         "$HOME/.local/share/Project X/logs" \
         "$HOME/.cache/Project X/Project X" \
+        "$HOME/Project X/config" \
         "$HOME/.local/bin" \
         "$HOME/.local/share/applications" \
         "$HOME/.local/share/icons/hicolor/256x256/apps" \
@@ -792,8 +984,11 @@ run_self_test() {
         "$HOME/Downloads" \
         "$HOME/unrelated-backup"
 
-    ln -s "$HOME/.local/share/projectx/bin/projectx" "$HOME/.local/bin/projectx" 2>/dev/null || true
-    printf '%s\n' '{"language":"en"}' > "$HOME/.local/share/projectx/config/preferences.json"
+    cat > "$HOME/Project X/.projectx-data-root" <<'EOF'
+{"product":"Project X","schema":1,"created":"2026-01-01T00:00:00+00:00","uuid":"self-test"}
+EOF
+    printf '%s\n' 'configured-op' > "$HOME/Project X/config/observation_points.json"
+    printf '%s\n' "{\"language\":\"en\",\"data_directory\":\"~/Project X\"}" > "$HOME/.local/share/projectx/config/preferences.json"
     printf '%s\n' '[]' > "$HOME/.local/share/projectx/config/observation_points.json"
     printf '%s\n' 'log' > "$HOME/.local/share/Project X/logs/projectx.log"
     printf '%s\n' 'cache' > "$HOME/.cache/Project X/Project X/cache.bin"
@@ -831,6 +1026,7 @@ EOF
         "$HOME/.local/share/projectx"
         "$HOME/.local/share/Project X"
         "$HOME/.cache/Project X"
+        "$HOME/Project X"
         "$HOME/.local/bin/projectx"
         "$HOME/.local/share/applications/projectx.desktop"
         "$HOME/Desktop/Project X.desktop"

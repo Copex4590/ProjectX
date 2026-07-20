@@ -117,7 +117,11 @@ class StartupLayoutTests(unittest.TestCase):
                                 "storage.legacy.legacy_logs_root",
                                 return_value=Path(temp_dir) / "logs",
                             ):
-                                ensure_active_layout()
+                                with patch(
+                                    "storage.resolver.legacy_data_exists",
+                                    return_value=True,
+                                ):
+                                    ensure_active_layout()
 
             self.assertFalse((data_root / DATA_ROOT_MARKER_NAME).exists())
 

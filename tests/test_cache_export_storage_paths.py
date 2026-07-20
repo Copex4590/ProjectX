@@ -99,11 +99,7 @@ class CacheExportWriteTests(unittest.TestCase):
                 "preferences.preferences_manager.preferences_manager.get",
                 return_value=Preferences.defaults(),
             ):
-                with patch(
-                    "debug.obs_freeze_trace._TRACE_PATH",
-                    active_cache_path("obs_freeze.trace"),
-                ):
-                    self.assertTrue(str(trace_path()).endswith("data/obs_freeze.trace"))
+                self.assertTrue(str(trace_path()).endswith("data/obs_freeze.trace"))
 
     def test_export_path_helper_creates_directory(self) -> None:
 

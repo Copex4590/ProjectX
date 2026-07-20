@@ -78,7 +78,7 @@ class ConnectionPanel(QFrame):
 
         if status == "connected":
             return "🟢"
-        if status == "connecting":
+        if status in {"connecting", "waiting"}:
             return "🟡"
         return "⚪"
 

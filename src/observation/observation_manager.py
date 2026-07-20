@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import json
-import os
+import logging
 import threading
 from contextlib import contextmanager
 from copy import deepcopy
@@ -31,14 +31,76 @@ from debug.obs_freeze_trace import (
     trace_event,
     trace_exit,
 )
-from storage import active_config_path
+from storage.deferred_paths import deferred_config_path
+from storage.lazy_singleton import LazySingleton, lazy_module_getattr
 
-OBSERVATION_POINTS_FILE = Path(
-    os.environ.get(
+logger = logging.getLogger(__name__)
+
+
+def observation_points_file() -> Path:
+    """Return the active observation points configuration file."""
+
+    return deferred_config_path(
         "PROJECTX_OBSERVATION_POINTS_FILE",
-        str(active_config_path("observation_points.json")),
+        "observation_points.json",
     )
-)
+
+
+def observation_points_storage_context() -> str:
+    """Return a short description of the active storage layout for logging."""
+
+    try:
+        from storage.resolver import resolve_data_root
+
+        resolved = resolve_data_root()
+        return (
+            f"mode={resolved.mode.value} "
+            f"root={resolved.path} "
+            f"marker={resolved.has_marker}"
+        )
+    except Exception as exc:
+        return f"unresolved ({exc.__class__.__name__})"
+
+
+def file_contains_observation_points(path: Path) -> bool:
+    """Return True when the given file contains one or more observation points."""
+
+    if not path.is_file():
+        return False
+
+    try:
+        with path.open(encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return False
+
+    if not isinstance(data, dict):
+        return False
+
+    points = data.get("points", [])
+    return isinstance(points, list) and bool(points)
+
+
+def write_empty_observation_points_file(path: Path | None = None) -> Path:
+    """Write an empty observation-points file and return its path."""
+
+    target = path or observation_points_file()
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    payload = {
+        "version": SCHEMA_VERSION,
+        "active_id": None,
+        "reference_id": None,
+        "points": [],
+        "multi_op_notice_shown": False,
+    }
+
+    with target.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
+        handle.write("\n")
+
+    logger.info("Initialized empty observation points file at %s", target)
+    return target
 
 
 def _utc_now() -> datetime:
@@ -54,7 +116,7 @@ class ObservationManager(QObject):
 
         super().__init__()
 
-        self._path = path or OBSERVATION_POINTS_FILE
+        self._path = path or observation_points_file()
         self._lock = Lock()
         self._lock_owner_thread_id: int | None = None
         self._lock_owner_thread_name: str | None = None
@@ -552,10 +614,37 @@ class ObservationManager(QObject):
 
         return point
 
+    def reload_active_storage_path(self) -> None:
+
+        new_path = observation_points_file()
+        previous_path = self._path
+
+        if new_path != previous_path:
+            logger.info(
+                "Observation points storage path changed: %s -> %s (%s)",
+                previous_path,
+                new_path,
+                observation_points_storage_context(),
+            )
+            self._path = new_path
+
+        self._load()
+        self.changed.emit()
+
     def _load(self) -> None:
+
+        logger.info(
+            "Loading observation points from %s (%s)",
+            self._path,
+            observation_points_storage_context(),
+        )
 
         with self._hold_lock("_load"):
             if not self._path.exists():
+                logger.info(
+                    "Observation points file missing; creating empty file at %s",
+                    self._path,
+                )
                 self._points = []
                 self._active_id = None
                 self._reference_id = None
@@ -597,6 +686,12 @@ class ObservationManager(QObject):
 
             if needs_write:
                 self._write_unlocked()
+
+        logger.info(
+            "Loaded %d observation point(s) from %s",
+            len(self._points),
+            self._path,
+        )
 
     def _normalize_active_state_unlocked(self) -> bool:
 
@@ -685,4 +780,31 @@ class ObservationManager(QObject):
             trace_exit("ObservationManager._write_unlocked")
 
 
-observation_manager = ObservationManager()
+get_observation_manager = LazySingleton(ObservationManager)
+
+
+def reset_observation_manager() -> ObservationManager:
+    """Drop and recreate the observation manager for the active storage path."""
+
+    logger.info(
+        "Resetting observation manager for active storage (%s)",
+        observation_points_storage_context(),
+    )
+    get_observation_manager.reset()
+    manager = get_observation_manager()
+    logger.info(
+        "Observation manager active file: %s",
+        manager._path,
+    )
+    return manager
+
+
+def __getattr__(name: str):
+    if name == "OBSERVATION_POINTS_FILE":
+        return observation_points_file()
+    return lazy_module_getattr(
+        name,
+        module_name=__name__,
+        export_name="observation_manager",
+        getter=get_observation_manager,
+    )

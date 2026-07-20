@@ -44,7 +44,7 @@ for path in \
     squashfs-root/usr/lib/projectx/projectx \
     squashfs-root/usr/lib/projectx/resources/translations/en.json \
     squashfs-root/usr/lib/projectx/resources/translations/hu.json \
-    squashfs-root/usr/lib/projectx/resources/map/leaflet/leaflet.js \
+    squashfs-root/usr/lib/projectx/resources/map/cesium/Cesium.js \
     squashfs-root/usr/lib/projectx/resources/branding/projectx-logo.png \
     squashfs-root/usr/lib/projectx/config/playback.json; do
     [[ -e "$path" ]] && ok "Present: $path" || fail "Missing: $path"
@@ -116,6 +116,12 @@ if [[ -f "$DEB" ]]; then
         ok ".deb uninstall launcher target is executable"
     else
         fail ".deb uninstall launcher target is missing or not executable"
+    fi
+
+    if grep -q 'remove_cached_configured_data_roots' "$DEB_EXTRACT/usr/bin/projectx-uninstall"; then
+        ok ".deb uninstaller removes configured data_directory"
+    else
+        fail ".deb uninstaller missing configured data_directory removal"
     fi
 
     for icon_size in 16 22 24 32 48 64 128 256 512; do

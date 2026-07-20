@@ -23,7 +23,7 @@ from gui.i18n_support import bind_language_refresh
 from gui.theme import TEXT, secondary_button_stylesheet, wizard_shell_stylesheet
 from i18n import tr
 from preferences import preferences_manager
-from storage import DataMigrationService, default_data_directory, legacy_data_exists
+from storage import DataMigrationService, default_data_directory
 from version import PROJECT_NAME
 
 logger = logging.getLogger(__name__)
@@ -116,17 +116,13 @@ class MigrationRestartDialog(QDialog):
         self.accept()
 
 
-def should_offer_data_upgrade(*, first_run_pending: bool) -> bool:
+def should_offer_data_upgrade(*, first_run_pending: bool = False) -> bool:
+    """Return True when the legacy upgrade dialog should be offered at startup."""
 
-    preferences = preferences_manager.get()
+    from app.startup_mode import should_offer_legacy_upgrade
 
-    if first_run_pending:
-        return False
-
-    if preferences.has_data_directory() or preferences.legacy_migration_deferred:
-        return False
-
-    return legacy_data_exists()
+    _ = first_run_pending
+    return should_offer_legacy_upgrade()
 
 
 class DataUpgradeDialog(QDialog):
@@ -271,10 +267,10 @@ class DataUpgradeDialog(QDialog):
         self.reject()
 
 
-def run_data_upgrade_if_needed(*, first_run_pending: bool, parent=None) -> UpgradeStartupResult:
+def run_data_upgrade_if_needed(parent=None) -> UpgradeStartupResult:
     """Prompt existing users to migrate legacy data before the main window loads."""
 
-    if not should_offer_data_upgrade(first_run_pending=first_run_pending):
+    if not should_offer_data_upgrade():
         return UpgradeStartupResult.CONTINUE
 
     dialog = DataUpgradeDialog(parent)

@@ -12,6 +12,7 @@ from database.camera_registry import CameraRegistry, camera_registry
 
 from app.paths import bundled_config_dir, is_frozen
 from storage import StorageMode, active_config_path, resolve_data_root
+from storage.lazy_singleton import LazySingleton
 
 
 def camera_packs_state_file() -> Path:
@@ -36,8 +37,6 @@ CAMERA_PACKS_DIR = Path(
         str(bundled_config_dir() / "camera_packs"),
     )
 )
-
-CAMERA_PACKS_STATE_FILE = camera_packs_state_file()
 
 _REQUIRED_MANIFEST_FIELDS = (
     "id",
@@ -73,7 +72,7 @@ class CameraPackManager:
     ):
 
         self._packs_dir = Path(packs_dir or CAMERA_PACKS_DIR)
-        self._state_file = Path(state_file or CAMERA_PACKS_STATE_FILE)
+        self._state_file = Path(state_file or camera_packs_state_file())
         self._registry = registry or camera_registry
         self._packs: dict[str, CameraPack] = {}
         self._enabled_ids: set[str] = set()
@@ -317,4 +316,12 @@ class CameraPackManager:
         return str(pack_id).strip()
 
 
-camera_pack_manager = CameraPackManager()
+get_camera_pack_manager = LazySingleton(CameraPackManager)
+
+
+def __getattr__(name: str):
+    if name == "camera_pack_manager":
+        return get_camera_pack_manager()
+    if name == "CAMERA_PACKS_STATE_FILE":
+        return camera_packs_state_file()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

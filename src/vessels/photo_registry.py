@@ -9,7 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from threading import Lock
 
-from storage import active_cache_path
+from storage.deferred_paths import deferred_cache_path
+from storage.lazy_singleton import LazySingleton, lazy_module_getattr
 from vessels.photo_record import PhotoRecord
 
 
@@ -21,11 +22,13 @@ def vessel_photos_dir() -> Path:
     if override:
         return Path(override).expanduser().resolve()
 
-    return active_cache_path("vessel_photos")
+    return deferred_cache_path("PROJECTX_VESSEL_PHOTOS_DIR", "vessel_photos")
 
 
-VESSEL_PHOTOS_DIR = vessel_photos_dir()
-PHOTO_DATABASE_FILE = VESSEL_PHOTOS_DIR / "photos.db"
+def photo_database_file() -> Path:
+    """Return the active vessel photo registry database path."""
+
+    return vessel_photos_dir() / "photos.db"
 
 _SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS vessel_photos (
@@ -95,7 +98,7 @@ class PhotoRegistry:
 
     def __init__(self, db_path: Path | str | None = None):
 
-        self._db_path = Path(db_path or PHOTO_DATABASE_FILE)
+        self._db_path = Path(db_path or photo_database_file())
         self._lock = Lock()
         self._ensure_schema()
 
@@ -244,4 +247,17 @@ class PhotoRegistry:
         return connection
 
 
-photo_registry = PhotoRegistry()
+get_photo_registry = LazySingleton(PhotoRegistry)
+
+
+def __getattr__(name: str):
+    if name == "VESSEL_PHOTOS_DIR":
+        return vessel_photos_dir()
+    if name == "PHOTO_DATABASE_FILE":
+        return photo_database_file()
+    return lazy_module_getattr(
+        name,
+        module_name=__name__,
+        export_name="photo_registry",
+        getter=get_photo_registry,
+    )

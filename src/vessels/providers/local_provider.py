@@ -6,7 +6,7 @@
 from pathlib import Path
 
 from vessels.photo_record import PhotoRecord
-from vessels.photo_registry import PhotoRegistry, VESSEL_PHOTOS_DIR, photo_registry
+from vessels.photo_registry import PhotoRegistry, get_photo_registry, vessel_photos_dir
 from vessels.providers.base_provider import VesselPhotoProvider
 
 
@@ -34,8 +34,8 @@ class LocalProvider(VesselPhotoProvider):
         storage_dir: Path | str | None = None,
     ):
 
-        self._registry = registry or photo_registry
-        self._storage_dir = Path(storage_dir or VESSEL_PHOTOS_DIR)
+        self._registry = registry or get_photo_registry()
+        self._storage_dir = Path(storage_dir or vessel_photos_dir())
 
     def name(self) -> str:
 
