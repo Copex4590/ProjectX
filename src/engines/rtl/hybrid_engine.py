@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import json
 import logging
 import socket
 import threading
 import time
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
@@ -113,13 +116,15 @@ class HybridEngine(BaseEngine):
     def _publish_ais_status(self, status: str, *, reason: str = "") -> None:
 
         normalized = str(status or "offline")
-        previous = getattr(self, "_last_ais_status_logged", None)
+        previous = getattr(self, "_last_ais_status_published", None)
 
-        if previous != normalized:
-            detail = f" ({reason})" if reason else ""
-            logger.info("AISStream worker status -> %s%s", normalized, detail)
-            self._last_ais_status_logged = normalized
+        if previous == normalized:
+            return
 
+        detail = f" ({reason})" if reason else ""
+        logger.info("AISStream worker status -> %s%s", normalized, detail)
+        logger.info("AIS status published")
+        self._last_ais_status_published = normalized
         eventbus.publish("ais.status", status=normalized)
 
     def _log_aisstream_runtime_context(self, *, phase: str) -> None:
@@ -326,13 +331,21 @@ class HybridEngine(BaseEngine):
 
         logger.info("AISStream [step %s] %s", step, message)
 
-    def _interruptible_sleep(self, seconds: float) -> bool:
-        """Sleep in short slices; return True when reconnect should run early."""
+    def _interruptible_sleep(
+        self,
+        seconds: float,
+        *,
+        wake_when: Callable[[], bool] | None = None,
+    ) -> bool:
+        """Sleep in short slices; return True when the worker should retry early."""
 
         deadline = time.monotonic() + max(0.0, seconds)
 
         while self.running and time.monotonic() < deadline:
-            if self._resubscribe_requested or not self._aisstream_enabled():
+            if self._resubscribe_requested:
+                return True
+
+            if wake_when is not None and wake_when():
                 return True
 
             remaining = deadline - time.monotonic()
@@ -706,7 +719,7 @@ class HybridEngine(BaseEngine):
             if not self._aisstream_enabled():
                 self._close_ws()
                 self._publish_ais_status("offline", reason="provider inactive")
-                if self._interruptible_sleep(1):
+                if self._interruptible_sleep(1, wake_when=self._aisstream_enabled):
                     continue
                 continue
 
@@ -957,7 +970,10 @@ class HybridEngine(BaseEngine):
                     "offline",
                     reason=f"handshake HTTP {status_code}",
                 )
-                if self._interruptible_sleep(5):
+                if self._interruptible_sleep(
+                    5,
+                    wake_when=lambda: not self._aisstream_enabled(),
+                ):
                     continue
             except Exception as e:
                 if not self.running:
@@ -969,7 +985,10 @@ class HybridEngine(BaseEngine):
                     error=f"{type(e).__name__}: {e}",
                 )
                 self._publish_ais_status("offline", reason=f"connection error: {e}")
-                if self._interruptible_sleep(5):
+                if self._interruptible_sleep(
+                    5,
+                    wake_when=lambda: not self._aisstream_enabled(),
+                ):
                     continue
             finally:
                 self._close_ws()

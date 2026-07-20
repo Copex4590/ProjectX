@@ -2,6 +2,21 @@
 
 All notable changes to Project X are documented in this file.
 
+## [0.3.1-alpha] — 2026-07-20
+
+RC Linux build: AISStream connection diagnostics and worker stability fixes.
+
+### Fixed
+
+- **SAVE-103** — AIS worker event storm: `HybridEngine.aisstream_worker` no longer busy-loops when AISStream is inactive, deduplicates `ais.status` publishes on real transitions only, and uses interruptible sleep without waking immediately on inactive provider state (fixes GUI freeze when opening the Provider Wizard).
+
+### Added
+
+- AISStream step-by-step connection diagnostics in `HybridEngine` (API key load, TCP probe, WebSocket handshake, subscription, first response).
+- Temporary QA log line `AIS status published` when a real AIS status transition is emitted.
+
+---
+
 ## [0.3.0-alpha] — 2026-07-05
 
 Project X 0.3 Alpha release (SAVE-050). Stabilization and documentation pass. No new features.

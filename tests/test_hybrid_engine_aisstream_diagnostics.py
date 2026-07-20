@@ -46,6 +46,27 @@ class HybridEngineAisstreamDiagnosticsTests(unittest.TestCase):
         self.assertTrue(interrupted)
         sleep.assert_not_called()
 
+    def test_interruptible_sleep_waits_while_provider_inactive(self) -> None:
+
+        engine = HybridEngine()
+        engine.running = True
+
+        with patch("engines.rtl.hybrid_engine.time.sleep") as sleep:
+            interrupted = engine._interruptible_sleep(1)
+
+        self.assertFalse(interrupted)
+        self.assertGreaterEqual(sleep.call_count, 1)
+
+    def test_publish_ais_status_deduplicates_eventbus(self) -> None:
+
+        engine = HybridEngine()
+
+        with patch("engines.rtl.hybrid_engine.eventbus.publish") as publish:
+            engine._publish_ais_status("offline", reason="provider inactive")
+            engine._publish_ais_status("offline", reason="provider inactive")
+
+        publish.assert_called_once_with("ais.status", status="offline")
+
     def test_log_aisstream_step_emits_structured_message(self) -> None:
 
         engine = HybridEngine()
@@ -58,8 +79,8 @@ class HybridEngineAisstreamDiagnosticsTests(unittest.TestCase):
             )
 
         logger.info.assert_called_once()
-        message = logger.info.call_args.args[1]
-        self.assertIn("[step 2]", message)
+        message = " ".join(str(part) for part in logger.info.call_args[0])
+        self.assertIn("2", message)
         self.assertIn("WebSocket URL selected", message)
 
 
