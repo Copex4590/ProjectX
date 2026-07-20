@@ -8,6 +8,8 @@ from __future__ import annotations
 from debug.obs_freeze_trace import trace_block, trace_enter, trace_exit
 from observation.geo_context import geo_context
 
+AISSTREAM_WS_URL = "wss://stream.aisstream.io/v0/stream"
+
 
 def reference_observation_bounding_boxes() -> list[list[list[float]]] | None:
 

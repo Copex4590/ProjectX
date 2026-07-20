@@ -6,7 +6,7 @@
 import json
 import websocket
 
-from .ais_protocol import AISProtocol
+from .ais_protocol import AISProtocol, AISSTREAM_WS_URL
 
 
 class AISClient:
@@ -17,9 +17,7 @@ class AISClient:
 
     def connect(self, api_key: str):
 
-        self.ws = websocket.create_connection(
-            f"wss://stream.aisstream.io/v0/stream?apiKey={api_key}"
-        )
+        self.ws = websocket.create_connection(AISSTREAM_WS_URL, timeout=10)
 
         self.ws.send(
             json.dumps(

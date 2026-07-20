@@ -12,7 +12,7 @@ import websocket
 
 from ais.providers.provider import AISProvider, AISProviderType, AISTestResult
 from engines.ais.ais_client import AISClient
-from engines.ais.ais_protocol import AISProtocol
+from engines.ais.ais_protocol import AISProtocol, AISSTREAM_WS_URL
 
 AISSTREAM_REGISTER_URL = "https://aisstream.io/authenticate"
 
@@ -48,10 +48,7 @@ class AISStreamProvider(AISProvider):
         client = AISClient()
 
         try:
-            client.ws = websocket.create_connection(
-                f"wss://stream.aisstream.io/v0/stream?apiKey={key}",
-                timeout=10,
-            )
+            client.ws = websocket.create_connection(AISSTREAM_WS_URL, timeout=10)
 
             client.ws.send(
                 json.dumps(

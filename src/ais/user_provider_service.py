@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 from ais.ais_manager import ais_api_key_file, ais_manager
@@ -14,6 +15,8 @@ from events import eventbus
 from i18n import tr
 from preferences import preferences_manager
 from rtl import rtl_manager
+
+logger = logging.getLogger(__name__)
 
 _PROVIDER_LABEL_KEYS = {
     AISProviderType.AISSTREAM.value: "AISStream",
@@ -236,16 +239,27 @@ def set_enabled_providers(enabled: set[AISProviderType]) -> None:
 def save_aisstream_configuration(api_key: str) -> None:
 
     preferences = preferences_manager.get()
+    enabled_ids = get_enabled_provider_ids()
     legacy_provider = legacy_provider_from_enabled(
-        {normalize_provider_type(value) for value in get_enabled_provider_ids()}
+        {normalize_provider_type(value) for value in enabled_ids}
+    )
+    normalized_key = str(api_key).strip()
+
+    logger.info(
+        "AISStream configuration saved: enabled=%s legacy_provider=%s "
+        "configured=%s key_len=%s",
+        enabled_ids,
+        legacy_provider,
+        bool(normalized_key),
+        len(normalized_key),
     )
 
     ais_manager.save_configuration(
         provider_type=legacy_provider,
-        api_key=str(api_key).strip(),
+        api_key=normalized_key,
         host=preferences.ais_local_host,
         port=preferences.ais_local_port,
-        configured=bool(str(api_key).strip()),
+        configured=bool(normalized_key),
     )
     notify_providers_changed()
 

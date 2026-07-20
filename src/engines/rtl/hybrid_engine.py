@@ -1,5 +1,6 @@
 import json
 import logging
+import socket
 import threading
 import time
 from datetime import datetime
@@ -14,7 +15,11 @@ from app.paths import is_frozen
 from debug.obs_freeze_trace import trace_block
 from engines.ais import AISNmeaDecoder, AISRtlClient
 from engines.ais.ais_catcher_launcher import is_port_open
-from engines.ais.ais_protocol import AISProtocol, reference_observation_bounding_boxes
+from engines.ais.ais_protocol import (
+    AISProtocol,
+    AISSTREAM_WS_URL,
+    reference_observation_bounding_boxes,
+)
 from engines.ais.hybrid_ais_engine import hybrid_ais_engine
 from engines.base_engine import BaseEngine
 from events import eventbus
@@ -289,6 +294,137 @@ class HybridEngine(BaseEngine):
 
         with self._runtime_lock:
             return self._rtl_active
+
+    @staticmethod
+    def _aisstream_message_metadata(data: dict) -> dict:
+
+        metadata = data.get("MetaData")
+        if isinstance(metadata, dict):
+            return metadata
+
+        metadata = data.get("Metadata")
+        if isinstance(metadata, dict):
+            return metadata
+
+        return {}
+
+    @staticmethod
+    def _aisstream_response_preview(message: str | bytes) -> str:
+
+        if isinstance(message, bytes):
+            message = message.decode("utf-8", errors="replace")
+
+        preview = str(message).replace("\n", " ").strip()
+        return preview[:240] + ("..." if len(preview) > 240 else "")
+
+    def _log_aisstream_step(self, step: int, message: str, **details) -> None:
+
+        if details:
+            detail_text = " ".join(f"{key}={value}" for key, value in details.items())
+            logger.info("AISStream [step %s] %s (%s)", step, message, detail_text)
+            return
+
+        logger.info("AISStream [step %s] %s", step, message)
+
+    def _interruptible_sleep(self, seconds: float) -> bool:
+        """Sleep in short slices; return True when reconnect should run early."""
+
+        deadline = time.monotonic() + max(0.0, seconds)
+
+        while self.running and time.monotonic() < deadline:
+            if self._resubscribe_requested or not self._aisstream_enabled():
+                return True
+
+            remaining = deadline - time.monotonic()
+            time.sleep(min(0.25, remaining))
+
+        return not self.running
+
+    def _probe_aisstream_tcp(self, host: str = "stream.aisstream.io", port: int = 443) -> bool:
+
+        try:
+            with socket.create_connection((host, port), timeout=10) as sock:
+                local = sock.getsockname()
+                remote = sock.getpeername()
+                self._log_aisstream_step(
+                    3,
+                    "TCP connection established",
+                    host=host,
+                    port=port,
+                    local=local,
+                    remote=remote,
+                )
+                return True
+        except OSError as error:
+            self._log_aisstream_step(
+                3,
+                "TCP connection failed",
+                host=host,
+                port=port,
+                error=f"{type(error).__name__}: {error}",
+            )
+            return False
+
+    def _wait_for_first_aisstream_response(self, timeout: float = 8.0) -> str | None:
+
+        deadline = time.monotonic() + timeout
+
+        while self.running and time.monotonic() < deadline:
+            if not self._aisstream_enabled() or self._resubscribe_requested:
+                return None
+
+            try:
+                with self._ws_lock:
+                    if self._ws is None:
+                        return None
+                    remaining = max(0.1, deadline - time.monotonic())
+                    self._ws.settimeout(remaining)
+                    message = self._ws.recv()
+            except websocket.WebSocketTimeoutException:
+                self._log_aisstream_step(
+                    6,
+                    "No websocket response yet",
+                    waited_seconds=round(timeout, 1),
+                )
+                return None
+            except Exception as error:
+                self._log_aisstream_step(
+                    6,
+                    "Failed while waiting for first response",
+                    error=f"{type(error).__name__}: {error}",
+                )
+                raise
+
+            if isinstance(message, bytes):
+                message = message.decode("utf-8", errors="replace")
+
+            preview = self._aisstream_response_preview(message)
+            self._log_aisstream_step(
+                6,
+                "First websocket response received",
+                preview=preview,
+            )
+
+            try:
+                payload = json.loads(message)
+            except json.JSONDecodeError as error:
+                self._log_aisstream_step(
+                    6,
+                    "First response is not valid JSON",
+                    error=f"{type(error).__name__}: {error}",
+                )
+                return message
+
+            message_type = payload.get("MessageType") or payload.get("Type") or "unknown"
+            self._log_aisstream_step(
+                7,
+                "Parsed first response",
+                message_type=message_type,
+                has_metadata=bool(self._aisstream_message_metadata(payload)),
+            )
+            return message
+
+        return None
 
     def on_stop(self):
 
@@ -570,7 +706,8 @@ class HybridEngine(BaseEngine):
             if not self._aisstream_enabled():
                 self._close_ws()
                 self._publish_ais_status("offline", reason="provider inactive")
-                time.sleep(1)
+                if self._interruptible_sleep(1):
+                    continue
                 continue
 
             subscribed_boxes = reference_observation_bounding_boxes()
@@ -585,32 +722,74 @@ class HybridEngine(BaseEngine):
                     "waiting",
                     reason="observation reference missing",
                 )
-                time.sleep(2)
+                if self._interruptible_sleep(2):
+                    continue
                 continue
 
-            api_key = self._aisstream_api_key()
+            preferences_key = preferences_manager.get().aisstream_api_key.strip()
+            file_key = ""
+
+            for path in (ais_api_key_file(),):
+                try:
+                    if path.exists():
+                        file_key = path.read_text(encoding="utf-8").strip()
+                        break
+                except OSError:
+                    logger.warning("Failed to read AIS API key file: %s", path)
+
+            api_key = preferences_key or file_key
+
+            self._log_aisstream_step(
+                1,
+                "API key load",
+                preferences_key_loaded=bool(preferences_key),
+                file_key_loaded=bool(file_key),
+                effective_key_loaded=bool(api_key),
+                key_len=len(api_key),
+                key_file=ais_api_key_file(),
+            )
 
             if not api_key:
                 logger.warning("AISStream offline: API key unavailable")
                 self._close_ws()
                 self._publish_ais_status("offline", reason="missing API key")
-                time.sleep(2)
+                if self._interruptible_sleep(2):
+                    continue
                 continue
 
+            self._publish_ais_status("connecting", reason="opening websocket")
+
             try:
-                ws_url = f"wss://stream.aisstream.io/v0/stream?apiKey={api_key}"
-                logger.info(
-                    "AISStream connecting to %s (key_len=%s bbox=%s)",
-                    "wss://stream.aisstream.io/v0/stream?apiKey=<redacted>",
-                    len(api_key),
-                    subscribed_boxes,
+                ws_url = AISSTREAM_WS_URL
+                self._log_aisstream_step(
+                    2,
+                    "WebSocket URL selected",
+                    url=ws_url,
+                    api_key_in_url="no",
+                )
+
+                if not self._probe_aisstream_tcp():
+                    raise TimeoutError(
+                        "TCP connection to stream.aisstream.io:443 failed"
+                    )
+
+                self._log_aisstream_step(
+                    4,
+                    "Starting websocket handshake",
+                    url=ws_url,
+                    timeout_seconds=10,
                 )
 
                 with self._ws_lock:
                     self._ws = websocket.create_connection(ws_url, timeout=10)
                     self._ws.settimeout(1.0)
+                    peer = self._ws.sock.getpeername() if self._ws.sock else None
 
-                logger.info("AISStream WebSocket connected")
+                self._log_aisstream_step(
+                    4,
+                    "WebSocket handshake completed",
+                    peer=peer,
+                )
 
                 with trace_block("HybridEngine.aisstream_worker.subscribe_message"):
                     subscribe_message = AISProtocol.subscribe_message(
@@ -618,21 +797,47 @@ class HybridEngine(BaseEngine):
                         bounding_boxes=subscribed_boxes,
                     )
 
-                logger.info(
-                    "AISStream sending subscription "
-                    "(message_types=%s bbox_count=%s)",
-                    subscribe_message.get("FilterMessageTypes"),
-                    len(subscribe_message.get("BoundingBoxes") or []),
+                subscription_payload = json.dumps(subscribe_message)
+                self._log_aisstream_step(
+                    5,
+                    "Sending subscription message",
+                    bbox_count=len(subscribe_message.get("BoundingBoxes") or []),
+                    message_types=subscribe_message.get("FilterMessageTypes"),
+                    payload_bytes=len(subscription_payload),
+                    key_len=len(api_key),
                 )
 
                 with self._ws_lock:
                     if self._ws is None:
                         continue
-                    self._ws.send(json.dumps(subscribe_message))
+                    self._ws.send(subscription_payload)
+
+                self._log_aisstream_step(5, "Subscription message sent")
+
+                first_message = self._wait_for_first_aisstream_response(timeout=8.0)
+                if first_message is None and (
+                    not self.running
+                    or not self._aisstream_enabled()
+                    or self._resubscribe_requested
+                ):
+                    continue
 
                 self._resubscribe_requested = False
-                logger.info("AISStream subscription sent; marking connected")
-                self._publish_ais_status("connected", reason="subscription sent")
+                self._publish_ais_status(
+                    "connected",
+                    reason=(
+                        "subscription acknowledged"
+                        if first_message
+                        else "subscription sent; awaiting traffic"
+                    ),
+                )
+                self._log_aisstream_step(
+                    7,
+                    "Published ais.status",
+                    status="connected",
+                )
+
+                pending_first_message = first_message
 
                 while self.running:
                     if not self._aisstream_enabled():
@@ -649,29 +854,34 @@ class HybridEngine(BaseEngine):
                         )
                         break
 
-                    try:
-                        with self._ws_lock:
-                            if self._ws is None:
-                                break
-                            message = self._ws.recv()
-                    except websocket.WebSocketTimeoutException:
-                        continue
+                    if pending_first_message is not None:
+                        message = pending_first_message
+                        pending_first_message = None
+                    else:
+                        try:
+                            with self._ws_lock:
+                                if self._ws is None:
+                                    break
+                                message = self._ws.recv()
+                        except websocket.WebSocketTimeoutException:
+                            continue
 
                     if isinstance(message, bytes):
                         message = message.decode("utf-8")
 
                     data = json.loads(message)
 
-                    if "MetaData" not in data:
+                    metadata = self._aisstream_message_metadata(data)
+                    if not metadata:
                         continue
 
-                    mmsi = str(data["MetaData"].get("MMSI", ""))
+                    mmsi = str(metadata.get("MMSI", ""))
                     if not mmsi:
                         continue
 
                     # ---- név a MetaData-ból, ha van ----
                     meta_name = sanitize_name(
-                        data["MetaData"].get("ShipName", "")
+                        metadata.get("ShipName", "")
                     )
                     if meta_name and self.ship_names.get(mmsi) != meta_name:
                         self.ship_names[mmsi] = meta_name
@@ -733,12 +943,34 @@ class HybridEngine(BaseEngine):
                             ),
                         }
 
+            except websocket.WebSocketBadStatusException as error:
+                if not self.running:
+                    break
+                status_code = getattr(error, "status_code", "unknown")
+                self._log_aisstream_step(
+                    4,
+                    "WebSocket handshake rejected",
+                    http_status=status_code,
+                    error=f"{type(error).__name__}: {error}",
+                )
+                self._publish_ais_status(
+                    "offline",
+                    reason=f"handshake HTTP {status_code}",
+                )
+                if self._interruptible_sleep(5):
+                    continue
             except Exception as e:
                 if not self.running:
                     break
                 logger.exception("AISStream connection error: %s", e)
+                self._log_aisstream_step(
+                    8,
+                    "Connection attempt failed",
+                    error=f"{type(e).__name__}: {e}",
+                )
                 self._publish_ais_status("offline", reason=f"connection error: {e}")
-                time.sleep(5)
+                if self._interruptible_sleep(5):
+                    continue
             finally:
                 self._close_ws()
 
