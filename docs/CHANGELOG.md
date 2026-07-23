@@ -14,6 +14,7 @@ First Public Test release (SAVE-205 finalization). Stabilization track SAVE-200�
 - **SAVE-208** — Vessel Database Manager page (sidebar): local DB info, sync controls, session statistics, diagnostics, and maintenance actions (UI + backend hooks)
 - **SAVE-209** — Automatic vessel database synchronization (scheduler, persisted last/next sync, EventBus, online provider hook)
 - **SAVE-210** — Backup & Restore Manager (full/database/settings backup, list, restore, delete)
+- **SAVE-211** — Application Settings Manager (General, AIS, Cameras, Database, Notifications, Advanced)
 
 ### Changed
 

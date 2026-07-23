@@ -27,6 +27,7 @@ from gui.camerapage import CameraPage
 from gui.vesseldatabasepage import VesselDatabasePage
 from gui.vesseldatabasemanagerpage import VesselDatabaseManagerPage
 from gui.backupmanagerpage import BackupManagerPage
+from gui.applicationsettingsmanagerpage import ApplicationSettingsManagerPage
 from gui.vesseltimelinepage import VesselTimelinePage
 from gui.statisticspage import StatisticsPage
 from gui.alertcenterpage import AlertCenterPage
@@ -42,6 +43,10 @@ from gui.firstrunwizard import FirstRunWizard
 from i18n import language_manager, tr
 from observation import observation_manager
 from preferences import preferences_manager
+from preferences.application_settings import (
+    apply_runtime_settings,
+    startup_page_index,
+)
 from inspector.inspector import PROJECT_VERSION
 from version import PROJECT_NAME
 from engines.rtl.hybrid_engine import HybridEngine
@@ -273,7 +278,7 @@ class MainWindow(QMainWindow):
         )
         self.menu_bar._map_action.triggered.connect(self.navigate_to_map)
         self.menu_bar._settings_action.triggered.connect(
-            self._open_dashboard_configuration
+            self._open_settings_manager
         )
 
         central = QWidget()
@@ -302,6 +307,7 @@ class MainWindow(QMainWindow):
         self.system_health_page = SystemHealthPage()
         self.vessel_database_manager_page = VesselDatabaseManagerPage()
         self.backup_manager_page = BackupManagerPage()
+        self.application_settings_page = ApplicationSettingsManagerPage()
 
         self.pages.addWidget(self.dashboard_page)        # 0
         self.pages.addWidget(self.map_page)              # 1
@@ -315,6 +321,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self.system_health_page)    # 9
         self.pages.addWidget(self.vessel_database_manager_page)  # 10
         self.pages.addWidget(self.backup_manager_page)   # 11
+        self.pages.addWidget(self.application_settings_page)  # 12
 
         self.system_health_page.attach_hybrid_engine(self.hybrid_engine)
 
@@ -352,6 +359,8 @@ class MainWindow(QMainWindow):
         self.setStatusBar(StatusPanel())
 
         self._apply_personalization()
+        apply_runtime_settings()
+        self._apply_startup_options()
 
         MapController.instance().maybe_prompt_reference_selection()
 
@@ -375,6 +384,7 @@ class MainWindow(QMainWindow):
             self.system_health_page,
             self.vessel_database_manager_page,
             self.backup_manager_page,
+            self.application_settings_page,
         ):
             refresh = getattr(page, "refresh_translations", None)
 
@@ -412,10 +422,28 @@ class MainWindow(QMainWindow):
         page.testAisRequested.connect(self._test_ais_from_health)
         page.rtlSetupRequested.connect(self._open_rtl_setup)
         page.rtlDiagnosticsRequested.connect(self._open_rtl_diagnostics)
-        page.openSettingsRequested.connect(self._open_dashboard_configuration)
+        page.openSettingsRequested.connect(self._open_settings_manager)
         page.openDashboardRequested.connect(lambda: self.pages.setCurrentIndex(0))
         page.openMapRequested.connect(self.navigate_to_map)
         page.cameraDiagnosticsRequested.connect(self._open_camera_diagnostics)
+
+    def _open_settings_manager(self) -> None:
+
+        self.pages.setCurrentIndex(12)
+        reload = getattr(self.application_settings_page, "reload_from_preferences", None)
+        if callable(reload):
+            reload()
+
+    def _apply_startup_options(self) -> None:
+
+        preferences = preferences_manager.get()
+
+        if preferences.startup_maximized:
+            self.showMaximized()
+
+        page_index = startup_page_index(preferences)
+        if 0 <= page_index < self.pages.count():
+            self.pages.setCurrentIndex(page_index)
 
     def _open_dashboard_configuration(self) -> None:
 

@@ -150,6 +150,72 @@ class PreferencesManager:
 
         return self.save(Preferences.from_dict(current.to_dict()))
 
+    def update_application_settings(self, **changes) -> Preferences:
+        """Persist SAVE-211 application settings keys without touching AIS secrets."""
+
+        current = self.get()
+        payload = current.to_dict()
+
+        allowed = {
+            "language",
+            "theme",
+            "startup_page",
+            "startup_maximized",
+            "startup_restore_session",
+            "ais_auto_connect",
+            "ais_reconnect_enabled",
+            "ais_reconnect_min_s",
+            "ais_reconnect_max_s",
+            "ais_connection_timeout_s",
+            "camera_default_provider",
+            "camera_auto_selection",
+            "camera_preview_quality",
+            "database_backup_frequency",
+            "database_cleanup_policy",
+            "notifications_desktop",
+            "notifications_sounds",
+            "log_level",
+            "developer_mode",
+            "diagnostics_enabled",
+            "rtl_auto_start_ais_catcher",
+        }
+
+        for key, value in changes.items():
+            if key in allowed:
+                payload[key] = value
+
+        return self.save(Preferences.from_dict(payload))
+
+    def reset_application_settings(self) -> Preferences:
+        """Reset SAVE-211 settings to defaults; keep AIS credentials and setup state."""
+
+        current = self.get()
+        defaults = Preferences.defaults()
+
+        current.theme = defaults.theme
+        current.startup_page = defaults.startup_page
+        current.startup_maximized = defaults.startup_maximized
+        current.startup_restore_session = defaults.startup_restore_session
+        current.ais_auto_connect = defaults.ais_auto_connect
+        current.ais_reconnect_enabled = defaults.ais_reconnect_enabled
+        current.ais_reconnect_min_s = defaults.ais_reconnect_min_s
+        current.ais_reconnect_max_s = defaults.ais_reconnect_max_s
+        current.ais_connection_timeout_s = defaults.ais_connection_timeout_s
+        current.camera_default_provider = defaults.camera_default_provider
+        current.camera_auto_selection = defaults.camera_auto_selection
+        current.camera_preview_quality = defaults.camera_preview_quality
+        current.database_backup_frequency = defaults.database_backup_frequency
+        current.database_cleanup_policy = defaults.database_cleanup_policy
+        current.notifications_desktop = defaults.notifications_desktop
+        current.notifications_sounds = defaults.notifications_sounds
+        current.log_level = defaults.log_level
+        current.developer_mode = defaults.developer_mode
+        current.diagnostics_enabled = defaults.diagnostics_enabled
+        current.language = defaults.language
+        current.vessel_card_layout = defaults.vessel_card_layout
+
+        return self.save(Preferences.from_dict(current.to_dict()))
+
     def _load(self) -> Preferences:
 
         if not self._path.exists():

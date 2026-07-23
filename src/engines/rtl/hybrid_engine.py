@@ -44,6 +44,25 @@ THREAD_JOIN_TIMEOUT_S = 5.0
 REGISTRY_TTL_SECONDS = 1800
 AIS_RECONNECT_MIN_S = 1.0
 AIS_RECONNECT_MAX_S = 60.0
+AIS_CONNECTION_TIMEOUT_S = 10.0
+
+
+def _ais_connection_preferences() -> tuple[bool, bool, float, float, float]:
+
+    preferences = preferences_manager.get()
+    min_s = max(0.1, float(preferences.ais_reconnect_min_s or AIS_RECONNECT_MIN_S))
+    max_s = max(min_s, float(preferences.ais_reconnect_max_s or AIS_RECONNECT_MAX_S))
+    timeout_s = max(
+        1.0,
+        float(preferences.ais_connection_timeout_s or AIS_CONNECTION_TIMEOUT_S),
+    )
+    return (
+        bool(preferences.ais_auto_connect),
+        bool(preferences.ais_reconnect_enabled),
+        min_s,
+        max_s,
+        timeout_s,
+    )
 
 
 class HybridEngine(BaseEngine):
@@ -568,6 +587,16 @@ class HybridEngine(BaseEngine):
                 time.sleep(2)
                 continue
 
+            auto_connect, reconnect_enabled, reconnect_min, reconnect_max, timeout_s = (
+                _ais_connection_preferences()
+            )
+
+            if not auto_connect:
+                self._close_ws()
+                eventbus.publish("ais.status", status="offline")
+                time.sleep(1)
+                continue
+
             if not self._ais_connect_lock.acquire(blocking=False):
                 time.sleep(0.2)
                 continue
@@ -578,7 +607,7 @@ class HybridEngine(BaseEngine):
                 with self._ws_lock:
                     self._ws = websocket.create_connection(
                         f"wss://stream.aisstream.io/v0/stream?apiKey={api_key}",
-                        timeout=10,
+                        timeout=timeout_s,
                     )
                     self._ws.settimeout(1.0)
 
@@ -594,7 +623,7 @@ class HybridEngine(BaseEngine):
                     self._ws.send(json.dumps(subscribe_message))
 
                 self._resubscribe_requested = False
-                self._ais_reconnect_backoff_s = AIS_RECONNECT_MIN_S
+                self._ais_reconnect_backoff_s = reconnect_min
                 logger.info("AISStream connected")
                 eventbus.publish("ais.status", status="connected")
 
@@ -700,12 +729,20 @@ class HybridEngine(BaseEngine):
                     break
                 logger.exception("AISStream connection error")
                 eventbus.publish("ais.status", status="offline")
-                delay = self._ais_reconnect_backoff_s
-                time.sleep(delay)
-                self._ais_reconnect_backoff_s = min(
-                    AIS_RECONNECT_MAX_S,
-                    max(AIS_RECONNECT_MIN_S, delay * 2.0),
+                _, reconnect_enabled, reconnect_min, reconnect_max, _ = (
+                    _ais_connection_preferences()
                 )
+
+                if not reconnect_enabled:
+                    time.sleep(5)
+                    self._ais_reconnect_backoff_s = reconnect_min
+                else:
+                    delay = self._ais_reconnect_backoff_s
+                    time.sleep(delay)
+                    self._ais_reconnect_backoff_s = min(
+                        reconnect_max,
+                        max(reconnect_min, delay * 2.0),
+                    )
             finally:
                 self._ais_connect_lock.release()
                 self._close_ws()
@@ -719,6 +756,14 @@ class HybridEngine(BaseEngine):
 
         while self.running:
             if not self._rtl_enabled():
+                self._disconnect_rtl_client()
+                eventbus.publish("rtl.status", status="offline")
+                time.sleep(1)
+                continue
+
+            auto_connect, _, _, _, _ = _ais_connection_preferences()
+
+            if not auto_connect:
                 self._disconnect_rtl_client()
                 eventbus.publish("rtl.status", status="offline")
                 time.sleep(1)

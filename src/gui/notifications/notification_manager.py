@@ -60,6 +60,14 @@ class NotificationManager(QObject):
         animate: bool = True,
     ) -> str:
 
+        try:
+            from preferences.application_settings import desktop_notifications_enabled
+
+            if not desktop_notifications_enabled():
+                return key or ""
+        except Exception:
+            pass
+
         item = NotificationItem(
             message=message,
             severity=severity,
