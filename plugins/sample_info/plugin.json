@@ -1,0 +1,11 @@
+{
+  "id": "sample.info",
+  "name": "Sample Info Plugin",
+  "version": "1.0.0",
+  "author": "Project X",
+  "description": "Demonstration plugin for the SAVE-212 Plugin Framework. Does not replace built-in AIS, Camera, or Database modules.",
+  "api_version": "1.0.0",
+  "entry": "plugin:SampleInfoPlugin",
+  "dependencies": {},
+  "license": "MIT"
+}

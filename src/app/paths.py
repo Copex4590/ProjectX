@@ -100,6 +100,21 @@ def backups_dir() -> Path:
     return path
 
 
+def plugins_dir() -> Path:
+    """Directory containing installable plugin packages."""
+
+    override = os.environ.get("PROJECTX_PLUGINS_DIR", "").strip()
+    if override:
+        path = Path(override)
+    elif is_frozen():
+        path = user_data_dir() / "plugins"
+    else:
+        path = bundle_dir().parent / "plugins"
+
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def hybrid_runtime_dir() -> Path:
     """Runtime directory for HybridEngine radar/cache/side-car files."""
 
@@ -122,3 +137,4 @@ def ensure_runtime_data_dirs() -> None:
         (data_dir / name).mkdir(parents=True, exist_ok=True)
 
     backups_dir()
+    plugins_dir()

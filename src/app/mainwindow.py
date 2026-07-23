@@ -28,6 +28,7 @@ from gui.vesseldatabasepage import VesselDatabasePage
 from gui.vesseldatabasemanagerpage import VesselDatabaseManagerPage
 from gui.backupmanagerpage import BackupManagerPage
 from gui.applicationsettingsmanagerpage import ApplicationSettingsManagerPage
+from gui.installedpluginspage import InstalledPluginsPage
 from gui.vesseltimelinepage import VesselTimelinePage
 from gui.statisticspage import StatisticsPage
 from gui.alertcenterpage import AlertCenterPage
@@ -47,6 +48,7 @@ from preferences.application_settings import (
     apply_runtime_settings,
     startup_page_index,
 )
+from plugins import plugin_manager
 from inspector.inspector import PROJECT_VERSION
 from version import PROJECT_NAME
 from engines.rtl.hybrid_engine import HybridEngine
@@ -308,6 +310,7 @@ class MainWindow(QMainWindow):
         self.vessel_database_manager_page = VesselDatabaseManagerPage()
         self.backup_manager_page = BackupManagerPage()
         self.application_settings_page = ApplicationSettingsManagerPage()
+        self.installed_plugins_page = InstalledPluginsPage()
 
         self.pages.addWidget(self.dashboard_page)        # 0
         self.pages.addWidget(self.map_page)              # 1
@@ -322,6 +325,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self.vessel_database_manager_page)  # 10
         self.pages.addWidget(self.backup_manager_page)   # 11
         self.pages.addWidget(self.application_settings_page)  # 12
+        self.pages.addWidget(self.installed_plugins_page)  # 13
 
         self.system_health_page.attach_hybrid_engine(self.hybrid_engine)
 
@@ -360,6 +364,10 @@ class MainWindow(QMainWindow):
 
         self._apply_personalization()
         apply_runtime_settings()
+        try:
+            plugin_manager.initialize()
+        except Exception:
+            logger.exception("Plugin framework failed to initialize")
         self._apply_startup_options()
 
         MapController.instance().maybe_prompt_reference_selection()
@@ -385,6 +393,7 @@ class MainWindow(QMainWindow):
             self.vessel_database_manager_page,
             self.backup_manager_page,
             self.application_settings_page,
+            self.installed_plugins_page,
         ):
             refresh = getattr(page, "refresh_translations", None)
 
@@ -554,6 +563,11 @@ class MainWindow(QMainWindow):
             vessel_database_manager.stop()
         except Exception:
             logger.exception("Failed while stopping background workers")
+
+        try:
+            plugin_manager.shutdown()
+        except Exception:
+            logger.exception("Failed while shutting down plugins")
 
         self.hybrid_engine.stop()
 
