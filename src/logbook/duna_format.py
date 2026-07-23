@@ -5,17 +5,38 @@
 
 from __future__ import annotations
 
+import os
 from datetime import datetime
 
 from observation.geo_context import geo_context
 
 
 def sanitize_name(name: str | int | None) -> str:
+    """Return a filesystem-safe ship name (no path separators).
+
+    Ship names are used as filenames and folder names. Characters that act as
+    path separators must become spaces so names like ``F/VLE TAD`` map to
+    ``F VLE TAD`` instead of a nested ``F/`` directory.
+    """
 
     if not name:
         return ""
 
-    return str(name).replace("@", "").strip()
+    cleaned = str(name).replace("@", "").strip()
+
+    separators = {"/", "\\"}
+    if os.sep:
+        separators.add(os.sep)
+    if os.altsep:
+        separators.add(os.altsep)
+
+    for sep in separators:
+        cleaned = cleaned.replace(sep, " ")
+
+    while "  " in cleaned:
+        cleaned = cleaned.replace("  ", " ")
+
+    return cleaned.strip()
 
 
 def format_timestamp(when: datetime | None = None) -> str:
