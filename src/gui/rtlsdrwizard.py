@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 
 from gui.i18n_support import bind_language_refresh
 from gui.theme import DANGER, SUCCESS, TEXT_MUTED, wizard_shell_stylesheet
+from gui.thread_utils import stop_qthread
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button, show_wizard_help
 from i18n import tr
 from observation import observation_manager
@@ -524,6 +525,23 @@ class RTLSdrWizard(QDialog):
                 result.message or tr("No AIS messages received yet.")
             )
             self._reception_result.setStyleSheet(f"color: {DANGER};")
+
+    def _stop_workers(self) -> None:
+
+        stop_qthread(self._detect_worker, label="RTLDetectWorker")
+        stop_qthread(self._reception_worker, label="RTLReceptionWorker")
+        self._detect_worker = None
+        self._reception_worker = None
+
+    def reject(self) -> None:
+
+        self._stop_workers()
+        super().reject()
+
+    def closeEvent(self, event) -> None:
+
+        self._stop_workers()
+        super().closeEvent(event)
 
     def showEvent(self, event) -> None:
 

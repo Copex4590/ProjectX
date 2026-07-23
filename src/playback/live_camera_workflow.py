@@ -4,6 +4,7 @@
 # ============================================================================
 
 from dataclasses import dataclass
+import logging
 
 from engines.camera import camera_selection_engine
 from engines.camera.camera_match import CameraMatch
@@ -13,6 +14,8 @@ from engines.playback.backend import PlaybackBackend
 from engines.playback.session import PlaybackSession, PlaybackState
 from models.ship import Ship
 from playback.preferences import PlaybackSelector, playback_selector
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -41,6 +44,7 @@ class LiveCameraWorkflow:
         try:
             return self._start_for_ship(ship)
         except Exception:
+            logger.exception("Live camera start failed")
             return LiveCameraResult(
                 success=False,
                 message="An unexpected camera error occurred. Please try again.",
@@ -142,13 +146,13 @@ class LiveCameraWorkflow:
             try:
                 self._active_backend.stop(self._active_session)
             except Exception:
-                pass
+                logger.exception("Failed to stop live camera playback backend")
 
         if self._active_provider is not None:
             try:
                 self._active_provider.close()
             except Exception:
-                pass
+                logger.exception("Failed to close live camera provider")
 
         self._active_backend = None
         self._active_session = None

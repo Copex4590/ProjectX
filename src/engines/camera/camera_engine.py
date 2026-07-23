@@ -1,4 +1,10 @@
+from __future__ import annotations
+
+import logging
+
 from engines.base_engine import BaseEngine
+
+logger = logging.getLogger(__name__)
 
 
 class CameraEngine(BaseEngine):
@@ -9,8 +15,8 @@ class CameraEngine(BaseEngine):
 
     def on_start(self):
 
-        print("Camera Engine started.")
+        logger.info("Camera Engine started")
 
     def on_stop(self):
 
-        print("Camera Engine stopped.")
+        logger.info("Camera Engine stopped")

@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import logging
 import socket
 import time
 from dataclasses import dataclass
@@ -12,6 +13,8 @@ from dataclasses import dataclass
 from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
 from database import registry
 from engines.ais.ais_rtl_client import AISRtlClient
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -92,7 +95,7 @@ def run_reception_test(
                 message_count += 1
                 last_message = line[:120]
     except (OSError, socket.timeout):
-        pass
+        logger.debug("RTL reception test socket ended", exc_info=True)
     finally:
         client.disconnect()
 

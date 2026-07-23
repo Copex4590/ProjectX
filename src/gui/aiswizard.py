@@ -35,6 +35,7 @@ from ais.user_provider_service import (
 from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
 from gui.i18n_support import bind_language_refresh
 from gui.theme import DANGER, SUCCESS, TEXT_MUTED, wizard_shell_stylesheet
+from gui.thread_utils import stop_qthread
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button
 from i18n import tr
 from preferences import preferences_manager
@@ -177,7 +178,8 @@ class AISSetupWidget(QWidget):
     def on_leave(self) -> None:
 
         if self._test_worker is not None and self._test_worker.isRunning():
-            self._test_worker.wait(1000)
+            stop_qthread(self._test_worker, label="AISTestWorker")
+            self._test_worker = None
 
     def handle_next(self) -> bool:
 
@@ -640,6 +642,16 @@ class AISWizard(QDialog):
 
         self._setup.on_leave()
         self.accept()
+
+    def reject(self) -> None:
+
+        self._setup.on_leave()
+        super().reject()
+
+    def closeEvent(self, event) -> None:
+
+        self._setup.on_leave()
+        super().closeEvent(event)
 
     def showEvent(self, event) -> None:
 

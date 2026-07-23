@@ -1,6 +1,8 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
 
+import logging
+
 from cameras import camera_manager
 from engines.camera import camera_selection_engine
 from gui.i18n_support import bind_language_refresh
@@ -14,6 +16,8 @@ from gui.theme import (
 from i18n import tr
 from models.ship import Ship
 from playback.live_camera_workflow import live_camera_workflow
+
+logger = logging.getLogger(__name__)
 
 
 class CameraPreviewPanel(QFrame):
@@ -206,6 +210,7 @@ class CameraPreviewPanel(QFrame):
         try:
             self._show_for_ship(ship)
         except Exception:
+            logger.exception("Camera preview failed for ship")
             self._workflow.stop()
             self._last_mmsi = None
             self.show_empty("An unexpected camera error occurred.")

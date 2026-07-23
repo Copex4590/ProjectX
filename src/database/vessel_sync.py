@@ -7,10 +7,15 @@ from dataclasses import dataclass
 from datetime import datetime
 from queue import Empty, Queue
 from threading import Lock, Thread
+import logging
 
 from database.vessel_database import VesselDatabase, vessel_database
 from models.ship import Ship
 from models.vessel_record import VesselRecord
+
+logger = logging.getLogger(__name__)
+
+_STOP = object()
 
 _TEXT_FIELDS = ("imo", "name", "callsign", "ship_type", "flag")
 _FLOAT_FIELDS = ("length", "width", "draft")
@@ -162,11 +167,15 @@ class VesselSync:
     def __init__(self, database: VesselDatabase | None = None):
 
         self._database = database or vessel_database
-        self._queue: Queue[VesselObservation] = Queue()
+        self._queue: Queue[VesselObservation | object] = Queue()
         self._worker_lock = Lock()
         self._worker: Thread | None = None
+        self._stop_requested = False
 
     def enqueue(self, ship: Ship | None) -> None:
+
+        if self._stop_requested:
+            return
 
         observation = _observation_from_ship(ship) if ship is not None else None
 
@@ -175,6 +184,20 @@ class VesselSync:
 
         self._ensure_worker()
         self._queue.put(observation)
+
+    def stop(self, timeout: float = 5.0) -> None:
+
+        self._stop_requested = True
+
+        with self._worker_lock:
+            worker = self._worker
+            if worker is not None and worker.is_alive():
+                self._queue.put(_STOP)
+
+        if worker is not None and worker.is_alive():
+            worker.join(timeout=timeout)
+            if worker.is_alive():
+                logger.warning("VesselSync worker did not stop within %.1fs", timeout)
 
     def sync_now(self, ship: Ship | None) -> VesselRecord | None:
 
@@ -191,6 +214,7 @@ class VesselSync:
             if self._worker is not None and self._worker.is_alive():
                 return
 
+            self._stop_requested = False
             self._worker = Thread(
                 target=self._worker_loop,
                 name="VesselSyncWorker",
@@ -204,12 +228,17 @@ class VesselSync:
             try:
                 observation = self._queue.get(timeout=0.5)
             except Empty:
+                if self._stop_requested:
+                    return
                 continue
 
             try:
+                if observation is _STOP:
+                    return
+
                 self._apply_observation(observation)
             except Exception:
-                pass
+                logger.exception("VesselSync failed to apply observation")
             finally:
                 self._queue.task_done()
 

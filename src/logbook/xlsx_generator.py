@@ -6,9 +6,12 @@
 from __future__ import annotations
 
 import csv
+import logging
 from pathlib import Path
 
 from logbook.paths import CSV_FILENAME, XLSX_FILENAME
+
+logger = logging.getLogger(__name__)
 
 
 def regenerate_xlsx(ship_dir: Path) -> Path | None:
@@ -86,7 +89,11 @@ def regenerate_xlsx(ship_dir: Path) -> Path | None:
             else:
                 worksheet.cell(row_index, 5).fill = orange
         except (AttributeError, IndexError, TypeError, ValueError):
-            pass
+            logger.debug(
+                "Skipping speed cell style for row %s",
+                row_index,
+                exc_info=True,
+            )
 
     for column_cells in worksheet.columns:
         max_length = 0

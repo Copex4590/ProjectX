@@ -23,20 +23,25 @@ from logbook.duna_format import get_direction, get_heading, sanitize_name
 from models.ship import Ship
 from observation.geo_context import geo_context
 from preferences import preferences_manager
+from app.paths import ensure_runtime_data_dirs, hybrid_runtime_dir, runtime_data_path
+from logbook.paths import HAJOK_DIR as LOGBOOK_HAJOK_DIR
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR = "/home/zoli/rtl-monitor"
-HAJOK_DIR = "/home/zoli/Asztal/Ez a gép/Dunamonitor/Hajók"
-DELI_DIR = os.path.join(BASE_DIR, "deli_hajok")
-CACHE_FILE = os.path.join(BASE_DIR, "ship_cache.json")
-API_KEY_FILE = "/home/zoli/duna-monitor/api_key.txt"
+# SAVE-202: all HybridEngine runtime files live under the app data directory.
+ensure_runtime_data_dirs()
+BASE_DIR = str(hybrid_runtime_dir())
+HAJOK_DIR = str(LOGBOOK_HAJOK_DIR)
+DELI_DIR = str(hybrid_runtime_dir() / "deli_hajok")
+CACHE_FILE = str(hybrid_runtime_dir() / "ship_cache.json")
+# Legacy absolute API key path removed — use preferences / ais_manager paths only.
+API_KEY_FILE = str(runtime_data_path("api_key.txt"))
 
 # SAVE-105: radar file exports are throttled on the AIS/RTL hot path.
 RADAR_WRITE_INTERVAL_S = 1.0
-
-os.makedirs(HAJOK_DIR, exist_ok=True)
-os.makedirs(DELI_DIR, exist_ok=True)
+THREAD_JOIN_TIMEOUT_S = 5.0
+AIS_RECONNECT_MIN_S = 1.0
+AIS_RECONNECT_MAX_S = 60.0
 
 
 class HybridEngine(BaseEngine):
@@ -70,7 +75,11 @@ class HybridEngine(BaseEngine):
                 with open(CACHE_FILE, "r", encoding="utf-8") as f:
                     self.ship_names = json.load(f)
             except Exception:
+                logger.exception("Failed to load ship name cache from %s", CACHE_FILE)
                 self.ship_names = {}
+
+        self._ais_reconnect_backoff_s = AIS_RECONNECT_MIN_S
+        self._ais_connect_lock = threading.Lock()
 
     def on_start(self):
 
@@ -225,16 +234,30 @@ class HybridEngine(BaseEngine):
         self._close_ws()
         self._disconnect_rtl_client()
 
+        for label, thread in (
+            ("AISStream", self.ais_thread),
+            ("RTL", self.rtl_thread),
+        ):
+            if thread is None or not thread.is_alive():
+                continue
+            thread.join(timeout=THREAD_JOIN_TIMEOUT_S)
+            if thread.is_alive():
+                logger.warning(
+                    "HybridEngine %s worker did not stop within %.1fs",
+                    label,
+                    THREAD_JOIN_TIMEOUT_S,
+                )
+
         eventbus.publish("ais.status", status="offline")
         eventbus.publish("rtl.status", status="offline")
 
-        print("🛑 Hybrid Engine stopped")
+        logger.info("Hybrid Engine stopped")
 
     def on_observation_changed(self) -> None:
 
         removed = registry.purge_outside_reference_coverage()
         if removed:
-            print(f"🧹 Removed {removed} ship(s) outside reference coverage")
+            logger.info("Removed %s ship(s) outside reference coverage", removed)
 
         if not self._aisstream_enabled():
             return
@@ -249,7 +272,7 @@ class HybridEngine(BaseEngine):
                 try:
                     self._ws.close()
                 except Exception:
-                    pass
+                    logger.debug("AISStream websocket close failed", exc_info=True)
                 self._ws = None
 
     def save_ship_cache(self):
@@ -257,14 +280,14 @@ class HybridEngine(BaseEngine):
             with open(CACHE_FILE, "w", encoding="utf-8") as f:
                 json.dump(self.ship_names, f, ensure_ascii=False, indent=2)
         except Exception:
-            pass
+            logger.exception("Failed to save ship name cache to %s", CACHE_FILE)
 
     def ensure_ship_folder(self, name):
         ship_dir = os.path.join(HAJOK_DIR, name)
 
         if not os.path.exists(ship_dir):
             os.makedirs(ship_dir, exist_ok=True)
-            print(f"📁 Új hajó dosszié létrehozva: {name}")
+            logger.info("Created ship folder: %s", name)
 
             csv_file = os.path.join(ship_dir, "adatlap.csv")
             with open(csv_file, "w", encoding="utf-8") as f:
@@ -537,16 +560,15 @@ class HybridEngine(BaseEngine):
         hybrid_ais_engine.publish_ship(ship)
 
         if should_print:
-            print()
-            print("════════════════════════════════════")
-            print(f"🚢 {name}")
-            print(f"📏 Távolság : {round(distance, 2)} km-re {direction}")
-            print(f"🧭 {heading}")
-            if sog >= 0.5:
-                print(f"⚡ {sog:.1f} csomó")
-            print(f"🕒 {current_time} [{source}]")
-            print("════════════════════════════════════")
-
+            logger.debug(
+                "Ship update %s dist=%.2f km %s heading=%s sog=%.1f [%s]",
+                name,
+                distance,
+                direction,
+                heading,
+                sog,
+                source,
+            )
             self.write_hajo_txt(name, distance, direction, heading, sog)
 
         self._maybe_write_radar_files()
@@ -568,7 +590,7 @@ class HybridEngine(BaseEngine):
             subscribed_boxes = reference_observation_bounding_boxes()
 
             if subscribed_boxes is None:
-                print("⏳ Waiting for observation reference point before AISStream...")
+                logger.info("Waiting for observation reference point before AISStream")
                 eventbus.publish("ais.status", status="waiting")
                 time.sleep(2)
                 continue
@@ -576,18 +598,23 @@ class HybridEngine(BaseEngine):
             api_key = self._aisstream_api_key()
 
             if not api_key:
-                print("⏳ AISStream disabled or missing API key...")
+                logger.info("AISStream disabled or missing API key")
                 self._close_ws()
                 eventbus.publish("ais.status", status="offline")
                 time.sleep(2)
                 continue
 
+            if not self._ais_connect_lock.acquire(blocking=False):
+                time.sleep(0.2)
+                continue
+
             try:
-                print("📡 AISStream kapcsolat...")
+                logger.info("Connecting to AISStream")
 
                 with self._ws_lock:
                     self._ws = websocket.create_connection(
-                        f"wss://stream.aisstream.io/v0/stream?apiKey={api_key}"
+                        f"wss://stream.aisstream.io/v0/stream?apiKey={api_key}",
+                        timeout=10,
                     )
                     self._ws.settimeout(1.0)
 
@@ -603,7 +630,8 @@ class HybridEngine(BaseEngine):
                     self._ws.send(json.dumps(subscribe_message))
 
                 self._resubscribe_requested = False
-                print("✅ AISStream kapcsolódva")
+                self._ais_reconnect_backoff_s = AIS_RECONNECT_MIN_S
+                logger.info("AISStream connected")
                 eventbus.publish("ais.status", status="connected")
 
                 while self.running:
@@ -616,7 +644,7 @@ class HybridEngine(BaseEngine):
                     current_boxes = reference_observation_bounding_boxes()
 
                     if current_boxes != subscribed_boxes:
-                        print("🔄 Observation area changed — resubscribing AISStream...")
+                        logger.info("Observation area changed — resubscribing AISStream")
                         break
 
                     try:
@@ -646,7 +674,7 @@ class HybridEngine(BaseEngine):
                     if meta_name and self.ship_names.get(mmsi) != meta_name:
                         self.ship_names[mmsi] = meta_name
                         self.save_ship_cache()
-                        print(f"📻 AIS név: {mmsi} -> {meta_name}")
+                        logger.debug("AIS name %s -> %s", mmsi, meta_name)
 
                     # ---- PositionReport ----
                     if "PositionReport" in data.get("Message", {}):
@@ -678,7 +706,7 @@ class HybridEngine(BaseEngine):
 
                             if old_name != name:
                                 self.save_ship_cache()
-                                print(f"🟢 AISStream név: {mmsi} -> {name}")
+                                logger.debug("AISStream static name %s -> %s", mmsi, name)
 
                         self.static_ship_data[mmsi] = {
                             "destination": sanitize_name(
@@ -703,13 +731,19 @@ class HybridEngine(BaseEngine):
                             ),
                         }
 
-            except Exception as e:
+            except Exception:
                 if not self.running:
                     break
-                print("❌ AISStream hiba:", e)
+                logger.exception("AISStream connection error")
                 eventbus.publish("ais.status", status="offline")
-                time.sleep(5)
+                delay = self._ais_reconnect_backoff_s
+                time.sleep(delay)
+                self._ais_reconnect_backoff_s = min(
+                    AIS_RECONNECT_MAX_S,
+                    max(AIS_RECONNECT_MIN_S, delay * 2.0),
+                )
             finally:
+                self._ais_connect_lock.release()
                 self._close_ws()
 
     # --------------------------------------------------
@@ -736,8 +770,7 @@ class HybridEngine(BaseEngine):
                 time.sleep(5)
                 continue
 
-            print("🚢 Hybrid Duna Monitor")
-            print("📡 Kapcsolódás AIS-catcherhez...")
+            logger.info("Connecting to AIS-catcher")
 
             self._rtl_client = AISRtlClient()
 
@@ -755,12 +788,12 @@ class HybridEngine(BaseEngine):
                 time.sleep(5)
                 continue
 
-            print("✅ Kapcsolódva")
+            logger.info("Connected to AIS-catcher")
             eventbus.publish("rtl.status", status="connected")
 
             decoder = AISNmeaDecoder()
 
-            print("📡 Várakozás hajóadatokra...")
+            logger.debug("Waiting for RTL AIS data")
 
             while self.running and self._rtl_enabled():
                 try:
@@ -801,7 +834,7 @@ class HybridEngine(BaseEngine):
 
                             if old_name != ship_name:
                                 self.save_ship_cache()
-                                print(f"📻 RÁDIÓ NÉV: {mmsi} -> {ship_name}")
+                                logger.debug("RTL name %s -> %s", mmsi, ship_name)
 
                         self.static_ship_data[mmsi] = {
                             "destination": sanitize_name(
@@ -847,7 +880,7 @@ class HybridEngine(BaseEngine):
 
                     self.process_position(mmsi, lat, lon, sog, cog, "RTL")
 
-                except Exception as e:
-                    print("⚠️ RTL hiba:", e)
+                except Exception:
+                    logger.exception("RTL AIS processing error")
 
             self._disconnect_rtl_client()

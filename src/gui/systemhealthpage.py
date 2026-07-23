@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from PySide6.QtCore import QThread, Qt, Signal
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -31,6 +33,7 @@ from gui.theme import (
     primary_button_stylesheet,
     secondary_button_stylesheet,
 )
+from gui.thread_utils import stop_qthread
 from i18n import tr
 from system_health import (
     SubsystemAction,
@@ -40,6 +43,8 @@ from system_health import (
     generate_diagnostic_report,
     system_health_checker,
 )
+
+logger = logging.getLogger(__name__)
 
 _STATE_ICONS = {
     SubsystemState.WORKING: "🟢",
@@ -138,7 +143,10 @@ class _SubsystemRow(QFrame):
             try:
                 message = message.format(**health.message_args)
             except (KeyError, ValueError):
-                pass
+                logger.debug(
+                    "Failed to format subsystem message",
+                    exc_info=True,
+                )
 
         if health.detail:
             message = f"{message} ({health.detail})"
@@ -354,6 +362,12 @@ class SystemHealthPage(QWidget):
         self._run_check_button.setEnabled(True)
         self._run_check_button.setText(tr("Run Full System Check"))
         self._apply_report(report)
+
+    def hideEvent(self, event) -> None:
+
+        stop_qthread(self._worker, label="HealthCheckWorker")
+        self._worker = None
+        super().hideEvent(event)
 
     def _save_report(self) -> None:
 

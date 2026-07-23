@@ -1,4 +1,5 @@
 import json
+import logging
 import math
 import os
 import threading
@@ -19,11 +20,17 @@ from models.ship import Ship
 CAMERA_LAT = 47.501539
 CAMERA_LON = 19.039856
 
-BASE_DIR = "/home/zoli/rtl-monitor"
-HAJOK_DIR = "/home/zoli/Asztal/Ez a gép/Dunamonitor/Hajók"
-DELI_DIR = os.path.join(BASE_DIR, "deli_hajok")
-CACHE_FILE = os.path.join(BASE_DIR, "ship_cache.json")
-API_KEY_FILE = "/home/zoli/duna-monitor/api_key.txt"
+from app.paths import ensure_runtime_data_dirs, hybrid_runtime_dir, runtime_data_path
+from logbook.paths import HAJOK_DIR as LOGBOOK_HAJOK_DIR
+
+ensure_runtime_data_dirs()
+BASE_DIR = str(hybrid_runtime_dir())
+HAJOK_DIR = str(LOGBOOK_HAJOK_DIR)
+DELI_DIR = str(hybrid_runtime_dir() / "deli_hajok")
+CACHE_FILE = str(hybrid_runtime_dir() / "ship_cache.json")
+API_KEY_FILE = str(runtime_data_path("api_key.txt"))
+
+logger = logging.getLogger(__name__)
 
 # SAVE-105: radar file exports are throttled on the AIS/RTL hot path.
 RADAR_WRITE_INTERVAL_S = 1.0
@@ -95,7 +102,7 @@ class HybridEngine(BaseEngine):
             try:
                 self._ws.close()
             except Exception:
-                pass
+                    logger.exception("hybrid_engine_v2 error")
             self._ws = None
 
         if self._rtl_client:
@@ -104,21 +111,21 @@ class HybridEngine(BaseEngine):
 
         eventbus.publish("rtl.status", status="offline")
 
-        print("🛑 Hybrid Engine stopped")
+        logger.debug(("🛑 Hybrid Engine stopped"))
 
     def save_ship_cache(self):
         try:
             with open(CACHE_FILE, "w", encoding="utf-8") as f:
                 json.dump(self.ship_names, f, ensure_ascii=False, indent=2)
         except Exception:
-            pass
+            logger.exception("hybrid_engine_v2 error")
 
     def ensure_ship_folder(self, name):
         ship_dir = os.path.join(HAJOK_DIR, name)
 
         if not os.path.exists(ship_dir):
             os.makedirs(ship_dir, exist_ok=True)
-            print(f"📁 Új hajó dosszié létrehozva: {name}")
+            logger.debug((f"📁 Új hajó dosszié létrehozva: {name}"))
 
             csv_file = os.path.join(ship_dir, "adatlap.csv")
             with open(csv_file, "w", encoding="utf-8") as f:
@@ -390,15 +397,15 @@ class HybridEngine(BaseEngine):
             eventbus.publish("ship.updated", ship=ship)
 
         if should_print:
-            print()
-            print("════════════════════════════════════")
-            print(f"🚢 {name}")
-            print(f"📏 Távolság : {round(distance, 2)} km-re {direction}")
-            print(f"🧭 {heading}")
+            logger.debug(())
+            logger.debug(("════════════════════════════════════"))
+            logger.debug((f"🚢 {name}"))
+            logger.debug((f"📏 Távolság : {round(distance, 2)} km-re {direction}"))
+            logger.debug((f"🧭 {heading}"))
             if sog >= 0.5:
-                print(f"⚡ {sog:.1f} csomó")
-            print(f"🕒 {current_time} [{source}]")
-            print("════════════════════════════════════")
+                logger.debug((f"⚡ {sog:.1f} csomó"))
+            logger.debug((f"🕒 {current_time} [{source}]"))
+            logger.debug(("════════════════════════════════════"))
 
             self.write_hajo_txt(name, distance, direction, heading, sog)
 
@@ -413,7 +420,7 @@ class HybridEngine(BaseEngine):
 
         while self.running:
             try:
-                print("📡 AISStream kapcsolat...")
+                logger.debug(("📡 AISStream kapcsolat..."))
 
                 with open(API_KEY_FILE, "r") as f:
                     api_key = f.read().strip()
@@ -426,7 +433,7 @@ class HybridEngine(BaseEngine):
                     subscribe_message = AISProtocol.subscribe_message(api_key)
 
                 self._ws.send(json.dumps(subscribe_message))
-                print("✅ AISStream kapcsolódva")
+                logger.debug(("✅ AISStream kapcsolódva"))
                 eventbus.publish("ais.status", status="connected")
 
                 while self.running:
@@ -451,7 +458,7 @@ class HybridEngine(BaseEngine):
                     if meta_name and self.ship_names.get(mmsi) != meta_name:
                         self.ship_names[mmsi] = meta_name
                         self.save_ship_cache()
-                        print(f"📻 AIS név: {mmsi} -> {meta_name}")
+                        logger.debug((f"📻 AIS név: {mmsi} -> {meta_name}"))
 
                     # ---- PositionReport ----
                     if "PositionReport" in data.get("Message", {}):
@@ -483,7 +490,7 @@ class HybridEngine(BaseEngine):
 
                             if old_name != name:
                                 self.save_ship_cache()
-                                print(f"🟢 AISStream név: {mmsi} -> {name}")
+                                logger.debug((f"🟢 AISStream név: {mmsi} -> {name}"))
 
                         self.static_ship_data[mmsi] = {
                             "destination": sanitize_name(
@@ -511,7 +518,7 @@ class HybridEngine(BaseEngine):
             except Exception as e:
                 if not self.running:
                     break
-                print("❌ AISStream hiba:", e)
+                logger.debug(("❌ AISStream hiba:", e))
                 eventbus.publish("ais.status", status="offline")
                 time.sleep(5)
             finally:
@@ -519,7 +526,7 @@ class HybridEngine(BaseEngine):
                     try:
                         self._ws.close()
                     except Exception:
-                        pass
+                        logger.debug("hybrid_engine_v2 websocket close failed", exc_info=True)
                     self._ws = None
 
     # --------------------------------------------------
@@ -529,13 +536,13 @@ class HybridEngine(BaseEngine):
     # --------------------------------------------------
     def rtl_worker(self):
 
-        print("🚢 Hybrid Duna Monitor")
-        print("📡 Kapcsolódás AIS-catcherhez...")
+        logger.debug(("🚢 Hybrid Duna Monitor"))
+        logger.debug(("📡 Kapcsolódás AIS-catcherhez..."))
 
         self._rtl_client = AISRtlClient()
         self._rtl_client.connect("localhost", 10110)
 
-        print("✅ Kapcsolódva")
+        logger.debug(("✅ Kapcsolódva"))
         eventbus.publish("rtl.status", status="connected")
 
         decoder = AISNmeaDecoder()
@@ -546,7 +553,7 @@ class HybridEngine(BaseEngine):
         )
         self.ais_thread.start()
 
-        print("📡 Várakozás hajóadatokra...")
+        logger.debug(("📡 Várakozás hajóadatokra..."))
 
         while self.running:
             try:
@@ -587,7 +594,7 @@ class HybridEngine(BaseEngine):
 
                         if old_name != ship_name:
                             self.save_ship_cache()
-                            print(f"📻 RÁDIÓ NÉV: {mmsi} -> {ship_name}")
+                            logger.debug((f"📻 RÁDIÓ NÉV: {mmsi} -> {ship_name}"))
 
                     self.static_ship_data[mmsi] = {
                         "destination": sanitize_name(
@@ -634,4 +641,4 @@ class HybridEngine(BaseEngine):
                 self.process_position(mmsi, lat, lon, sog, cog, "RTL")
 
             except Exception as e:
-                print("⚠️ RTL hiba:", e)
+                logger.debug(("⚠️ RTL hiba:", e))

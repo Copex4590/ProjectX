@@ -35,6 +35,7 @@ from camera.camera import FUTURE_CAMERA_TYPES
 from gui.i18n_support import bind_language_refresh
 from gui.mapcontroller import MapController
 from gui.theme import DANGER, SUCCESS, TEXT_MUTED, wizard_shell_stylesheet
+from gui.thread_utils import stop_qthread
 from gui.wizardhelp import add_wizard_back_button, add_wizard_next_button, show_wizard_help
 from i18n import tr
 from observation import observation_manager
@@ -674,8 +675,17 @@ class CameraWizard(QDialog):
 
     def reject(self) -> None:
 
+        stop_qthread(self._test_worker, label="CameraStreamTestWorker")
+        self._test_worker = None
         MapController.instance().cancel_pick_mode()
         super().reject()
+
+    def closeEvent(self, event) -> None:
+
+        stop_qthread(self._test_worker, label="CameraStreamTestWorker")
+        self._test_worker = None
+        MapController.instance().cancel_pick_mode()
+        super().closeEvent(event)
 
     def _clear_url_error(self) -> None:
 

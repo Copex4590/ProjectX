@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import logging
 import platform
 import sys
 from datetime import datetime
@@ -18,6 +19,8 @@ from system_health.checker import SystemHealthChecker
 from system_health.subsystem_status import SubsystemState
 from version import PROJECT_BUILD, PROJECT_VERSION
 
+logger = logging.getLogger(__name__)
+
 
 def _format_message(item) -> str:
 
@@ -27,7 +30,11 @@ def _format_message(item) -> str:
         try:
             message = message.format(**item.message_args)
         except (KeyError, ValueError):
-            pass
+            logger.debug(
+                "Failed to format health message key=%s",
+                item.message_key,
+                exc_info=True,
+            )
 
     if item.detail:
         message = f"{message} ({item.detail})"

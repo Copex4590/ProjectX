@@ -8,13 +8,17 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from queue import Empty, Queue
 from threading import Lock, Thread
+import logging
 
 from models.ship import Ship
 from timeline.timeline_manager import TimelineManager, timeline_manager
 from timeline.timeline_record import TimelineRecord
 
+logger = logging.getLogger(__name__)
+
 EVENT_ARRIVAL = "ARRIVAL"
 EVENT_DEPARTURE = "DEPARTURE"
+_STOP = object()
 
 DEFAULT_ABSENCE_TIMEOUT_SECONDS = float(
     os.environ.get("PROJECTX_ARRIVAL_DEPARTURE_TIMEOUT_SECONDS", "300")
@@ -106,9 +110,10 @@ class ArrivalDepartureEngine:
         )
         self._presence: dict[int, VesselPresence] = {}
         self._state_lock = Lock()
-        self._queue: Queue[PresenceObservation] = Queue()
+        self._queue: Queue[PresenceObservation | object] = Queue()
         self._worker_lock = Lock()
         self._worker: Thread | None = None
+        self._stop_requested = False
 
     @property
     def absence_timeout(self) -> timedelta:
@@ -117,6 +122,9 @@ class ArrivalDepartureEngine:
 
     def notify(self, ship: Ship | None) -> None:
 
+        if self._stop_requested:
+            return
+
         observation = _observation_from_ship(ship) if ship is not None else None
 
         if observation is None:
@@ -124,6 +132,23 @@ class ArrivalDepartureEngine:
 
         self._ensure_worker()
         self._queue.put(observation)
+
+    def stop(self, timeout: float = 5.0) -> None:
+
+        self._stop_requested = True
+
+        with self._worker_lock:
+            worker = self._worker
+            if worker is not None and worker.is_alive():
+                self._queue.put(_STOP)
+
+        if worker is not None and worker.is_alive():
+            worker.join(timeout=timeout)
+            if worker.is_alive():
+                logger.warning(
+                    "ArrivalDepartureEngine worker did not stop within %.1fs",
+                    timeout,
+                )
 
     def observe_now(self, ship: Ship | None) -> TimelineRecord | None:
 
@@ -150,6 +175,7 @@ class ArrivalDepartureEngine:
             if self._worker is not None and self._worker.is_alive():
                 return
 
+            self._stop_requested = False
             self._worker = Thread(
                 target=self._worker_loop,
                 name="ArrivalDepartureEngineWorker",
@@ -165,16 +191,22 @@ class ArrivalDepartureEngine:
             except Empty:
                 observation = None
 
+            if observation is _STOP:
+                return
+
             try:
                 if observation is not None:
                     self._handle_observation(observation)
 
                 self._scan_departures(datetime.now())
             except Exception:
-                pass
+                logger.exception("ArrivalDepartureEngine worker failed")
             finally:
                 if observation is not None:
                     self._queue.task_done()
+
+            if self._stop_requested and observation is None:
+                return
 
     def _handle_observation(
         self,

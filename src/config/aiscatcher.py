@@ -33,9 +33,14 @@ def _find_default_executable() -> Path:
     ]
 
     if os.name == "nt":
+        program_files = Path(
+            os.environ.get("ProgramFiles")
+            or os.environ.get("PROGRAMFILES")
+            or Path.home()
+        )
         candidates = [
             Path.home() / "AIS-catcher" / "AIS-catcher.exe",
-            Path("C:/Program Files/AIS-catcher/AIS-catcher.exe"),
+            program_files / "AIS-catcher" / "AIS-catcher.exe",
         ]
 
     for candidate in candidates:

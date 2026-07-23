@@ -77,7 +77,25 @@ def runtime_data_path(filename: str) -> Path:
     return runtime_data_dir() / filename
 
 
-_RUNTIME_DATA_SUBDIRS = ("Hajók", "vessel_photos")
+_RUNTIME_DATA_SUBDIRS = (
+    "Hajók",
+    "vessel_photos",
+    "hybrid",
+    "hybrid/deli_hajok",
+)
+
+
+def hybrid_runtime_dir() -> Path:
+    """Runtime directory for HybridEngine radar/cache/side-car files."""
+
+    path = runtime_data_dir() / "hybrid"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def hybrid_runtime_path(*parts: str) -> Path:
+
+    return hybrid_runtime_dir().joinpath(*parts)
 
 
 def ensure_runtime_data_dirs() -> None:

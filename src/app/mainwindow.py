@@ -501,6 +501,20 @@ class MainWindow(QMainWindow):
         MapController.release_application_modality()
 
         logger.info("Stopping Hybrid Engine")
+        try:
+            from database.vessel_sync import vessel_sync
+            from engines.timeline.arrival_departure_engine import (
+                arrival_departure_engine,
+            )
+            from timeline.timeline_recorder import timeline_recorder
+
+            logbook_recorder.stop()
+            vessel_sync.stop()
+            timeline_recorder.stop()
+            arrival_departure_engine.stop()
+        except Exception:
+            logger.exception("Failed while stopping background workers")
+
         self.hybrid_engine.stop()
 
         super().closeEvent(event)

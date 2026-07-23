@@ -5,10 +5,12 @@
 
 from __future__ import annotations
 
+import logging
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from threading import Lock
+from queue import Empty, Queue
+from threading import Lock, Thread
 
 from logbook.duna_format import build_csv_row, sanitize_name
 from logbook.paths import (
@@ -20,6 +22,10 @@ from logbook.paths import (
     XLSX_FILENAME,
 )
 from logbook.xlsx_generator import regenerate_xlsx
+
+logger = logging.getLogger(__name__)
+
+_STOP = object()
 
 
 @dataclass(frozen=True)
@@ -36,6 +42,11 @@ class LogbookManager:
         self._base_dir = Path(base_dir or HAJOK_DIR)
         self._lock = Lock()
         self._base_dir.mkdir(parents=True, exist_ok=True)
+        self._xlsx_queue: Queue[Path | object] = Queue()
+        self._xlsx_worker: Thread | None = None
+        self._xlsx_worker_lock = Lock()
+        self._xlsx_pending: set[str] = set()
+        self._stop_requested = False
 
     @property
     def base_dir(self) -> Path:
@@ -122,11 +133,17 @@ class LogbookManager:
 
     def has_logbook(self, ship) -> bool:
 
-        return self.xlsx_path(ship) is not None
+        ship_dir = self.resolve_ship_dir(ship)
+        return (ship_dir / CSV_FILENAME).exists() or (ship_dir / XLSX_FILENAME).exists()
 
     def has_logbook_for_mmsi(self, mmsi: int) -> bool:
 
-        return self.xlsx_path_for_mmsi(mmsi) is not None
+        ship_dir = self.resolve_ship_dir_by_mmsi(mmsi)
+
+        if ship_dir is None:
+            return False
+
+        return (ship_dir / CSV_FILENAME).exists() or (ship_dir / XLSX_FILENAME).exists()
 
     def ensure_ship_folder(self, ship) -> Path:
 
@@ -149,6 +166,7 @@ class LogbookManager:
         return ship_dir
 
     def append_observation(self, ship) -> Path | None:
+        """Append CSV on caller thread; schedule XLSX off the hot path."""
 
         ship_dir = self.ensure_ship_folder(ship)
         csv_file = ship_dir / CSV_FILENAME
@@ -158,7 +176,90 @@ class LogbookManager:
             with csv_file.open("a", encoding="utf-8") as handle:
                 handle.write(row)
 
-            return regenerate_xlsx(ship_dir)
+        self.schedule_xlsx_regeneration(ship_dir)
+        return ship_dir / XLSX_FILENAME
+
+    def schedule_xlsx_regeneration(self, ship_dir: Path) -> None:
+
+        if self._stop_requested:
+            return
+
+        key = str(Path(ship_dir).resolve())
+
+        with self._xlsx_worker_lock:
+            if key in self._xlsx_pending:
+                return
+            self._xlsx_pending.add(key)
+            self._ensure_xlsx_worker_unlocked()
+            self._xlsx_queue.put(Path(ship_dir))
+
+    def ensure_xlsx(self, ship_dir: Path) -> Path | None:
+        """Synchronously regenerate XLSX (UI open / import only)."""
+
+        try:
+            with self._lock:
+                return regenerate_xlsx(Path(ship_dir))
+        except Exception:
+            logger.exception("Failed to regenerate logbook XLSX for %s", ship_dir)
+            return None
+
+    def stop(self, timeout: float = 5.0) -> None:
+
+        self._stop_requested = True
+
+        with self._xlsx_worker_lock:
+            worker = self._xlsx_worker
+            if worker is not None and worker.is_alive():
+                self._xlsx_queue.put(_STOP)
+
+        if worker is not None and worker.is_alive():
+            worker.join(timeout=timeout)
+            if worker.is_alive():
+                logger.warning("Logbook XLSX worker did not stop within %.1fs", timeout)
+
+    def _ensure_xlsx_worker_unlocked(self) -> None:
+
+        if self._xlsx_worker is not None and self._xlsx_worker.is_alive():
+            return
+
+        self._stop_requested = False
+        self._xlsx_worker = Thread(
+            target=self._xlsx_worker_loop,
+            name="LogbookXlsxWorker",
+            daemon=True,
+        )
+        self._xlsx_worker.start()
+
+    def _xlsx_worker_loop(self) -> None:
+
+        while True:
+            try:
+                item = self._xlsx_queue.get(timeout=0.5)
+            except Empty:
+                if self._stop_requested:
+                    return
+                continue
+
+            try:
+                if item is _STOP:
+                    return
+
+                ship_dir = Path(item)
+                key = str(ship_dir.resolve())
+
+                with self._xlsx_worker_lock:
+                    self._xlsx_pending.discard(key)
+
+                try:
+                    with self._lock:
+                        regenerate_xlsx(ship_dir)
+                except Exception:
+                    logger.exception(
+                        "Background XLSX regeneration failed for %s",
+                        ship_dir,
+                    )
+            finally:
+                self._xlsx_queue.task_done()
 
     def import_legacy(self, source_dir: Path) -> LegacyImportResult:
 
@@ -189,7 +290,13 @@ class LogbookManager:
                 csv_file = destination / CSV_FILENAME
 
                 if csv_file.exists():
-                    regenerate_xlsx(destination)
+                    try:
+                        regenerate_xlsx(destination)
+                    except Exception:
+                        logger.exception(
+                            "Legacy import XLSX failed for %s",
+                            destination,
+                        )
 
         return LegacyImportResult(
             imported_folders=imported,
@@ -201,9 +308,14 @@ class LogbookManager:
         from PySide6.QtCore import QUrl
         from PySide6.QtGui import QDesktopServices
 
-        xlsx_file = self.xlsx_path_for_mmsi(mmsi)
+        ship_dir = self.resolve_ship_dir_by_mmsi(mmsi)
 
-        if xlsx_file is None:
+        if ship_dir is None:
+            return False
+
+        xlsx_file = self.ensure_xlsx(ship_dir)
+
+        if xlsx_file is None or not xlsx_file.exists():
             return False
 
         return QDesktopServices.openUrl(QUrl.fromLocalFile(str(xlsx_file.resolve())))

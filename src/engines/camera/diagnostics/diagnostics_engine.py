@@ -10,6 +10,9 @@ from engines.camera.diagnostics.diagnostics_result import (
     DiagnosticSeverity,
 )
 from models.camera import Camera
+import logging
+
+logger = logging.getLogger(__name__)
 
 _KNOWN_PROVIDER_TYPES = frozenset({
     "hls",
@@ -251,6 +254,10 @@ class CameraDiagnosticsEngine:
                 try:
                     provider_session = provider.open(camera)
                 except Exception:
+                    logger.exception(
+                        "Camera provider open failed during diagnostics for %s",
+                        camera_id,
+                    )
                     provider_session = None
 
                 if provider_session is None:
@@ -293,7 +300,9 @@ class CameraDiagnosticsEngine:
                     try:
                         provider.close()
                     except Exception:
-                        pass
+                        logger.exception(
+                            "Failed to close camera provider during diagnostics"
+                        )
 
         return results
 
