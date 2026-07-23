@@ -53,7 +53,7 @@ done
 
 echo ""
 echo "--- Release notes ---"
-for note in release/notes/0.3.0-alpha.md release/notes/0.3.0-alpha-full.md; do
+for note in release/notes/0.3.1-alpha.1.md docs/RELEASE_NOTES_0.3.1_ALPHA.1.md; do
     [[ -f "$ROOT/$note" ]] && ok "Present: $note" || fail "Missing: $note"
 done
 

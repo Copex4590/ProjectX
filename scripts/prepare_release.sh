@@ -38,9 +38,12 @@ mkdir -p \
 read_manifest
 
 echo "Syncing release notes..."
-cp -f "$ROOT/website/releases/0.3-alpha.md" "$ROOT/release/notes/0.3.0-alpha.md"
-cp -f "$ROOT/docs/RELEASE_NOTES_0.3_ALPHA.md" "$ROOT/release/notes/0.3.0-alpha-full.md"
-echo "[OK] release/notes/ updated"
+if [[ -f "$ROOT/release/notes/0.3.1-alpha.1.md" && -f "$ROOT/docs/RELEASE_NOTES_0.3.1_ALPHA.1.md" ]]; then
+    echo "[OK] release notes present for 0.3.1-alpha.1"
+else
+    echo "[FAIL] missing 0.3.1-alpha.1 release notes" >&2
+    exit 1
+fi
 
 sync_artifact() {
     local src="$1"

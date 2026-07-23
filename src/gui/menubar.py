@@ -11,12 +11,14 @@ from i18n import tr
 class MenuBar(QMenuBar):
 
     about_requested = Signal()
+    exit_requested = Signal()
 
     def __init__(self):
         super().__init__()
 
         self._file_menu = QMenu(self)
         self._new_profile_action = self._file_menu.addAction("")
+        self._new_profile_action.setEnabled(False)
         self._file_menu.addSeparator()
         self._exit_action = self._file_menu.addAction("")
 
@@ -31,6 +33,7 @@ class MenuBar(QMenuBar):
         self._about_action = self._help_menu.addAction("")
 
         self._about_action.triggered.connect(self.about_requested.emit)
+        self._exit_action.triggered.connect(self.exit_requested.emit)
 
         self.addMenu(self._file_menu)
         self.addMenu(self._view_menu)
@@ -43,7 +46,7 @@ class MenuBar(QMenuBar):
     def refresh_translations(self) -> None:
 
         self._file_menu.setTitle(tr("File"))
-        self._new_profile_action.setText(tr("New Profile"))
+        self._new_profile_action.setText(tr("New Profile (Coming Soon)"))
         self._exit_action.setText(tr("Exit"))
 
         self._view_menu.setTitle(tr("View"))

@@ -265,6 +265,7 @@ class MainWindow(QMainWindow):
         self.menu_bar = MenuBar()
         self.setMenuBar(self.menu_bar)
         self.menu_bar.about_requested.connect(self._show_about)
+        self.menu_bar.exit_requested.connect(QApplication.instance().quit)
         self.menu_bar._dashboard_action.triggered.connect(
             lambda: self.pages.setCurrentIndex(0)
         )

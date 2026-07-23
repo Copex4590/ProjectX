@@ -2,7 +2,7 @@
 
 Documentation for the first installable Windows release using **Inno Setup 6** and **PyInstaller**.
 
-Application version: **0.3.0-alpha**  
+Application version: **0.3.1-alpha.1**  
 Installer output: **`release/windows/ProjectX-Setup.exe`**
 
 ---

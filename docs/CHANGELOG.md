@@ -2,6 +2,32 @@
 
 All notable changes to Project X are documented in this file.
 
+## [0.3.1-alpha.1] — 2026-07-23
+
+First Public Test release (SAVE-205 finalization). Stabilization track SAVE-200…SAVE-205. No new product features in this tag beyond release engineering.
+
+### Added
+
+- Release notes for `0.3.1-alpha.1`
+- Release candidate and finalization reports (`docs/reports/release_candidate.md`, `release_final.md`)
+- First public test checklist
+
+### Changed
+
+- Application version unified to `0.3.1-alpha.1` (`src/version.py`, manifests, installer script, About, window title)
+- File → Exit wired; File → New Profile disabled as Coming Soon
+- HybridEngine async filesystem writer; SQLite WAL + batched writes; incremental map/radar (SAVE-203)
+- Critical runtime hardening (SAVE-202)
+
+### Known issues
+
+- Windows `ProjectX-Setup.exe` requires a native Windows build before publish
+- Rebuild Linux `.deb` / AppImage from this version so package metadata matches `0.3.1-alpha.1`
+- Future AIS providers (MarineTraffic, AISHub) not activatable
+- See `docs/reports/release_final.md`
+
+---
+
 ## [0.3.0-alpha] — 2026-07-05
 
 Project X 0.3 Alpha release (SAVE-050). Stabilization and documentation pass. No new features.

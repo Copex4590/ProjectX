@@ -1,6 +1,6 @@
 # Project X — Linux Release Packages (SAVE-077 / SAVE-085)
 
-Application version: **0.3.0-alpha**
+Application version: **0.3.1-alpha.1**
 
 Public Linux release contents:
 

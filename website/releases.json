@@ -1,25 +1,29 @@
 {
-  "latest": "0.3.1-alpha",
-  "release_date": "2026-07-18",
-  "status": "Alpha",
+  "latest": "0.3.1-alpha.1",
+  "release_date": "2026-07-23",
+  "status": "Alpha — First Public Test",
   "github": "https://github.com/Copex4590/ProjectX",
   "windows": {
-    "version": "0.3.1-alpha",
+    "version": "0.3.1-alpha.1",
     "file": "ProjectX-Setup.exe",
     "checksum_file": "SHA256SUMS",
     "platform": "Windows 10+",
     "format": "Inno Setup installer",
     "architecture": "64-bit",
-    "size": "TBD"
+    "size": "TBD",
+    "available": false,
+    "note": "Windows installer prepared; build on native Windows before publish."
   },
   "linux": {
-    "version": "0.3.1-alpha",
+    "version": "0.3.1-alpha.1",
     "file": "ProjectX.deb",
     "secondary_file": "ProjectX.AppImage",
     "checksum_file": "SHA256SUMS",
     "platform": "Linux Mint / Ubuntu / Debian x86_64",
     "format": "Debian package",
     "architecture": "x86_64",
-    "size": "TBD"
+    "size": "TBD",
+    "available": true,
+    "note": "Rebuild packages from HEAD so embedded version matches 0.3.1-alpha.1."
   }
 }

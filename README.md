@@ -4,8 +4,15 @@
 
 Danube vessel monitoring platform with live AIS map, camera selection, playback, vessel database, timeline, statistics, and alert management.
 
-**Version:** 0.3.0-alpha  
-**Status:** Alpha release
+**Version:** 0.3.1-alpha.1  
+**Status:** Alpha — First Public Test
+
+### Known issues (public test)
+
+- Windows installer is prepared in-repo; `ProjectX-Setup.exe` must be built on Windows before publish.
+- Rebuild Linux packages from this tag so embedded `.deb` version matches `0.3.1-alpha.1`.
+- MarineTraffic / AISHub and File → New Profile are Coming Soon (not activatable).
+- Full list: [release notes](release/notes/0.3.1-alpha.1.md) and [release_final.md](docs/reports/release_final.md).
 
 ## Architecture overview
 
@@ -317,7 +324,8 @@ python3 scripts/generate_branding_assets.py
 ## Documentation
 
 - [CHANGELOG](docs/CHANGELOG.md)
-- [Release Notes 0.3 Alpha](docs/RELEASE_NOTES_0.3_ALPHA.md)
+- [Release Notes 0.3.1-alpha.1](docs/RELEASE_NOTES_0.3.1_ALPHA.1.md)
+- [Release finalization report](docs/reports/release_final.md)
 - [Project Status](docs/PROJECT_STATUS.md)
 - [TODO / known issues](docs/TODO.md)
 
