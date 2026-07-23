@@ -25,6 +25,7 @@ from observation.geo_context import geo_context
 from preferences import preferences_manager
 from app.paths import ensure_runtime_data_dirs, hybrid_runtime_dir, runtime_data_path
 from logbook.paths import HAJOK_DIR as LOGBOOK_HAJOK_DIR
+from engines.rtl.hybrid_file_writer import hybrid_file_writer
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ API_KEY_FILE = str(runtime_data_path("api_key.txt"))
 # SAVE-105: radar file exports are throttled on the AIS/RTL hot path.
 RADAR_WRITE_INTERVAL_S = 1.0
 THREAD_JOIN_TIMEOUT_S = 5.0
+REGISTRY_TTL_SECONDS = 1800
 AIS_RECONNECT_MIN_S = 1.0
 AIS_RECONNECT_MAX_S = 60.0
 
@@ -80,9 +82,12 @@ class HybridEngine(BaseEngine):
 
         self._ais_reconnect_backoff_s = AIS_RECONNECT_MIN_S
         self._ais_connect_lock = threading.Lock()
+        self._state_lock = threading.RLock()
+        hybrid_file_writer.start()
 
     def on_start(self):
 
+        hybrid_file_writer.start()
         self.sync_enabled_providers()
 
         if self.ais_thread is None or not self.ais_thread.is_alive():
@@ -248,6 +253,8 @@ class HybridEngine(BaseEngine):
                     THREAD_JOIN_TIMEOUT_S,
                 )
 
+        hybrid_file_writer.stop(timeout=THREAD_JOIN_TIMEOUT_S)
+
         eventbus.publish("ais.status", status="offline")
         eventbus.publish("rtl.status", status="offline")
 
@@ -276,173 +283,129 @@ class HybridEngine(BaseEngine):
                 self._ws = None
 
     def save_ship_cache(self):
-        try:
-            with open(CACHE_FILE, "w", encoding="utf-8") as f:
-                json.dump(self.ship_names, f, ensure_ascii=False, indent=2)
-        except Exception:
-            logger.exception("Failed to save ship name cache to %s", CACHE_FILE)
+        with self._state_lock:
+            names = dict(self.ship_names)
+        hybrid_file_writer.enqueue(
+            {"kind": "save_cache", "path": CACHE_FILE, "ship_names": names}
+        )
 
     def ensure_ship_folder(self, name):
         ship_dir = os.path.join(HAJOK_DIR, name)
-
-        if not os.path.exists(ship_dir):
-            os.makedirs(ship_dir, exist_ok=True)
-            logger.info("Created ship folder: %s", name)
-
-            csv_file = os.path.join(ship_dir, "adatlap.csv")
-            with open(csv_file, "w", encoding="utf-8") as f:
-                f.write(
-                    "Időpont;"
-                    "Távolság;"
-                    "Haladási irány;"
-                    "Sebesség;"
-                    "Célállomás + ETA;"
-                    "Hívójel;"
-                    "Merülés;"
-                    "MMSI;"
-                    "Hajótípus;"
-                    "Hossz;"
-                    "Szélesség\n"
-                )
-
+        hybrid_file_writer.enqueue({"kind": "ensure_folder", "ship_dir": ship_dir})
         return ship_dir
 
     def write_hajo_txt(self, name, distance, direction, heading, sog):
-        with open(os.path.join(BASE_DIR, "hajo.txt"), "w", encoding="utf-8") as f:
-            f.write(f"{name}\n")
-            f.write(f"{round(distance, 2)} km-re {direction}\n")
-            f.write(f"{heading}\n")
-            if sog >= 0.5:
-                f.write(f"{sog:.1f} csomó\n")
-            else:
-                f.write("\n")
+        lines = [
+            f"{name}",
+            f"{round(distance, 2)} km-re {direction}",
+            f"{heading}",
+            f"{sog:.1f} csomó" if sog >= 0.5 else "",
+            "",
+        ]
+        hybrid_file_writer.enqueue(
+            {
+                "kind": "write_hajo",
+                "path": os.path.join(BASE_DIR, "hajo.txt"),
+                "text": "\n".join(lines),
+            }
+        )
 
-    def write_radar_txt(self):
-        with open(os.path.join(BASE_DIR, "radar.txt"), "w", encoding="utf-8") as rf:
-            rf.write("🚢 RADAR\n\n")
+    def _radar_payload(self, ship: dict, static: dict) -> dict:
+        last_seen = ship.get("last_seen")
+        return {
+            "name": ship["name"],
+            "distance": round(ship["distance"], 2),
+            "lat": ship["lat"],
+            "lon": ship["lon"],
+            "mmsi": ship["mmsi"],
+            "speed": round(float(ship.get("speed", 0) or 0), 1),
+            "direction": ship["direction"],
+            "source": ship["source"],
+            "last_seen": (
+                last_seen.strftime("%Y-%m-%d %H:%M:%S") if last_seen else ""
+            ),
+            "destination": static.get("destination", ""),
+            "eta": static.get("eta", ""),
+            "callsign": static.get("callsign", ""),
+            "draught": static.get("draught", ""),
+            "length": static.get("length", ""),
+            "width": static.get("width", ""),
+        }
 
-            for ship in sorted(
-                self.radar_data.values(),
-                key=lambda x: x["distance"]
-            )[:10]:
-                rf.write(
-                    f'{ship["name"][:20]:20} '
-                    f'{ship["distance"]:.2f} km '
-                    f'{ship["direction"]}\n'
-                )
-
-    def write_radar_kml(self):
-        with open(os.path.join(BASE_DIR, "radar.kml"), "w", encoding="utf-8") as kml:
-            kml.write("""<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-<Document>
-""")
-
-            for ship in self.radar_data.values():
-                static = self.static_ship_data.get(ship["mmsi"], {})
-                age_minutes = int(
-                    (datetime.now() - ship["last_seen"]).total_seconds() / 60
-                )
-
-                if age_minutes < 60:
-                    age_text = f"{age_minutes} perce"
-                else:
-                    age_text = (
-                        f"{age_minutes // 60} órája {age_minutes % 60} perce"
-                    )
-
-                kml.write(f"""
-<Placemark>
-    <name>{ship["name"]}</name>
-    <description>
-{age_text}
-&#10;Távolság: {ship["distance"]:.2f} km
-&#10;Irány: {ship["direction"]}
-&#10;Forrás: {ship["source"]}
-&#10;MMSI: {static.get("mmsi", "?")}
-&#10;Cél: {static.get("destination", "?")}
-&#10;ETA: {static.get("eta", "?")}
-&#10;Hívójel: {static.get("callsign", "?")}
-&#10;Merülés: {static.get("draught", "?")} m
-&#10;Hossz: {static.get("length", "?")} m
-&#10;Szélesség: {static.get("width", "?")} m
-</description>
-    <Point>
-        <coordinates>{ship["lon"]},{ship["lat"]},0</coordinates>
-    </Point>
-</Placemark>
-""")
-
-            kml.write("""
-</Document>
-</kml>
-""")
-
-    def write_radar_json(self):
-        data = []
-
-        for ship in self.radar_data.values():
-            if "last_seen" in ship:
-                if (datetime.now() - ship["last_seen"]).total_seconds() > 300:
-                    continue
-
-            static = self.static_ship_data.get(ship["mmsi"], {})
-
-            data.append({
-                "name": ship["name"],
-                "distance": round(ship["distance"], 2),
-                "lat": ship["lat"],
-                "lon": ship["lon"],
-                "mmsi": ship["mmsi"],
-                "speed": round(ship["speed"], 1),
-                "direction": ship["direction"],
-                "source": ship["source"],
-                "last_seen": (
-                    ship.get("last_seen").strftime("%Y-%m-%d %H:%M:%S")
-                    if ship.get("last_seen") else ""
-                ),
-                "destination": static.get("destination", ""),
-                "eta": static.get("eta", ""),
-                "callsign": static.get("callsign", ""),
-                "draught": static.get("draught", ""),
-                "length": static.get("length", ""),
-                "width": static.get("width", "")
-            })
-
-        with open(os.path.join(BASE_DIR, "radar.json"), "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+    def _enqueue_radar_upsert(self, mmsi: str) -> None:
+        with self._state_lock:
+            ship = self.radar_data.get(mmsi)
+            if ship is None:
+                return
+            static = self.static_ship_data.get(mmsi, {})
+            payload = self._radar_payload(ship, static)
+        hybrid_file_writer.enqueue(
+            {
+                "kind": "radar_upsert",
+                "base_dir": BASE_DIR,
+                "mmsi": mmsi,
+                "payload": payload,
+            }
+        )
 
     def _maybe_write_radar_files(self) -> None:
-        """Write radar TXT/KML/JSON at most once per RADAR_WRITE_INTERVAL_S."""
-
         now = time.monotonic()
         if (now - self._last_radar_write_at) < RADAR_WRITE_INTERVAL_S:
             return
-
         self._last_radar_write_at = now
-        self.write_radar_txt()
-        self.write_radar_kml()
-        self.write_radar_json()
+        self._purge_stale_radar_locked()
+        hybrid_file_writer.enqueue(
+            {"kind": "radar_flush", "base_dir": BASE_DIR, "force_full_kml": False}
+        )
+
+    def _purge_stale_radar_locked(self) -> None:
+        now = datetime.now()
+        stale = []
+        with self._state_lock:
+            for mmsi, ship in list(self.radar_data.items()):
+                last_seen = ship.get("last_seen")
+                if last_seen is None:
+                    continue
+                age = (now - last_seen).total_seconds()
+                if age > REGISTRY_TTL_SECONDS:
+                    stale.append(mmsi)
+            for mmsi in stale:
+                self.radar_data.pop(mmsi, None)
+                self.last_ship_data.pop(mmsi, None)
+                self.last_printed_state.pop(mmsi, None)
+        for mmsi in stale:
+            hybrid_file_writer.enqueue({"kind": "radar_remove", "mmsi": mmsi})
+        if stale:
+            registry.purge_idle(REGISTRY_TTL_SECONDS)
+            for mmsi in stale:
+                try:
+                    registry.remove(int(mmsi))
+                except Exception:
+                    logger.debug(
+                        "Failed to purge stale registry MMSI %s",
+                        mmsi,
+                        exc_info=True,
+                    )
 
     def save_csv_row(self, ship_dir, current_time, distance, direction, heading, sog, mmsi):
-        # SAVE-105: CSV only on the AIS/RTL hot path — no XLSX/subprocess.
-        csv_file = os.path.join(ship_dir, "adatlap.csv")
-        ship_static = self.static_ship_data.get(mmsi, {})
-
-        with open(csv_file, "a", encoding="utf-8") as cf:
-            cf.write(
-                f"{current_time};"
-                f"{round(distance, 2)} km {direction};"
-                f"{heading};"
-                f"{'' if sog < 0.5 else str(round(sog, 1)) + ' csomó'};"
-                f"{ship_static.get('destination', '')} {ship_static.get('eta', '')};"
-                f"{ship_static.get('callsign', '')};"
-                f"{ship_static.get('draught', '')};"
-                f"{ship_static.get('mmsi', mmsi)};"
-                f"{ship_static.get('type', '')};"
-                f"{ship_static.get('length', '')};"
-                f"{ship_static.get('width', '')}\n"
-            )
+        with self._state_lock:
+            ship_static = dict(self.static_ship_data.get(mmsi, {}))
+        row = (
+            f"{current_time};"
+            f"{round(distance, 2)} km {direction};"
+            f"{heading};"
+            f"{'' if sog < 0.5 else str(round(sog, 1)) + ' csomó'};"
+            f"{ship_static.get('destination', '')} {ship_static.get('eta', '')};"
+            f"{ship_static.get('callsign', '')};"
+            f"{ship_static.get('draught', '')};"
+            f"{ship_static.get('mmsi', mmsi)};"
+            f"{ship_static.get('type', '')};"
+            f"{ship_static.get('length', '')};"
+            f"{ship_static.get('width', '')}\n"
+        )
+        hybrid_file_writer.enqueue(
+            {"kind": "append_csv", "ship_dir": ship_dir, "row": row}
+        )
 
     def process_position(self, mmsi, lat, lon, sog, cog, source):
         if lat is None or lon is None:
@@ -451,7 +414,8 @@ class HybridEngine(BaseEngine):
         if not geo_context.is_within_coverage(lat, lon):
             return
 
-        name = sanitize_name(self.ship_names.get(mmsi, ""))
+        with self._state_lock:
+            name = sanitize_name(self.ship_names.get(mmsi, ""))
         if not name:
             name = mmsi
 
@@ -462,71 +426,71 @@ class HybridEngine(BaseEngine):
         heading = get_heading(cog, sog, direction)
         current_time = datetime.now().strftime("%m.%d - %H:%M")
 
-        self.radar_data[mmsi] = {
-            "name": name,
-            "distance": round(distance, 2),
-            "lat": lat,
-            "lon": lon,
-            "mmsi": mmsi,
-            "speed": sog,
-            "direction": direction,
-            "source": source,
-            "last_seen": datetime.now()
-        }
+        with self._state_lock:
+            self.radar_data[mmsi] = {
+                "name": name,
+                "distance": round(distance, 2),
+                "lat": lat,
+                "lon": lon,
+                "mmsi": mmsi,
+                "speed": sog,
+                "direction": direction,
+                "source": source,
+                "last_seen": datetime.now(),
+            }
+
+        self._enqueue_radar_upsert(mmsi)
 
         if direction == "délre":
-            with open(
-                os.path.join(DELI_DIR, f"{name}.txt"), "a", encoding="utf-8"
-            ) as df:
-                df.write(
-                    f"{round(distance, 2)} km | {heading} | "
-                    f"{round(sog,1)} csomó | {current_time}\n"
-                )
+            hybrid_file_writer.enqueue(
+                {
+                    "kind": "append_deli",
+                    "path": os.path.join(DELI_DIR, f"{name}.txt"),
+                    "row": (
+                        f"{round(distance, 2)} km | {heading} | "
+                        f"{round(sog,1)} csomó | {current_time}\n"
+                    ),
+                }
+            )
 
         current_distance = round(distance, 2)
 
-        if mmsi not in self.last_ship_data:
+        with self._state_lock:
+            if mmsi not in self.last_ship_data:
+                self.last_ship_data[mmsi] = {
+                    "distance": current_distance,
+                    "speed": sog,
+                }
+                should_save = True
+            else:
+                last_distance = self.last_ship_data[mmsi]["distance"]
+                should_save = (
+                    abs(current_distance - last_distance) >= 0.01
+                    or sog >= 0.5
+                )
+
             self.last_ship_data[mmsi] = {
                 "distance": current_distance,
-                "speed": sog
+                "speed": sog,
             }
-            should_save = True
-        else:
-            last_distance = self.last_ship_data[mmsi]["distance"]
-            should_save = (
-                abs(current_distance - last_distance) >= 0.01
-                or sog >= 0.5
-            )
+
+            moving = sog >= 0.5
+            prev_state = self.last_printed_state.get(mmsi)
+            should_print = False
+            if moving:
+                should_print = True
+                self.last_printed_state[mmsi] = "moving"
+            elif prev_state != "stopped":
+                should_print = True
+                self.last_printed_state[mmsi] = "stopped"
+
+            static = dict(self.static_ship_data.get(mmsi, {}))
 
         if should_save:
             self.save_csv_row(
                 ship_dir, current_time, distance, direction, heading, sog, mmsi
             )
 
-        self.last_ship_data[mmsi] = {
-            "distance": current_distance,
-            "speed": sog
-        }
-
-        # --------------------------------------------------
-        # KIÍRÁSI LOGIKA:
-        # mozgó hajó mindig frissül
-        # álló hajó csak egyszer, aztán csak ha újra megmozdul
-        # --------------------------------------------------
-        moving = sog >= 0.5
-        prev_state = self.last_printed_state.get(mmsi)
-
-        should_print = False
-
-        if moving:
-            should_print = True
-            self.last_printed_state[mmsi] = "moving"
-        else:
-            if prev_state != "stopped":
-                should_print = True
-                self.last_printed_state[mmsi] = "stopped"
-
-        static = self.static_ship_data.get(mmsi, {})
         mmsi_int = int(mmsi)
         existing = registry.get(mmsi_int)
 

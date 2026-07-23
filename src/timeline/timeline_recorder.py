@@ -8,6 +8,7 @@ from datetime import datetime
 from queue import Empty, Queue
 from threading import Lock, Thread
 import logging
+import time
 
 from models.ship import Ship
 from timeline.timeline_manager import TimelineManager, timeline_manager
@@ -18,6 +19,8 @@ logger = logging.getLogger(__name__)
 EVENT_POSITION_UPDATE = "POSITION_UPDATE"
 POSITION_EPSILON = 0.00001
 _STOP = object()
+_BATCH_FLUSH_S = 0.5
+_BATCH_MAX = 64
 
 
 def _normalize_mmsi(mmsi: int | str | None) -> int | None:
@@ -197,23 +200,71 @@ class TimelineRecorder:
 
     def _worker_loop(self) -> None:
 
+        pending: list[TimelineObservation] = []
+        last_flush = time.monotonic()
+
         while True:
+            timeout = max(0.05, _BATCH_FLUSH_S - (time.monotonic() - last_flush))
             try:
-                observation = self._queue.get(timeout=0.5)
+                observation = self._queue.get(timeout=timeout)
             except Empty:
-                if self._stop_requested:
-                    return
-                continue
+                observation = None
 
             try:
                 if observation is _STOP:
+                    if pending:
+                        self._flush_pending(pending)
+                        pending.clear()
+                    self._queue.task_done()
                     return
 
-                self._apply_observation(observation)
+                if observation is not None:
+                    pending.append(observation)
+                    self._queue.task_done()
+
+                due = pending and (
+                    len(pending) >= _BATCH_MAX
+                    or (time.monotonic() - last_flush) >= _BATCH_FLUSH_S
+                )
+                if due:
+                    self._flush_pending(pending)
+                    pending.clear()
+                    last_flush = time.monotonic()
+
+                if observation is None and self._stop_requested and not pending:
+                    return
             except Exception:
-                logger.exception("TimelineRecorder failed to apply observation")
-            finally:
-                self._queue.task_done()
+                logger.exception("TimelineRecorder failed to apply observation batch")
+                pending.clear()
+                last_flush = time.monotonic()
+
+    def _flush_pending(self, pending: list[TimelineObservation]) -> None:
+
+        records: list[TimelineRecord] = []
+        for observation in pending:
+            if not self._should_record(observation):
+                continue
+            records.append(
+                TimelineRecord(
+                    mmsi=observation.mmsi,
+                    timestamp=observation.timestamp,
+                    event_type=EVENT_POSITION_UPDATE,
+                    latitude=observation.latitude,
+                    longitude=observation.longitude,
+                    speed=observation.speed,
+                    course=observation.course,
+                    heading=observation.heading,
+                    source=observation.source,
+                )
+            )
+            self._remember_position(
+                observation.mmsi,
+                observation.latitude,
+                observation.longitude,
+            )
+
+        if records:
+            self._manager.append_many(records)
 
     def _apply_observation(
         self,

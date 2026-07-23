@@ -20,6 +20,10 @@ class TimelineManager:
 
         return self._registry.append(record)
 
+    def append_many(self, records: list[TimelineRecord]) -> list[TimelineRecord]:
+
+        return self._registry.append_many(records)
+
     def history(self, mmsi: int | str) -> list[TimelineRecord]:
 
         return self._registry.history(mmsi)

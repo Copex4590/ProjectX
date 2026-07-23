@@ -24,7 +24,11 @@ from PySide6.QtWidgets import (
 )
 
 from ais import AISSTREAM_REGISTER_URL, ais_manager
-from ais.providers import AISProviderType, normalize_provider_type
+from ais.providers import (
+    AISProviderType,
+    FUTURE_AIS_PROVIDERS,
+    normalize_provider_type,
+)
 from ais.user_provider_service import (
     derive_enabled_providers,
     is_provider_configured,
@@ -257,7 +261,10 @@ class AISSetupWidget(QWidget):
 
         for provider in _PROVIDER_OPTIONS:
             checkbox = QCheckBox()
-            if provider == AISProviderType.AISSTREAM:
+            if provider in FUTURE_AIS_PROVIDERS:
+                checkbox.setEnabled(False)
+                checkbox.setChecked(False)
+            elif provider == AISProviderType.AISSTREAM:
                 checkbox.setChecked(True)
             self._provider_checkboxes[provider] = checkbox
             provider_layout.addWidget(checkbox)
@@ -378,6 +385,10 @@ class AISSetupWidget(QWidget):
         }
 
         for provider, checkbox in self._provider_checkboxes.items():
+            if provider in FUTURE_AIS_PROVIDERS:
+                checkbox.setChecked(False)
+                checkbox.setEnabled(False)
+                continue
             checkbox.setChecked(provider in enabled)
 
         self._api_key_input.setText(preferences.aisstream_api_key)
@@ -392,7 +403,7 @@ class AISSetupWidget(QWidget):
         return {
             provider
             for provider, checkbox in self._provider_checkboxes.items()
-            if checkbox.isChecked()
+            if checkbox.isChecked() and provider not in FUTURE_AIS_PROVIDERS
         }
 
     def _save_enabled_providers(self, enabled: set[AISProviderType]) -> None:

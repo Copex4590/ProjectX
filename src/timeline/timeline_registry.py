@@ -1,7 +1,9 @@
 # ============================================================================
 # Project X
-# Vessel Timeline Registry
+# Vessel Timeline Registry (SAVE-203: WAL + persistent + batched inserts)
 # ============================================================================
+
+from __future__ import annotations
 
 import os
 import sqlite3
@@ -87,30 +89,39 @@ class TimelineRegistry:
 
         self._db_path = Path(db_path or TIMELINE_DATABASE_FILE)
         self._lock = Lock()
+        self._connection: sqlite3.Connection | None = None
         self._ensure_schema()
 
     def append(self, record: TimelineRecord) -> TimelineRecord:
 
-        normalized_mmsi = _normalize_mmsi(record.mmsi)
+        return self.append_many([record])[0]
 
-        if normalized_mmsi is None:
-            raise ValueError("Timeline record requires a valid MMSI")
+    def append_many(self, records: list[TimelineRecord]) -> list[TimelineRecord]:
 
-        payload = TimelineRecord(
-            mmsi=normalized_mmsi,
-            timestamp=record.timestamp or datetime.now(),
-            event_type=record.safe_text(record.event_type),
-            latitude=record.latitude,
-            longitude=record.longitude,
-            speed=record.speed,
-            course=record.course,
-            heading=record.heading,
-            source=record.safe_text(record.source),
-            metadata=dict(record.metadata or {}),
-        )
+        if not records:
+            return []
+
+        results: list[TimelineRecord] = []
 
         with self._lock:
-            with self._connect() as connection:
+            connection = self._conn()
+            for record in records:
+                normalized_mmsi = _normalize_mmsi(record.mmsi)
+                if normalized_mmsi is None:
+                    raise ValueError("Timeline record requires a valid MMSI")
+
+                payload = TimelineRecord(
+                    mmsi=normalized_mmsi,
+                    timestamp=record.timestamp or datetime.now(),
+                    event_type=record.safe_text(record.event_type),
+                    latitude=record.latitude,
+                    longitude=record.longitude,
+                    speed=record.speed,
+                    course=record.course,
+                    heading=record.heading,
+                    source=record.safe_text(record.source),
+                    metadata=dict(record.metadata or {}),
+                )
                 cursor = connection.execute(
                     _INSERT_SQL,
                     (
@@ -126,19 +137,12 @@ class TimelineRegistry:
                         payload.metadata_json(),
                     ),
                 )
-                connection.commit()
-                record_id = int(cursor.lastrowid)
+                payload.id = int(cursor.lastrowid)
+                results.append(payload)
 
-                row = connection.execute(
-                    "SELECT * FROM vessel_timeline WHERE id = ?",
-                    (record_id,),
-                ).fetchone()
+            connection.commit()
 
-        if row is None:
-            payload.id = record_id
-            return payload
-
-        return TimelineRecord.from_row(row)
+        return results
 
     def history(self, mmsi: int | str) -> list[TimelineRecord]:
 
@@ -148,15 +152,14 @@ class TimelineRegistry:
             return []
 
         with self._lock:
-            with self._connect() as connection:
-                rows = connection.execute(
-                    """
-                    SELECT * FROM vessel_timeline
-                    WHERE mmsi = ?
-                    ORDER BY timestamp ASC, id ASC
-                    """,
-                    (normalized_mmsi,),
-                ).fetchall()
+            rows = self._conn().execute(
+                """
+                SELECT * FROM vessel_timeline
+                WHERE mmsi = ?
+                ORDER BY timestamp ASC, id ASC
+                """,
+                (normalized_mmsi,),
+            ).fetchall()
 
         return [TimelineRecord.from_row(row) for row in rows]
 
@@ -168,16 +171,15 @@ class TimelineRegistry:
             return None
 
         with self._lock:
-            with self._connect() as connection:
-                row = connection.execute(
-                    """
-                    SELECT * FROM vessel_timeline
-                    WHERE mmsi = ?
-                    ORDER BY timestamp DESC, id DESC
-                    LIMIT 1
-                    """,
-                    (normalized_mmsi,),
-                ).fetchone()
+            row = self._conn().execute(
+                """
+                SELECT * FROM vessel_timeline
+                WHERE mmsi = ?
+                ORDER BY timestamp DESC, id DESC
+                LIMIT 1
+                """,
+                (normalized_mmsi,),
+            ).fetchone()
 
         if row is None:
             return None
@@ -187,10 +189,9 @@ class TimelineRegistry:
     def count(self) -> int:
 
         with self._lock:
-            with self._connect() as connection:
-                row = connection.execute(
-                    "SELECT COUNT(*) AS total FROM vessel_timeline"
-                ).fetchone()
+            row = self._conn().execute(
+                "SELECT COUNT(*) AS total FROM vessel_timeline"
+            ).fetchone()
 
         if row is None:
             return 0
@@ -200,13 +201,12 @@ class TimelineRegistry:
     def all(self) -> list[TimelineRecord]:
 
         with self._lock:
-            with self._connect() as connection:
-                rows = connection.execute(
-                    """
-                    SELECT * FROM vessel_timeline
-                    ORDER BY timestamp DESC, id DESC
-                    """
-                ).fetchall()
+            rows = self._conn().execute(
+                """
+                SELECT * FROM vessel_timeline
+                ORDER BY timestamp DESC, id DESC
+                """
+            ).fetchall()
 
         return [TimelineRecord.from_row(row) for row in rows]
 
@@ -215,12 +215,15 @@ class TimelineRegistry:
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
 
         with self._lock:
-            with self._connect() as connection:
-                connection.execute(_SCHEMA_SQL)
-                connection.execute(_INDEX_SQL)
-                connection.commit()
+            connection = self._conn()
+            connection.execute(_SCHEMA_SQL)
+            connection.execute(_INDEX_SQL)
+            connection.commit()
 
-    def _connect(self) -> sqlite3.Connection:
+    def _conn(self) -> sqlite3.Connection:
+
+        if self._connection is not None:
+            return self._connection
 
         connection = sqlite3.connect(
             self._db_path,
@@ -228,6 +231,9 @@ class TimelineRegistry:
             check_same_thread=False,
         )
         connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA journal_mode=WAL")
+        connection.execute("PRAGMA synchronous=NORMAL")
+        self._connection = connection
         return connection
 
 

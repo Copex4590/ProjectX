@@ -45,6 +45,35 @@ def _serialize_ship_marker(ship) -> dict:
     }
 
 
+def _marker_fingerprint(ship) -> tuple:
+
+    return (
+        ship.mmsi,
+        round(float(ship.lat or 0.0), 5),
+        round(float(ship.lon or 0.0), 5),
+        round(float(ship.speed or 0.0), 1),
+        round(float(ship.course or 0.0), 0),
+        round(float(ship.heading or 0.0), 0),
+        str(ship.name or ""),
+    )
+
+
+def _full_fingerprint(ship) -> tuple:
+
+    return _marker_fingerprint(ship) + (
+        str(ship.callsign or ""),
+        str(ship.ship_type or ""),
+        str(ship.destination or ""),
+        str(ship.eta or ""),
+        str(ship.source or ""),
+        bool(ship.ais_visible),
+        bool(ship.rtl_visible),
+        round(float(ship.distance_km or 0.0), 2),
+        str(ship.direction or ""),
+        str(ship.text_heading or ""),
+    )
+
+
 def _timeline_fields(mmsi: int) -> tuple[list[dict], str]:
 
     trace_enter(f"MapPage._timeline_fields mmsi={mmsi}")
@@ -299,6 +328,9 @@ class MapPage(QWidget):
         self._ships_update_pending = None  # serializer waiting while busy
         self._markers_dirty = True
         self._ship_refresh_generation = 0
+        self._marker_fingerprints: dict[int, tuple] = {}
+        self._full_fingerprints: dict[int, tuple] = {}
+        self._force_map_full_sync = True
 
         language_manager.language_changed.connect(
             lambda _code: self.apply_personalization()
@@ -568,12 +600,51 @@ class MapPage(QWidget):
                     f"MapPage._publish_ships.registry.all count={len(ships)}"
                 )
 
+                is_full = serializer is _serialize_ship
+                fingerprints = (
+                    self._full_fingerprints if is_full else self._marker_fingerprints
+                )
+                fingerprint_fn = (
+                    _full_fingerprint if is_full else _marker_fingerprint
+                )
+                force_full = self._force_map_full_sync and is_full
+
+                current_mmsis = {int(ship.mmsi) for ship in ships}
+                remove = [
+                    mmsi for mmsi in list(fingerprints) if mmsi not in current_mmsis
+                ]
+                for mmsi in remove:
+                    fingerprints.pop(mmsi, None)
+
+                upsert = []
                 trace_enter("MapPage._publish_ships.serialize_loop")
-                serialized = [serializer(ship) for ship in ships]
-                trace_exit("MapPage._publish_ships.serialize_loop")
+                for ship in ships:
+                    mmsi = int(ship.mmsi)
+                    fingerprint = fingerprint_fn(ship)
+                    if force_full or fingerprints.get(mmsi) != fingerprint:
+                        upsert.append(serializer(ship))
+                        fingerprints[mmsi] = fingerprint
+                trace_exit(
+                    f"MapPage._publish_ships.serialize_loop "
+                    f"upsert={len(upsert)} remove={len(remove)}"
+                )
+
+                if not upsert and not remove and not force_full:
+                    trace_event("MapPage._publish_ships skipped unchanged")
+                    return
+
+                if force_full:
+                    payload_obj = {"mode": "full", "ships": upsert}
+                    self._force_map_full_sync = False
+                else:
+                    payload_obj = {
+                        "mode": "patch",
+                        "upsert": upsert,
+                        "remove": remove,
+                    }
 
                 trace_enter("MapPage._publish_ships.json_dumps")
-                payload = json.dumps(serialized)
+                payload = json.dumps(payload_obj)
                 trace_exit(
                     f"MapPage._publish_ships.json_dumps bytes={len(payload)}"
                 )
@@ -603,6 +674,7 @@ class MapPage(QWidget):
         with trace_block("MapPage.showEvent"):
             super().showEvent(event)
             self._map_controller.on_map_page_visible()
+        self._force_map_full_sync = True
         self._start_ship_timers()
         self._update_ship_markers()
         self._schedule_ships_full("MapPage.showEvent->_update_ships_full")

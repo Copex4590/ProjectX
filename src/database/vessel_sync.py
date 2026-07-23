@@ -8,6 +8,7 @@ from datetime import datetime
 from queue import Empty, Queue
 from threading import Lock, Thread
 import logging
+import time
 
 from database.vessel_database import VesselDatabase, vessel_database
 from models.ship import Ship
@@ -16,6 +17,8 @@ from models.vessel_record import VesselRecord
 logger = logging.getLogger(__name__)
 
 _STOP = object()
+_BATCH_FLUSH_S = 0.5
+_BATCH_MAX = 64
 
 _TEXT_FIELDS = ("imo", "name", "callsign", "ship_type", "flag")
 _FLOAT_FIELDS = ("length", "width", "draft")
@@ -224,25 +227,58 @@ class VesselSync:
 
     def _worker_loop(self) -> None:
 
+        pending: dict[int, VesselObservation] = {}
+        last_flush = time.monotonic()
+
         while True:
+            timeout = max(0.05, _BATCH_FLUSH_S - (time.monotonic() - last_flush))
             try:
-                observation = self._queue.get(timeout=0.5)
+                observation = self._queue.get(timeout=timeout)
             except Empty:
-                if self._stop_requested:
-                    return
-                continue
+                observation = None
 
             try:
                 if observation is _STOP:
+                    if pending:
+                        self._flush_pending(pending)
+                        pending.clear()
+                    self._queue.task_done()
                     return
 
-                self._apply_observation(observation)
-            except Exception:
-                logger.exception("VesselSync failed to apply observation")
-            finally:
-                self._queue.task_done()
+                if observation is not None:
+                    pending[observation.mmsi] = observation
+                    self._queue.task_done()
 
-    def _apply_observation(
+                due = (
+                    pending
+                    and (
+                        len(pending) >= _BATCH_MAX
+                        or (time.monotonic() - last_flush) >= _BATCH_FLUSH_S
+                    )
+                )
+                if due:
+                    self._flush_pending(pending)
+                    pending.clear()
+                    last_flush = time.monotonic()
+
+                if observation is None and self._stop_requested and not pending:
+                    return
+            except Exception:
+                logger.exception("VesselSync failed to apply observation batch")
+                pending.clear()
+                last_flush = time.monotonic()
+
+    def _flush_pending(self, pending: dict[int, VesselObservation]) -> None:
+
+        records: list[VesselRecord] = []
+        for observation in pending.values():
+            record = self._observation_to_record(observation)
+            if record is not None:
+                records.append(record)
+        if records:
+            self._database.upsert_many(records)
+
+    def _observation_to_record(
         self,
         observation: VesselObservation,
     ) -> VesselRecord | None:
@@ -251,7 +287,7 @@ class VesselSync:
 
         if existing is None:
             now = _normalize_timestamp(datetime.now())
-            record = VesselRecord(
+            return VesselRecord(
                 mmsi=observation.mmsi,
                 imo=observation.imo,
                 name=observation.name,
@@ -266,14 +302,21 @@ class VesselSync:
                 created_at=now,
                 updated_at=now,
             )
-            return self._database.upsert(record)
 
         merged, changed = _merge_observation(existing, observation)
-
         if not changed:
-            return existing
+            return None
+        return merged
 
-        return self._database.upsert(merged)
+    def _apply_observation(
+        self,
+        observation: VesselObservation,
+    ) -> VesselRecord | None:
+
+        record = self._observation_to_record(observation)
+        if record is None:
+            return self._database.get(observation.mmsi)
+        return self._database.upsert(record)
 
 
 vessel_sync = VesselSync()

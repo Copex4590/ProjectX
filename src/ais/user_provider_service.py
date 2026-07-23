@@ -8,7 +8,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ais.ais_manager import ais_manager
-from ais.providers import AISProviderType, normalize_provider_type
+from ais.providers import (
+    AISProviderType,
+    normalize_provider_type,
+)
 from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
 from events import eventbus
 from i18n import tr
@@ -96,16 +99,41 @@ def legacy_provider_from_enabled(enabled: set[AISProviderType]) -> str:
     return AISProviderType.LATER.value
 
 
+_RUNTIME_ACTIVATABLE = frozenset(
+    {
+        AISProviderType.AISSTREAM,
+        AISProviderType.LOCAL,
+    }
+)
+
+
+def is_runtime_activatable(provider: AISProviderType | str) -> bool:
+    """Future providers must never allocate timers, threads, or network."""
+
+    return normalize_provider_type(provider) in _RUNTIME_ACTIVATABLE
+
+
+def _filter_runtime_provider_ids(provider_ids: list[str]) -> list[str]:
+
+    filtered: list[str] = []
+    for value in provider_ids:
+        provider = normalize_provider_type(value)
+        if provider in _RUNTIME_ACTIVATABLE:
+            filtered.append(provider.value)
+    return filtered
+
+
 def get_enabled_provider_ids() -> list[str]:
 
     preferences = preferences_manager.get()
     enabled_values = preferences.ais_enabled_providers
 
     if enabled_values is not None:
-        return [str(value).strip() for value in enabled_values if str(value).strip()]
+        raw = [str(value).strip() for value in enabled_values if str(value).strip()]
+        return _filter_runtime_provider_ids(raw)
 
     provider = normalize_provider_type(preferences.ais_provider)
-    return derive_enabled_providers(provider)
+    return _filter_runtime_provider_ids(derive_enabled_providers(provider))
 
 
 def ordered_provider_ids(provider_ids: list[str] | None = None) -> list[str]:
@@ -195,13 +223,19 @@ def get_provider_snapshot(provider_id: str) -> ProviderSnapshot:
 
 def set_enabled_providers(enabled: set[AISProviderType]) -> None:
 
-    legacy_provider = legacy_provider_from_enabled(enabled)
+    runtime_enabled = {
+        provider
+        for provider in enabled
+        if normalize_provider_type(provider) in _RUNTIME_ACTIVATABLE
+    }
+
+    legacy_provider = legacy_provider_from_enabled(runtime_enabled)
     preferences_manager.set_ais_enabled_providers(
-        [provider.value for provider in enabled],
+        [provider.value for provider in runtime_enabled],
         legacy_provider=legacy_provider,
     )
 
-    if not enabled:
+    if not runtime_enabled:
         ais_manager.save_configuration(
             provider_type=AISProviderType.LATER.value,
             configured=False,

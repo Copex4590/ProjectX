@@ -1,7 +1,9 @@
 # ============================================================================
 # Project X
-# Vessel Database
+# Vessel Database (SAVE-203: WAL + persistent connection)
 # ============================================================================
+
+from __future__ import annotations
 
 import os
 import sqlite3
@@ -98,6 +100,8 @@ class VesselDatabase:
 
         self._db_path = Path(db_path or VESSEL_DATABASE_FILE)
         self._lock = Lock()
+        self._connection: sqlite3.Connection | None = None
+        self._upsert_stmt = None
         self._ensure_schema()
 
     def get(self, mmsi: int | str) -> VesselRecord | None:
@@ -108,11 +112,11 @@ class VesselDatabase:
             return None
 
         with self._lock:
-            with self._connect() as connection:
-                row = connection.execute(
-                    "SELECT * FROM vessels WHERE mmsi = ?",
-                    (normalized_mmsi,),
-                ).fetchone()
+            connection = self._conn()
+            row = connection.execute(
+                "SELECT * FROM vessels WHERE mmsi = ?",
+                (normalized_mmsi,),
+            ).fetchone()
 
         if row is None:
             return None
@@ -121,30 +125,38 @@ class VesselDatabase:
 
     def upsert(self, record: VesselRecord) -> VesselRecord:
 
-        normalized_mmsi = _normalize_mmsi(record.mmsi)
+        return self.upsert_many([record])[0]
 
-        if normalized_mmsi is None:
-            raise ValueError("Vessel record requires a valid MMSI")
+    def upsert_many(self, records: list[VesselRecord]) -> list[VesselRecord]:
 
-        now = datetime.now()
-        payload = VesselRecord(
-            mmsi=normalized_mmsi,
-            imo=record.safe_text(record.imo),
-            name=record.safe_text(record.name),
-            callsign=record.safe_text(record.callsign),
-            ship_type=record.safe_text(record.ship_type),
-            flag=record.safe_text(record.flag),
-            length=record.length,
-            width=record.width,
-            draft=record.draft,
-            first_seen=record.first_seen or now,
-            last_seen=record.last_seen or now,
-            created_at=record.created_at or now,
-            updated_at=record.updated_at or now,
-        )
+        if not records:
+            return []
+
+        results: list[VesselRecord] = []
 
         with self._lock:
-            with self._connect() as connection:
+            connection = self._conn()
+            for record in records:
+                normalized_mmsi = _normalize_mmsi(record.mmsi)
+                if normalized_mmsi is None:
+                    raise ValueError("Vessel record requires a valid MMSI")
+
+                now = datetime.now()
+                payload = VesselRecord(
+                    mmsi=normalized_mmsi,
+                    imo=record.safe_text(record.imo),
+                    name=record.safe_text(record.name),
+                    callsign=record.safe_text(record.callsign),
+                    ship_type=record.safe_text(record.ship_type),
+                    flag=record.safe_text(record.flag),
+                    length=record.length,
+                    width=record.width,
+                    draft=record.draft,
+                    first_seen=record.first_seen or now,
+                    last_seen=record.last_seen or now,
+                    created_at=record.created_at or now,
+                    updated_at=record.updated_at or now,
+                )
                 connection.execute(
                     _UPSERT_SQL,
                     (
@@ -163,35 +175,27 @@ class VesselDatabase:
                         _format_timestamp(payload.updated_at),
                     ),
                 )
-                connection.commit()
+                results.append(payload)
 
-                row = connection.execute(
-                    "SELECT * FROM vessels WHERE mmsi = ?",
-                    (normalized_mmsi,),
-                ).fetchone()
+            connection.commit()
 
-        if row is None:
-            return payload
-
-        return VesselRecord.from_row(row)
+        return results
 
     def all(self) -> list[VesselRecord]:
 
         with self._lock:
-            with self._connect() as connection:
-                rows = connection.execute(
-                    "SELECT * FROM vessels ORDER BY mmsi"
-                ).fetchall()
+            rows = self._conn().execute(
+                "SELECT * FROM vessels ORDER BY mmsi"
+            ).fetchall()
 
         return [VesselRecord.from_row(row) for row in rows]
 
     def count(self) -> int:
 
         with self._lock:
-            with self._connect() as connection:
-                row = connection.execute(
-                    "SELECT COUNT(*) AS total FROM vessels"
-                ).fetchone()
+            row = self._conn().execute(
+                "SELECT COUNT(*) AS total FROM vessels"
+            ).fetchone()
 
         if row is None:
             return 0
@@ -203,11 +207,14 @@ class VesselDatabase:
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
 
         with self._lock:
-            with self._connect() as connection:
-                connection.execute(_SCHEMA_SQL)
-                connection.commit()
+            connection = self._conn()
+            connection.execute(_SCHEMA_SQL)
+            connection.commit()
 
-    def _connect(self) -> sqlite3.Connection:
+    def _conn(self) -> sqlite3.Connection:
+
+        if self._connection is not None:
+            return self._connection
 
         connection = sqlite3.connect(
             self._db_path,
@@ -215,6 +222,9 @@ class VesselDatabase:
             check_same_thread=False,
         )
         connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA journal_mode=WAL")
+        connection.execute("PRAGMA synchronous=NORMAL")
+        self._connection = connection
         return connection
 
 

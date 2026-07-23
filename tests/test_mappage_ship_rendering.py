@@ -61,12 +61,13 @@ class MapPageShipUpdateGateTests(unittest.TestCase):
 
         page = self._page()
         page._map_controller.pick_mode.return_value = PickMode.NONE
+        page._markers_dirty = False
+        page._marker_timer.isActive.return_value = True
 
         with patch.object(MapPage, "_map_page_is_current", return_value=True):
             with patch.object(MapPage, "isVisible", return_value=True):
-                with patch.object(MapPage, "_update_ship_markers") as marker_update:
-                    page.on_ship_updated()
-                    marker_update.assert_called_once()
+                page.on_ship_updated()
+                self.assertTrue(page._markers_dirty)
 
 
 class MapControllerStalePickTests(unittest.TestCase):

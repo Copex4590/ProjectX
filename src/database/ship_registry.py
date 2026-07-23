@@ -150,6 +150,28 @@ class ShipRegistry:
 
             return len(stale_mmsis)
 
+    def purge_idle(self, idle_seconds: float) -> int:
+        """Remove ships not seen within idle_seconds (registry TTL)."""
+
+        from datetime import datetime, timedelta
+
+        if idle_seconds <= 0:
+            return 0
+
+        cutoff = datetime.now() - timedelta(seconds=idle_seconds)
+
+        with self._lock:
+            stale_mmsis = [
+                mmsi
+                for mmsi, ship in self._ships.items()
+                if ship.last_seen is None or ship.last_seen < cutoff
+            ]
+
+            for mmsi in stale_mmsis:
+                self._ships.pop(mmsi, None)
+
+            return len(stale_mmsis)
+
     def names(self):
 
         with self._lock:

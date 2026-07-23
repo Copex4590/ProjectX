@@ -966,96 +966,133 @@ function updateMarkerAppearance(marker, ship)
     body.style.transform = "";
 }
 
-function updateShips(list)
+function upsertShipMarker(ship)
+{
+    const mmsi = ship.mmsi;
+    const pos = [ship.lat, ship.lon];
+
+    if (!ships[mmsi])
+    {
+        const icon = L.divIcon({
+            className: "ship-icon",
+            html: "<div class='ship-body'></div>",
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+
+        ships[mmsi] = L.marker(pos, {
+            icon: icon
+        }).addTo(map);
+
+        ships[mmsi].bindPopup("");
+    }
+    else
+    {
+        ships[mmsi].setLatLng(pos);
+    }
+
+    updateMarkerAppearance(ships[mmsi], ship);
+
+    const marker = ships[mmsi];
+    const popupOpen = openPopupMmsi === mmsi && marker.isPopupOpen();
+    let scrollTop = 0;
+
+    if (popupOpen)
+    {
+        const popupElement = marker.getPopup().getElement();
+
+        if (popupElement)
+        {
+            const scrollElement = popupElement.querySelector(
+                ".vessel-card__scroll--scrollable"
+            );
+
+            if (scrollElement)
+                scrollTop = scrollElement.scrollTop;
+        }
+    }
+
+    if (ship.popup_html)
+        marker.setPopupContent(popupContent(ship));
+
+    restorePopupScroll(marker, scrollTop);
+
+    if (popupOpen)
+        attachLogbookHandlers(marker.getPopup().getElement());
+
+    if (!trails[mmsi])
+    {
+        trails[mmsi] = L.polyline([], {
+            color: "red",
+            weight: 1
+        }).addTo(map);
+    }
+
+    const line = trails[mmsi].getLatLngs();
+
+    line.push(pos);
+
+    if (line.length > 50)
+        line.shift();
+
+    trails[mmsi].setLatLngs(line);
+}
+
+function removeShipMarker(mmsi)
+{
+    if (ships[mmsi])
+    {
+        map.removeLayer(ships[mmsi]);
+        delete ships[mmsi];
+    }
+
+    if (trails[mmsi])
+    {
+        map.removeLayer(trails[mmsi]);
+        delete trails[mmsi];
+    }
+}
+
+function applyFullShips(list)
 {
     const active = new Set();
 
     for (const ship of list)
     {
-        const mmsi = ship.mmsi;
-        active.add(Number(mmsi));
-
-        const pos = [ship.lat, ship.lon];
-
-        if (!ships[mmsi])
-        {
-            const icon = L.divIcon({
-                className: "ship-icon",
-                html: "<div class='ship-body'></div>",
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
-            });
-
-            ships[mmsi] = L.marker(pos, {
-                icon: icon
-            }).addTo(map);
-
-            ships[mmsi].bindPopup("");
-        }
-        else
-        {
-            ships[mmsi].setLatLng(pos);
-        }
-
-        updateMarkerAppearance(ships[mmsi], ship);
-
-        const marker = ships[mmsi];
-        const popupOpen = openPopupMmsi === mmsi && marker.isPopupOpen();
-        let scrollTop = 0;
-
-        if (popupOpen)
-        {
-            const popupElement = marker.getPopup().getElement();
-
-            if (popupElement)
-            {
-                const scrollElement = popupElement.querySelector(
-                    ".vessel-card__scroll--scrollable"
-                );
-
-                if (scrollElement)
-                    scrollTop = scrollElement.scrollTop;
-            }
-        }
-
-        marker.setPopupContent(popupContent(ship));
-        restorePopupScroll(marker, scrollTop);
-
-        if (popupOpen)
-            attachLogbookHandlers(marker.getPopup().getElement());
-
-        if (!trails[mmsi])
-        {
-            trails[mmsi] = L.polyline([], {
-                color: "red",
-                weight: 1
-            }).addTo(map);
-        }
-
-        const line = trails[mmsi].getLatLngs();
-
-        line.push(pos);
-
-        if (line.length > 50)
-            line.shift();
-
-        trails[mmsi].setLatLngs(line);
+        active.add(Number(ship.mmsi));
+        upsertShipMarker(ship);
     }
 
     for (const mmsi in ships)
     {
         if (!active.has(Number(mmsi)))
-        {
-            map.removeLayer(ships[mmsi]);
-            delete ships[mmsi];
-
-            if (trails[mmsi])
-            {
-                map.removeLayer(trails[mmsi]);
-                delete trails[mmsi];
-            }
-        }
+            removeShipMarker(mmsi);
     }
+}
+
+function updateShips(payload)
+{
+    // Legacy: bare array = full replace. SAVE-203: {mode, ships|upsert, remove}.
+    if (Array.isArray(payload))
+    {
+        applyFullShips(payload);
+        return;
+    }
+
+    if (!payload || typeof payload !== "object")
+        return;
+
+    if (payload.mode === "full")
+    {
+        applyFullShips(payload.ships || []);
+        return;
+    }
+
+    for (const ship of (payload.upsert || []))
+        upsertShipMarker(ship);
+
+    for (const mmsi of (payload.remove || []))
+        removeShipMarker(mmsi);
 }
 
 function focusShip(mmsi)

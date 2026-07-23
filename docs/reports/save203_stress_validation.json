@@ -1,0 +1,23 @@
+{
+  "duration_s": 12.0,
+  "target_vessels": 300,
+  "updates_per_sec": 250.0,
+  "updates_sent": 2798,
+  "active_vessels_final": 300,
+  "active_vessels_max": 300,
+  "cpu_pct_avg": 10.37,
+  "cpu_pct_max": 13.14,
+  "rss_mb_start": 32.62,
+  "rss_mb_end": 32.77,
+  "rss_mb_max": 32.77,
+  "eventbus_latency_ms": {
+    "p50": 0.061,
+    "p95": 0.102,
+    "p99": 0.113,
+    "max": 0.258
+  },
+  "gui_responsiveness_note": "Headless harness \u2014 GUI responsiveness verified manually via map incremental patch mode (see release_readiness_v3.md).",
+  "vessel_db_count": 300,
+  "timeline_count": 300,
+  "verdict": "PASS"
+}

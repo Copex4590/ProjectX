@@ -5,8 +5,12 @@
 
 from __future__ import annotations
 
-from ais.providers.provider import AISProviderType
+import logging
+
+from ais.providers.provider import AISProviderType, FUTURE_AIS_PROVIDERS
 from engines.ais.runtime_provider import AISRuntimeProvider, ShipCallback
+
+logger = logging.getLogger(__name__)
 
 
 class _StubRuntimeProvider(AISRuntimeProvider):
@@ -29,6 +33,14 @@ class _StubRuntimeProvider(AISRuntimeProvider):
         return self._running
 
     def start(self, *, on_ship: ShipCallback) -> None:
+        # Supported stubs may be wired later; future providers never start.
+        if self.provider_type in FUTURE_AIS_PROVIDERS:
+            logger.debug(
+                "Ignoring start for inactive future provider %s",
+                self.provider_type.value,
+            )
+            self._running = False
+            return
         self._running = True
 
     def stop(self) -> None:
