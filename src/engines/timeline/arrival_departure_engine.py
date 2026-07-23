@@ -13,6 +13,7 @@ import logging
 from models.ship import Ship
 from timeline.timeline_manager import TimelineManager, timeline_manager
 from timeline.timeline_record import TimelineRecord
+from events import eventbus
 
 logger = logging.getLogger(__name__)
 
@@ -317,7 +318,31 @@ class ArrivalDepartureEngine:
             source=observation.source,
         )
 
-        return self._manager.append(record)
+        saved = self._manager.append(record)
+
+        try:
+            if event_type == EVENT_ARRIVAL:
+                eventbus.publish(
+                    "timeline.arrival",
+                    mmsi=saved.mmsi,
+                    latitude=saved.latitude,
+                    longitude=saved.longitude,
+                    speed=saved.speed,
+                    timestamp=saved.timestamp,
+                )
+            elif event_type == EVENT_DEPARTURE:
+                eventbus.publish(
+                    "timeline.departure",
+                    mmsi=saved.mmsi,
+                    latitude=saved.latitude,
+                    longitude=saved.longitude,
+                    speed=saved.speed,
+                    timestamp=saved.timestamp,
+                )
+        except Exception:
+            logger.exception("Failed to publish timeline alert event")
+
+        return saved
 
 
 arrival_departure_engine = ArrivalDepartureEngine()

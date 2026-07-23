@@ -96,6 +96,15 @@ class MainWindow(QMainWindow):
         logger.info("Starting Hybrid Engine")
         self.hybrid_engine.start()
 
+        try:
+            from alerts import professional_alerts_engine
+            from alerts.gui_bridge import install_alerts_gui_bridge
+
+            install_alerts_gui_bridge(self)
+            professional_alerts_engine.start()
+        except Exception:
+            logger.exception("Failed to start Professional Alerts Engine")
+
     def _sync_provider_runtime(self, *_args) -> None:
 
         self.hybrid_engine.sync_enabled_providers()
@@ -563,6 +572,13 @@ class MainWindow(QMainWindow):
             vessel_database_manager.stop()
         except Exception:
             logger.exception("Failed while stopping background workers")
+
+        try:
+            from alerts import professional_alerts_engine
+
+            professional_alerts_engine.stop()
+        except Exception:
+            logger.exception("Failed while stopping Professional Alerts Engine")
 
         try:
             plugin_manager.shutdown()

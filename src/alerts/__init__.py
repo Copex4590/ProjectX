@@ -1,33 +1,74 @@
 from alerts.alert_event import AlertEvent, EvaluationEvent
-from alerts.alert_manager import AlertManager, alert_manager
+from alerts.alert_manager import (
+    EVENT_ALERT_ACKNOWLEDGED,
+    EVENT_ALERT_CLEARED,
+    EVENT_ALERT_FIRED,
+    AlertManager,
+    alert_manager,
+)
 from alerts.alert_registry import ALERT_DATABASE_FILE, AlertRegistry, alert_registry
 from alerts.alert_rule import (
+    ALERT_TYPE_LABELS,
+    RULE_TYPE_AIS_LOST,
+    RULE_TYPE_ANCHORED,
     RULE_TYPE_ARRIVAL,
     RULE_TYPE_CAMERA_LOST,
+    RULE_TYPE_CAMERA_OFFLINE,
     RULE_TYPE_CAMERA_VISIBLE,
+    RULE_TYPE_DB_SYNC_FAILED,
     RULE_TYPE_DEPARTURE,
     RULE_TYPE_ENTER_REGION,
     RULE_TYPE_EXIT_REGION,
     RULE_TYPE_SPEED_OVER,
+    RULE_TYPE_SPEED_UNDER,
     SUPPORTED_RULE_TYPES,
     AlertRule,
+)
+from alerts.engine import (
+    EVENT_TIMELINE_ARRIVAL,
+    EVENT_TIMELINE_DEPARTURE,
+    ProfessionalAlertsEngine,
+    professional_alerts_engine,
+)
+from alerts.notify_hooks import (
+    AlertNotificationSink,
+    DesktopBannerSink,
+    NullNotificationSink,
+    install_default_notification_sinks,
 )
 
 __all__ = [
     "ALERT_DATABASE_FILE",
+    "ALERT_TYPE_LABELS",
     "AlertEvent",
     "AlertManager",
+    "AlertNotificationSink",
     "AlertRegistry",
     "AlertRule",
+    "DesktopBannerSink",
+    "EVENT_ALERT_ACKNOWLEDGED",
+    "EVENT_ALERT_CLEARED",
+    "EVENT_ALERT_FIRED",
+    "EVENT_TIMELINE_ARRIVAL",
+    "EVENT_TIMELINE_DEPARTURE",
     "EvaluationEvent",
+    "NullNotificationSink",
+    "ProfessionalAlertsEngine",
+    "RULE_TYPE_AIS_LOST",
+    "RULE_TYPE_ANCHORED",
     "RULE_TYPE_ARRIVAL",
     "RULE_TYPE_CAMERA_LOST",
+    "RULE_TYPE_CAMERA_OFFLINE",
     "RULE_TYPE_CAMERA_VISIBLE",
+    "RULE_TYPE_DB_SYNC_FAILED",
     "RULE_TYPE_DEPARTURE",
     "RULE_TYPE_ENTER_REGION",
     "RULE_TYPE_EXIT_REGION",
     "RULE_TYPE_SPEED_OVER",
+    "RULE_TYPE_SPEED_UNDER",
     "SUPPORTED_RULE_TYPES",
     "alert_manager",
     "alert_registry",
+    "install_default_notification_sinks",
+    "professional_alerts_engine",
 ]

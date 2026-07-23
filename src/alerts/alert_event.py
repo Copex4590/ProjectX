@@ -1,6 +1,6 @@
 # ============================================================================
 # Project X
-# Alert Event Model
+# Alert Event Model (SAVE-215)
 # ============================================================================
 
 import json
@@ -18,6 +18,8 @@ class AlertEvent:
     severity: str = "info"
     message: str = ""
     metadata: dict = field(default_factory=dict)
+    acknowledged: bool = False
+    acknowledged_at: datetime | None = None
     id: int | None = None
 
     def safe_text(self, value: str | None) -> str:
@@ -55,6 +57,16 @@ class AlertEvent:
     @classmethod
     def from_row(cls, row) -> "AlertEvent":
 
+        keys = set(row.keys()) if hasattr(row, "keys") else set()
+        acknowledged = bool(row["acknowledged"]) if "acknowledged" in keys else False
+        acknowledged_at = None
+
+        if "acknowledged_at" in keys and row["acknowledged_at"]:
+            try:
+                acknowledged_at = datetime.fromisoformat(str(row["acknowledged_at"]))
+            except ValueError:
+                acknowledged_at = None
+
         return cls(
             id=int(row["id"]),
             rule_id=int(row["rule_id"]),
@@ -64,6 +76,8 @@ class AlertEvent:
             severity=str(row["severity"] or "info"),
             message=str(row["message"] or ""),
             metadata=cls.metadata_from_row(row["metadata"]),
+            acknowledged=acknowledged,
+            acknowledged_at=acknowledged_at,
         )
 
 
@@ -95,7 +109,8 @@ class EvaluationEvent:
         except (TypeError, ValueError):
             return None
 
-        if normalized_mmsi <= 0:
+        # Allow mmsi=0 for system-wide alerts (AIS Lost, DB Sync Failed).
+        if normalized_mmsi < 0:
             return None
 
         event_type = str(payload.get("event_type") or "").strip().upper()

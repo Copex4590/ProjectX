@@ -1,26 +1,53 @@
 # ============================================================================
 # Project X
-# Alert Rule Model
+# Alert Rule Model (SAVE-215 Professional Alerts Engine)
 # ============================================================================
 
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
 
+
 RULE_TYPE_ARRIVAL = "ARRIVAL"
 RULE_TYPE_DEPARTURE = "DEPARTURE"
 RULE_TYPE_SPEED_OVER = "SPEED_OVER"
+RULE_TYPE_SPEED_UNDER = "SPEED_UNDER"
 RULE_TYPE_ENTER_REGION = "ENTER_REGION"
 RULE_TYPE_EXIT_REGION = "EXIT_REGION"
 RULE_TYPE_CAMERA_VISIBLE = "CAMERA_VISIBLE"
 RULE_TYPE_CAMERA_LOST = "CAMERA_LOST"
+RULE_TYPE_ANCHORED = "ANCHORED"
+RULE_TYPE_AIS_LOST = "AIS_LOST"
+RULE_TYPE_CAMERA_OFFLINE = "CAMERA_OFFLINE"
+RULE_TYPE_DB_SYNC_FAILED = "DB_SYNC_FAILED"
+
+# User-facing aliases (SAVE-215)
+ALERT_TYPE_LABELS = {
+    RULE_TYPE_ENTER_REGION: "Vessel Enter Area",
+    RULE_TYPE_EXIT_REGION: "Vessel Leave Area",
+    RULE_TYPE_ARRIVAL: "Vessel Arrived",
+    RULE_TYPE_DEPARTURE: "Vessel Departed",
+    RULE_TYPE_SPEED_OVER: "Speed Above Limit",
+    RULE_TYPE_SPEED_UNDER: "Speed Below Limit",
+    RULE_TYPE_ANCHORED: "Anchored",
+    RULE_TYPE_AIS_LOST: "AIS Lost",
+    RULE_TYPE_CAMERA_OFFLINE: "Camera Offline",
+    RULE_TYPE_DB_SYNC_FAILED: "Database Sync Failed",
+    RULE_TYPE_CAMERA_VISIBLE: "Camera Visible",
+    RULE_TYPE_CAMERA_LOST: "Camera Lost",
+}
 
 SUPPORTED_RULE_TYPES = (
+    RULE_TYPE_ENTER_REGION,
+    RULE_TYPE_EXIT_REGION,
     RULE_TYPE_ARRIVAL,
     RULE_TYPE_DEPARTURE,
     RULE_TYPE_SPEED_OVER,
-    RULE_TYPE_ENTER_REGION,
-    RULE_TYPE_EXIT_REGION,
+    RULE_TYPE_SPEED_UNDER,
+    RULE_TYPE_ANCHORED,
+    RULE_TYPE_AIS_LOST,
+    RULE_TYPE_CAMERA_OFFLINE,
+    RULE_TYPE_DB_SYNC_FAILED,
     RULE_TYPE_CAMERA_VISIBLE,
     RULE_TYPE_CAMERA_LOST,
 )

@@ -1,6 +1,6 @@
 # ============================================================================
 # Project X
-# Alert Registry
+# Alert Registry (SAVE-215: acknowledgment + clear)
 # ============================================================================
 
 import os
@@ -43,7 +43,9 @@ CREATE TABLE IF NOT EXISTS alert_events (
     timestamp TEXT NOT NULL,
     severity TEXT NOT NULL DEFAULT 'info',
     message TEXT NOT NULL DEFAULT '',
-    metadata TEXT NOT NULL DEFAULT '{}'
+    metadata TEXT NOT NULL DEFAULT '{}',
+    acknowledged INTEGER NOT NULL DEFAULT 0,
+    acknowledged_at TEXT
 )
 """
 
@@ -88,8 +90,10 @@ INSERT INTO alert_events (
     timestamp,
     severity,
     message,
-    metadata
-) VALUES (?, ?, ?, ?, ?, ?, ?)
+    metadata,
+    acknowledged,
+    acknowledged_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 """
 
 
@@ -202,6 +206,8 @@ class AlertRegistry:
             severity=event.safe_text(event.severity) or "info",
             message=event.safe_text(event.message),
             metadata=dict(event.metadata or {}),
+            acknowledged=bool(event.acknowledged),
+            acknowledged_at=event.acknowledged_at,
         )
 
         with self._lock:
@@ -216,6 +222,12 @@ class AlertRegistry:
                         payload.severity,
                         payload.message,
                         payload.metadata_json(),
+                        int(payload.acknowledged),
+                        (
+                            _format_timestamp(payload.acknowledged_at)
+                            if payload.acknowledged_at
+                            else None
+                        ),
                     ),
                 )
                 connection.commit()
@@ -245,6 +257,45 @@ class AlertRegistry:
 
         return [AlertEvent.from_row(row) for row in rows]
 
+    def acknowledge_event(self, event_id: int) -> AlertEvent | None:
+
+        now = datetime.now()
+
+        with self._lock:
+            with self._connect() as connection:
+                connection.execute(
+                    """
+                    UPDATE alert_events
+                    SET acknowledged = 1, acknowledged_at = ?
+                    WHERE id = ?
+                    """,
+                    (_format_timestamp(now), int(event_id)),
+                )
+                connection.commit()
+                row = connection.execute(
+                    "SELECT * FROM alert_events WHERE id = ?",
+                    (int(event_id),),
+                ).fetchone()
+
+        if row is None:
+            return None
+
+        return AlertEvent.from_row(row)
+
+    def clear_events(self, *, acknowledged_only: bool = False) -> int:
+
+        with self._lock:
+            with self._connect() as connection:
+                if acknowledged_only:
+                    cursor = connection.execute(
+                        "DELETE FROM alert_events WHERE acknowledged = 1"
+                    )
+                else:
+                    cursor = connection.execute("DELETE FROM alert_events")
+                connection.commit()
+
+        return int(cursor.rowcount or 0)
+
     def _ensure_schema(self) -> None:
 
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -255,7 +306,25 @@ class AlertRegistry:
                 connection.execute(_EVENTS_SCHEMA_SQL)
                 connection.execute(_RULES_INDEX_SQL)
                 connection.execute(_EVENTS_INDEX_SQL)
+                self._migrate_events_columns(connection)
                 connection.commit()
+
+    def _migrate_events_columns(self, connection: sqlite3.Connection) -> None:
+
+        columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(alert_events)").fetchall()
+        }
+
+        if "acknowledged" not in columns:
+            connection.execute(
+                "ALTER TABLE alert_events ADD COLUMN acknowledged INTEGER NOT NULL DEFAULT 0"
+            )
+
+        if "acknowledged_at" not in columns:
+            connection.execute(
+                "ALTER TABLE alert_events ADD COLUMN acknowledged_at TEXT"
+            )
 
     def _connect(self) -> sqlite3.Connection:
 
