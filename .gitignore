@@ -29,6 +29,10 @@ data/vessel_photos/*.db
 data/Hajók/*/
 !data/Hajók/.gitkeep
 
+# Local backups (SAVE-210)
+backups/*
+!backups/.gitkeep
+
 # Build artifacts
 build/
 dist/

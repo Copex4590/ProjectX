@@ -26,6 +26,7 @@ from gui.vesselspage import VesselsPage
 from gui.camerapage import CameraPage
 from gui.vesseldatabasepage import VesselDatabasePage
 from gui.vesseldatabasemanagerpage import VesselDatabaseManagerPage
+from gui.backupmanagerpage import BackupManagerPage
 from gui.vesseltimelinepage import VesselTimelinePage
 from gui.statisticspage import StatisticsPage
 from gui.alertcenterpage import AlertCenterPage
@@ -300,6 +301,7 @@ class MainWindow(QMainWindow):
         self.rules_page = RulesPage()
         self.system_health_page = SystemHealthPage()
         self.vessel_database_manager_page = VesselDatabaseManagerPage()
+        self.backup_manager_page = BackupManagerPage()
 
         self.pages.addWidget(self.dashboard_page)        # 0
         self.pages.addWidget(self.map_page)              # 1
@@ -312,6 +314,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self.rules_page)            # 8
         self.pages.addWidget(self.system_health_page)    # 9
         self.pages.addWidget(self.vessel_database_manager_page)  # 10
+        self.pages.addWidget(self.backup_manager_page)   # 11
 
         self.system_health_page.attach_hybrid_engine(self.hybrid_engine)
 
@@ -371,6 +374,7 @@ class MainWindow(QMainWindow):
             self.rules_page,
             self.system_health_page,
             self.vessel_database_manager_page,
+            self.backup_manager_page,
         ):
             refresh = getattr(page, "refresh_translations", None)
 

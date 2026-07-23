@@ -85,6 +85,21 @@ _RUNTIME_DATA_SUBDIRS = (
 )
 
 
+def backups_dir() -> Path:
+    """Project X backups directory (…/ProjectX/backups or user-data/backups)."""
+
+    override = os.environ.get("PROJECTX_BACKUPS_DIR", "").strip()
+    if override:
+        path = Path(override)
+    elif is_frozen():
+        path = user_data_dir() / "backups"
+    else:
+        path = bundle_dir().parent / "backups"
+
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def hybrid_runtime_dir() -> Path:
     """Runtime directory for HybridEngine radar/cache/side-car files."""
 
@@ -105,3 +120,5 @@ def ensure_runtime_data_dirs() -> None:
 
     for name in _RUNTIME_DATA_SUBDIRS:
         (data_dir / name).mkdir(parents=True, exist_ok=True)
+
+    backups_dir()

@@ -23,6 +23,7 @@ class Sidebar(QFrame):
         ("Alert Rules", 8),
         ("System Health", 9),
         ("Database Manager", 10),
+        ("Backup & Restore", 11),
     )
 
     _PAGE_ICONS = (
@@ -37,6 +38,7 @@ class Sidebar(QFrame):
         "⚙",
         "🩺",
         "💾",
+        "📦",
     )
 
     def __init__(self):
