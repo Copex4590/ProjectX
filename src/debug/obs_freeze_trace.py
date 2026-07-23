@@ -1,10 +1,15 @@
 # ============================================================================
 # Project X — temporary GUI freeze instrumentation (BUG-TEST-003)
+#
+# Disabled by default (SAVE-P0). Enable with:
+#   PROJECTX_OBS_FREEZE_TRACE=1
+# Accepted truthy values: 1, true, yes, on (case-insensitive).
 # ============================================================================
 
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 from contextlib import contextmanager
@@ -29,6 +34,15 @@ _SEQ = 0
 
 F = TypeVar("F", bound=Callable)
 
+_TRUTHY = frozenset({"1", "true", "yes", "on"})
+
+
+def is_trace_enabled() -> bool:
+    """Return True only when PROJECTX_OBS_FREEZE_TRACE is explicitly enabled."""
+
+    value = os.environ.get("PROJECTX_OBS_FREEZE_TRACE", "").strip().lower()
+    return value in _TRUTHY
+
 
 def trace_path() -> str:
 
@@ -36,6 +50,9 @@ def trace_path() -> str:
 
 
 def reset_trace_log() -> None:
+
+    if not is_trace_enabled():
+        return
 
     global _SEQ
 
@@ -50,11 +67,17 @@ def reset_trace_log() -> None:
 
 def begin_delete_trace_session(point_id: str) -> None:
 
+    if not is_trace_enabled():
+        return
+
     reset_trace_log()
     trace_event(f"=== DELETE TRACE SESSION point_id={point_id} ===")
 
 
 def trace_event(label: str) -> None:
+
+    if not is_trace_enabled():
+        return
 
     global _SEQ
 
@@ -89,6 +112,10 @@ def trace_exit(label: str) -> None:
 @contextmanager
 def trace_block(label: str):
 
+    if not is_trace_enabled():
+        yield
+        return
+
     trace_enter(label)
 
     try:
@@ -99,6 +126,9 @@ def trace_block(label: str):
 
 def trace_call(label: str, fn: Callable, *args, **kwargs):
 
+    if not is_trace_enabled():
+        return fn(*args, **kwargs)
+
     trace_enter(label)
 
     try:
@@ -108,6 +138,9 @@ def trace_call(label: str, fn: Callable, *args, **kwargs):
 
 
 def trace_slot(label: str, fn: Callable) -> Callable:
+
+    if not is_trace_enabled():
+        return fn
 
     def wrapper(*args, **kwargs):
 
@@ -122,6 +155,9 @@ def trace_slot(label: str, fn: Callable) -> Callable:
 
 
 def trace_timer_callback(label: str, fn: Callable) -> Callable:
+
+    if not is_trace_enabled():
+        return fn
 
     def wrapper():
 
@@ -138,6 +174,10 @@ def trace_timer_callback(label: str, fn: Callable) -> Callable:
 def schedule_traced_single_shot(delay_ms: int, label: str, fn: Callable) -> None:
 
     from PySide6.QtCore import QTimer
+
+    if not is_trace_enabled():
+        QTimer.singleShot(delay_ms, fn)
+        return
 
     trace_event(f"SCHEDULE QTimer.singleShot delay_ms={delay_ms} label={label}")
     QTimer.singleShot(delay_ms, trace_timer_callback(label, fn))
