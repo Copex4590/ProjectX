@@ -30,6 +30,7 @@ from gui.backupmanagerpage import BackupManagerPage
 from gui.applicationsettingsmanagerpage import ApplicationSettingsManagerPage
 from gui.installedpluginspage import InstalledPluginsPage
 from gui.vesseltimelinepage import VesselTimelinePage
+from gui.analyticsdashboardpage import AnalyticsDashboardPage
 from gui.statisticspage import StatisticsPage
 from gui.alertcenterpage import AlertCenterPage
 from gui.rulespage import RulesPage
@@ -320,6 +321,7 @@ class MainWindow(QMainWindow):
         self.backup_manager_page = BackupManagerPage()
         self.application_settings_page = ApplicationSettingsManagerPage()
         self.installed_plugins_page = InstalledPluginsPage()
+        self.analytics_dashboard_page = AnalyticsDashboardPage()
 
         self.pages.addWidget(self.dashboard_page)        # 0
         self.pages.addWidget(self.map_page)              # 1
@@ -335,6 +337,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self.backup_manager_page)   # 11
         self.pages.addWidget(self.application_settings_page)  # 12
         self.pages.addWidget(self.installed_plugins_page)  # 13
+        self.pages.addWidget(self.analytics_dashboard_page)  # 14
 
         self.system_health_page.attach_hybrid_engine(self.hybrid_engine)
 
@@ -403,6 +406,7 @@ class MainWindow(QMainWindow):
             self.backup_manager_page,
             self.application_settings_page,
             self.installed_plugins_page,
+            self.analytics_dashboard_page,
         ):
             refresh = getattr(page, "refresh_translations", None)
 
