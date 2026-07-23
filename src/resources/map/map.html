@@ -87,6 +87,15 @@
             box-shadow: 0 0 8px rgba(229, 57, 53, 0.75);
         }
 
+        .camera-link-marker {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            background: #485da2;
+            box-shadow: 0 0 8px rgba(72, 93, 162, 0.8);
+        }
+
         .map-context-menu {
             display: none;
         }
@@ -1220,6 +1229,132 @@ function clearPlayback()
         playbackCursor = null;
     }
 }
+
+/* --- SAVE-217: Camera coverage zones + ship↔camera link --- */
+
+const cameraCoverageLayers = {};
+let cameraLinkLine = null;
+let cameraLinkMarker = null;
+
+function coverageStyle(state)
+{
+    const key = String(state || "Online");
+    if (key === "Busy" || key === "Preferred")
+        return { color: "#485da2", fillColor: "#6b80b5", fillOpacity: 0.22, weight: 2 };
+    if (key === "Offline")
+        return { color: "#ef5350", fillColor: "#ef5350", fillOpacity: 0.08, weight: 1 };
+    return { color: "#66bb6a", fillColor: "#66bb6a", fillOpacity: 0.14, weight: 1 };
+}
+
+function clearCameraCoverageZones()
+{
+    for (const id in cameraCoverageLayers)
+    {
+        map.removeLayer(cameraCoverageLayers[id]);
+        delete cameraCoverageLayers[id];
+    }
+}
+
+function setCameraCoverageZones(zones)
+{
+    const list = Array.isArray(zones) ? zones : [];
+    const keep = {};
+
+    for (let i = 0; i < list.length; i++)
+    {
+        const zone = list[i];
+        if (!zone || !zone.id || !Array.isArray(zone.polygon) || zone.polygon.length < 3)
+            continue;
+
+        const style = coverageStyle(zone.state);
+        keep[zone.id] = true;
+
+        if (!cameraCoverageLayers[zone.id])
+        {
+            cameraCoverageLayers[zone.id] = L.polygon(zone.polygon, style).addTo(map);
+            if (zone.name)
+                cameraCoverageLayers[zone.id].bindTooltip(zone.name, { sticky: true });
+        }
+        else
+        {
+            cameraCoverageLayers[zone.id].setLatLngs(zone.polygon);
+            cameraCoverageLayers[zone.id].setStyle(style);
+        }
+    }
+
+    for (const id in cameraCoverageLayers)
+    {
+        if (!keep[id])
+        {
+            map.removeLayer(cameraCoverageLayers[id]);
+            delete cameraCoverageLayers[id];
+        }
+    }
+}
+
+function clearCameraLink()
+{
+    if (cameraLinkLine)
+    {
+        map.removeLayer(cameraLinkLine);
+        cameraLinkLine = null;
+    }
+
+    if (cameraLinkMarker)
+    {
+        map.removeLayer(cameraLinkMarker);
+        cameraLinkMarker = null;
+    }
+}
+
+function setCameraLink(link)
+{
+    if (!link || link.ship_lat == null || link.camera_lat == null)
+    {
+        clearCameraLink();
+        return;
+    }
+
+    const shipPos = [Number(link.ship_lat), Number(link.ship_lon)];
+    const camPos = [Number(link.camera_lat), Number(link.camera_lon)];
+
+    if (!cameraLinkLine)
+    {
+        cameraLinkLine = L.polyline([shipPos, camPos], {
+            color: "#485da2",
+            weight: 2,
+            dashArray: "6 6",
+            opacity: 0.9
+        }).addTo(map);
+    }
+    else
+    {
+        cameraLinkLine.setLatLngs([shipPos, camPos]);
+    }
+
+    const icon = L.divIcon({
+        className: "",
+        html: "<div class='camera-link-marker'></div>",
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+    });
+
+    if (!cameraLinkMarker)
+    {
+        cameraLinkMarker = L.marker(camPos, { icon: icon, zIndexOffset: 800 }).addTo(map);
+    }
+    else
+    {
+        cameraLinkMarker.setLatLng(camPos);
+        cameraLinkMarker.setIcon(icon);
+    }
+
+    const tip = (link.camera_name || "Camera")
+        + " · " + (link.state || "")
+        + (link.score != null ? (" · " + Math.round(Number(link.score) * 100) + "%") : "");
+    cameraLinkMarker.bindTooltip(tip, { direction: "top" });
+}
+
 
 </script>
 

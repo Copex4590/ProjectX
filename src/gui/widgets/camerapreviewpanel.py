@@ -50,6 +50,7 @@ class CameraPreviewPanel(QFrame):
         camera_manager.load()
 
         self._last_mmsi = None
+        self._last_camera_id = None
         self._workflow = live_camera_workflow
         self._empty_message_key = "No camera available"
         self._error_message_key = None
@@ -215,11 +216,47 @@ class CameraPreviewPanel(QFrame):
             self._last_mmsi = None
             self.show_empty("An unexpected camera error occurred.")
 
+    def show_for_match(self, ship: Ship | None, match) -> None:
+        """Show a specific camera match (manual override). Does not change show_for_ship."""
+
+        try:
+            self._show_for_match(ship, match)
+        except Exception:
+            logger.exception("Camera preview failed for explicit match")
+            self._workflow.stop()
+            self._last_mmsi = None
+            self.show_empty("An unexpected camera error occurred.")
+
+    def _show_for_match(self, ship: Ship | None, match) -> None:
+
+        if ship is None or match is None:
+            self._workflow.stop()
+            self._last_mmsi = None
+            self.show_empty()
+            return
+
+        vessel_changed = self._last_mmsi != ship.mmsi
+        camera_changed = (
+            self._last_camera_id != getattr(match.camera, "id", None)
+        )
+
+        self.details.setVisible(True)
+        self.empty_label.setVisible(False)
+        self._update_camera_details(match)
+        self._last_camera_id = getattr(match.camera, "id", None)
+
+        if vessel_changed or camera_changed:
+            self._workflow.stop()
+            self._last_mmsi = ship.mmsi
+            result = self._workflow.start_for_match(match)
+            self._update_playback_state(result)
+
     def _show_for_ship(self, ship: Ship | None):
 
         if ship is None:
             self._workflow.stop()
             self._last_mmsi = None
+            self._last_camera_id = None
             self.show_empty()
             return
 
@@ -228,6 +265,7 @@ class CameraPreviewPanel(QFrame):
         if match is None:
             self._workflow.stop()
             self._last_mmsi = ship.mmsi
+            self._last_camera_id = None
             self.show_empty()
             return
 
@@ -236,6 +274,7 @@ class CameraPreviewPanel(QFrame):
         self.details.setVisible(True)
         self.empty_label.setVisible(False)
         self._update_camera_details(match)
+        self._last_camera_id = match.camera.id
 
         if vessel_changed:
             self._workflow.stop()
@@ -294,6 +333,7 @@ class CameraPreviewPanel(QFrame):
 
         self._workflow.stop()
         self._last_mmsi = None
+        self._last_camera_id = None
         self._camera_enabled = None
         self._playback_key = None
         self._playback_backend = None

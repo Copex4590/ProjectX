@@ -7,6 +7,8 @@ from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 
 from database import registry
 from engines.camera import camera_selection_engine
+from engines.camera.link_manager import intelligent_camera_link_manager
+from engines.camera.link_states import CameraLinkMode
 from observation.geo_context import geo_context
 from debug.obs_freeze_trace import (
     schedule_traced_single_shot,
@@ -19,6 +21,7 @@ from debug.obs_freeze_trace import (
 from gui.vesselcard import vessel_card_layout_manager
 from gui.mapcontroller import MapController
 from gui.map_core import PickMode
+from gui.widgets.camera_link_panel import CameraLinkPanel
 from gui.widgets.camerapreviewpanel import CameraPreviewPanel
 from gui.widgets.vessel_details_panel import VesselDetailsPanel
 from gui.widgets.vessel_timeline_panel import (
@@ -337,12 +340,16 @@ class MapPage(QWidget):
         self.vessel_timeline = VesselTimelinePanel()
         right_layout.addWidget(self.vessel_timeline, 0)
 
+        self.camera_link = CameraLinkPanel()
+        right_layout.addWidget(self.camera_link, 0)
+
         self.camera_preview = CameraPreviewPanel()
         right_layout.addWidget(self.camera_preview, 0)
 
         layout.addWidget(right_column)
 
         self._selected_mmsi = None
+        self._camera_link = intelligent_camera_link_manager
         self._ships_update_busy = False
         self._ships_update_pending = None  # serializer waiting while busy
         self._markers_dirty = True
@@ -363,6 +370,14 @@ class MapPage(QWidget):
             self._on_pick_mode_changed
         )
         self._connect_timeline_playback()
+        self.camera_link.refreshRequested.connect(self._on_camera_link_refresh)
+        self.camera_link.coverageToggled.connect(self._on_camera_coverage_toggled)
+        try:
+            from cameras import camera_manager as _camera_manager
+
+            _camera_manager.load()
+        except Exception:
+            pass
         self.apply_personalization()
         self._map_controller.refresh_observation_points()
 
@@ -489,6 +504,8 @@ class MapPage(QWidget):
         if selected_layout == "media":
             self.camera_preview.setMinimumWidth(400)
             self.camera_preview.setMaximumWidth(480)
+            self.camera_link.setMinimumWidth(400)
+            self.camera_link.setMaximumWidth(480)
             self.vessel_details.setMinimumWidth(400)
             self.vessel_details.setMaximumWidth(480)
             self.vessel_timeline.setMinimumWidth(400)
@@ -496,6 +513,8 @@ class MapPage(QWidget):
         else:
             self.camera_preview.setMinimumWidth(300)
             self.camera_preview.setMaximumWidth(360)
+            self.camera_link.setMinimumWidth(300)
+            self.camera_link.setMaximumWidth(360)
             self.vessel_details.setMinimumWidth(320)
             self.vessel_details.setMaximumWidth(400)
             self.vessel_timeline.setMinimumWidth(320)
@@ -559,23 +578,63 @@ class MapPage(QWidget):
         self._selected_mmsi = int(mmsi)
         self.vessel_details.set_mmsi(self._selected_mmsi)
         self._bind_timeline_vessel(self._selected_mmsi)
+        self._camera_link.select_vessel(self._selected_mmsi)
         self._refresh_camera_preview()
 
     def _open_logbook(self, mmsi: int) -> None:
 
         logbook_manager.open_logbook(int(mmsi))
 
+    def _on_camera_link_refresh(self) -> None:
+
+        self._refresh_camera_preview()
+
+    def _on_camera_coverage_toggled(self, _visible: bool) -> None:
+
+        self._apply_camera_link_overlays()
+
     def _refresh_camera_preview(self):
 
         if self._selected_mmsi is None:
+            self._camera_link.select_vessel(None)
+            self.camera_link.apply_snapshot(self._camera_link.last_snapshot)
             self.camera_preview.show_empty()
             self.vessel_details.clear()
             self._bind_timeline_vessel(None)
+            self._apply_camera_link_overlays()
             return
 
         ship = registry.get(self._selected_mmsi)
-        self.camera_preview.show_for_ship(ship)
+        snapshot = self._camera_link.evaluate()
+        self.camera_link.apply_snapshot(snapshot)
+
+        # Preserve Camera Preview auto path when Auto mode; manual uses explicit match.
+        if (
+            snapshot.mode == CameraLinkMode.MANUAL
+            and snapshot.active is not None
+            and ship is not None
+        ):
+            self.camera_preview.show_for_match(ship, snapshot.active.match)
+        else:
+            self.camera_preview.show_for_ship(ship)
+
         self.vessel_details.set_mmsi(self._selected_mmsi)
+        self._apply_camera_link_overlays()
+
+    def _apply_camera_link_overlays(self) -> None:
+
+        snapshot = self._camera_link.last_snapshot
+        if snapshot.coverage_visible:
+            zones = [
+                sector.to_map_dict()
+                for sector in self._camera_link.coverage_sectors()
+            ]
+            self.map.set_camera_coverage_zones(zones)
+        else:
+            self.map.clear_camera_coverage_zones()
+
+        link = self._camera_link.link_overlay_payload()
+        self.map.set_camera_link(link)
 
     def _connect_timeline_playback(self) -> None:
 

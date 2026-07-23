@@ -1,10 +1,52 @@
+# ============================================================================
+# Project X — Camera engines package
+# ============================================================================
+
 from .camera_match import CameraMatch, build_camera_match
+from .camera_selection_engine import CameraSelectionEngine, camera_selection_engine
+from .coverage_model import CameraCoverageModel, CoverageSector, camera_coverage_model
+from .link_manager import (
+    CameraLinkSnapshot,
+    IntelligentCameraLinkManager,
+    intelligent_camera_link_manager,
+)
+from .link_states import (
+    EVENT_CAMERA_COVERAGE_TOGGLED,
+    EVENT_CAMERA_LINK_CHANGED,
+    EVENT_CAMERA_LINK_MODE,
+    CameraLinkMode,
+    CameraLinkState,
+)
+from .scoring_engine import (
+    CameraScoringEngine,
+    ScoreBreakdown,
+    ScoredCamera,
+    camera_scoring_engine,
+)
+
+# Eager binds so `from engines.camera import camera_selection_engine` is the
+# singleton, not the submodule module object.
 
 __all__ = [
     "CameraMatch",
     "build_camera_match",
     "CameraSelectionEngine",
     "camera_selection_engine",
+    "CameraScoringEngine",
+    "camera_scoring_engine",
+    "ScoredCamera",
+    "ScoreBreakdown",
+    "CameraCoverageModel",
+    "camera_coverage_model",
+    "CoverageSector",
+    "IntelligentCameraLinkManager",
+    "intelligent_camera_link_manager",
+    "CameraLinkSnapshot",
+    "CameraLinkState",
+    "CameraLinkMode",
+    "EVENT_CAMERA_LINK_CHANGED",
+    "EVENT_CAMERA_LINK_MODE",
+    "EVENT_CAMERA_COVERAGE_TOGGLED",
     "CameraDiagnosticsEngine",
     "CameraDiagnosticsReport",
     "DiagnosticResult",
@@ -20,8 +62,6 @@ __all__ = [
 ]
 
 _LAZY_EXPORTS = {
-    "CameraSelectionEngine": (".camera_selection_engine", "CameraSelectionEngine"),
-    "camera_selection_engine": (".camera_selection_engine", "camera_selection_engine"),
     "CameraDiagnosticsEngine": (".diagnostics", "CameraDiagnosticsEngine"),
     "CameraDiagnosticsReport": (".diagnostics", "CameraDiagnosticsReport"),
     "DiagnosticResult": (".diagnostics", "DiagnosticResult"),

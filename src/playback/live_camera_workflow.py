@@ -51,6 +51,19 @@ class LiveCameraWorkflow:
                 match=None,
             )
 
+    def start_for_match(self, match: CameraMatch) -> LiveCameraResult:
+        """Start playback for an explicit camera match (manual override)."""
+
+        try:
+            return self._start_for_match(match)
+        except Exception:
+            logger.exception("Live camera start failed for match")
+            return LiveCameraResult(
+                success=False,
+                message="An unexpected camera error occurred. Please try again.",
+                match=match,
+            )
+
     def _start_for_ship(self, ship: Ship) -> LiveCameraResult:
 
         self.stop()
@@ -62,6 +75,12 @@ class LiveCameraWorkflow:
                 success=False,
                 message="No camera available",
             )
+
+        return self._start_for_match(match)
+
+    def _start_for_match(self, match: CameraMatch) -> LiveCameraResult:
+
+        self.stop()
 
         camera = match.camera
         provider = provider_registry.get_provider(camera)

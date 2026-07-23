@@ -20,6 +20,7 @@ First Public Test release (SAVE-205 finalization). Stabilization track SAVE-200�
 - **SAVE-214** — Vessel Timeline & Playback (Play/Pause, speed, scrubber, trail, Live mode)
 - **SAVE-215** — Professional Alerts Engine (active/history, ack, clear, export, live detectors)
 - **SAVE-216** — Analytics Dashboard (live charts, interval filter, CSV/PNG/PDF export)
+- **SAVE-217** — Intelligent Camera & AIS Link (scoring, auto-switch, coverage zones, Camera Link panel)
 
 ### Changed
 

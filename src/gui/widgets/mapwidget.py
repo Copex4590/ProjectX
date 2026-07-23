@@ -73,6 +73,9 @@ class MapWidget(QWebEngineView):
         self._pending_ships_payload: str | None = None
         self._ships_flush_scheduled = False
         self._pending_playback: dict | None = None
+        self._pending_camera_coverage: list[dict] | None = None
+        self._pending_camera_link: dict | None = None
+        self._has_pending_camera_link = False
 
     def set_observation_points(self, points: list[dict]) -> None:
 
@@ -211,6 +214,7 @@ class MapWidget(QWebEngineView):
 
         self._flush_pending_ships()
         self._flush_pending_playback()
+        self._flush_pending_camera_overlays()
 
     def _apply_location_pick(self) -> None:
 
@@ -308,6 +312,55 @@ class MapWidget(QWebEngineView):
 
         self._pending_playback = {"clear": True}
         self._flush_pending_playback()
+
+    def set_camera_coverage_zones(self, zones: list[dict]) -> None:
+
+        self._pending_camera_coverage = list(zones)
+        if not self._page_ready:
+            return
+
+        payload = json.dumps(self._pending_camera_coverage)
+        self._run_js(f"setCameraCoverageZones({payload});")
+
+    def clear_camera_coverage_zones(self) -> None:
+
+        self._pending_camera_coverage = []
+        if self._page_ready:
+            self._run_js("clearCameraCoverageZones();")
+
+    def set_camera_link(self, link: dict | None) -> None:
+
+        self._pending_camera_link = link
+        self._has_pending_camera_link = True
+        if not self._page_ready:
+            return
+
+        if link is None:
+            self._run_js("clearCameraLink();")
+            return
+
+        payload = json.dumps(link)
+        self._run_js(f"setCameraLink({payload});")
+
+    def clear_camera_link(self) -> None:
+
+        self.set_camera_link(None)
+
+    def _flush_pending_camera_overlays(self) -> None:
+
+        if not self._page_ready:
+            return
+
+        if self._pending_camera_coverage is not None:
+            payload = json.dumps(self._pending_camera_coverage)
+            self._run_js(f"setCameraCoverageZones({payload});")
+
+        if self._has_pending_camera_link:
+            if self._pending_camera_link is None:
+                self._run_js("clearCameraLink();")
+            else:
+                payload = json.dumps(self._pending_camera_link)
+                self._run_js(f"setCameraLink({payload});")
 
     def _flush_pending_playback(self) -> None:
 
