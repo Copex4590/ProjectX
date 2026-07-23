@@ -20,6 +20,7 @@ from gui.vesselcard import vessel_card_layout_manager
 from gui.mapcontroller import MapController
 from gui.map_core import PickMode
 from gui.widgets.camerapreviewpanel import CameraPreviewPanel
+from gui.widgets.vessel_details_panel import VesselDetailsPanel
 from i18n import language_manager, tr
 from vessel_statistics.statistics_manager import statistics_manager
 from timeline.timeline_manager import timeline_manager
@@ -320,8 +321,18 @@ class MapPage(QWidget):
 
         layout.addWidget(map_container, 1)
 
+        right_column = QWidget()
+        right_layout = QVBoxLayout(right_column)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(0)
+
+        self.vessel_details = VesselDetailsPanel()
+        right_layout.addWidget(self.vessel_details, 1)
+
         self.camera_preview = CameraPreviewPanel()
-        layout.addWidget(self.camera_preview)
+        right_layout.addWidget(self.camera_preview, 0)
+
+        layout.addWidget(right_column)
 
         self._selected_mmsi = None
         self._ships_update_busy = False
@@ -468,9 +479,13 @@ class MapPage(QWidget):
         if selected_layout == "media":
             self.camera_preview.setMinimumWidth(400)
             self.camera_preview.setMaximumWidth(480)
+            self.vessel_details.setMinimumWidth(400)
+            self.vessel_details.setMaximumWidth(480)
         else:
             self.camera_preview.setMinimumWidth(300)
             self.camera_preview.setMaximumWidth(360)
+            self.vessel_details.setMinimumWidth(320)
+            self.vessel_details.setMaximumWidth(400)
 
         if self._map_updates_enabled():
             self._schedule_ships_full(
@@ -526,6 +541,7 @@ class MapPage(QWidget):
     def select_vessel(self, mmsi: int):
 
         self._selected_mmsi = int(mmsi)
+        self.vessel_details.set_mmsi(self._selected_mmsi)
         self._refresh_camera_preview()
 
     def _open_logbook(self, mmsi: int) -> None:
@@ -536,10 +552,12 @@ class MapPage(QWidget):
 
         if self._selected_mmsi is None:
             self.camera_preview.show_empty()
+            self.vessel_details.clear()
             return
 
         ship = registry.get(self._selected_mmsi)
         self.camera_preview.show_for_ship(ship)
+        self.vessel_details.set_mmsi(self._selected_mmsi)
 
     def update_ships(self) -> None:
 
