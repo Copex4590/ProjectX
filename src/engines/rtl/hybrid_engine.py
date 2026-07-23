@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import subprocess
 import threading
 import time
 from datetime import datetime
@@ -20,7 +19,7 @@ from engines.ais.ais_protocol import AISProtocol, reference_observation_bounding
 from engines.ais.hybrid_ais_engine import hybrid_ais_engine
 from engines.base_engine import BaseEngine
 from events import eventbus
-from logbook.duna_format import get_direction, get_heading
+from logbook.duna_format import get_direction, get_heading, sanitize_name
 from models.ship import Ship
 from observation.geo_context import geo_context
 from preferences import preferences_manager
@@ -32,16 +31,12 @@ HAJOK_DIR = "/home/zoli/Asztal/Ez a gép/Dunamonitor/Hajók"
 DELI_DIR = os.path.join(BASE_DIR, "deli_hajok")
 CACHE_FILE = os.path.join(BASE_DIR, "ship_cache.json")
 API_KEY_FILE = "/home/zoli/duna-monitor/api_key.txt"
-XLSX_SCRIPT = "/home/zoli/duna-monitor/lista_xlsx.py"
+
+# SAVE-105: radar file exports are throttled on the AIS/RTL hot path.
+RADAR_WRITE_INTERVAL_S = 1.0
 
 os.makedirs(HAJOK_DIR, exist_ok=True)
 os.makedirs(DELI_DIR, exist_ok=True)
-
-
-def sanitize_name(name):
-    if not name:
-        return ""
-    return str(name).replace("@", "").strip()
 
 
 class HybridEngine(BaseEngine):
@@ -65,6 +60,7 @@ class HybridEngine(BaseEngine):
         self.radar_data = {}
         self.last_ship_data = {}
         self.last_printed_state = {}
+        self._last_radar_write_at = 0.0
 
         # --------------------------------------------------
         # CACHE BETÖLTÉS
@@ -393,7 +389,20 @@ class HybridEngine(BaseEngine):
         with open(os.path.join(BASE_DIR, "radar.json"), "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
+    def _maybe_write_radar_files(self) -> None:
+        """Write radar TXT/KML/JSON at most once per RADAR_WRITE_INTERVAL_S."""
+
+        now = time.monotonic()
+        if (now - self._last_radar_write_at) < RADAR_WRITE_INTERVAL_S:
+            return
+
+        self._last_radar_write_at = now
+        self.write_radar_txt()
+        self.write_radar_kml()
+        self.write_radar_json()
+
     def save_csv_row(self, ship_dir, current_time, distance, direction, heading, sog, mmsi):
+        # SAVE-105: CSV only on the AIS/RTL hot path — no XLSX/subprocess.
         csv_file = os.path.join(ship_dir, "adatlap.csv")
         ship_static = self.static_ship_data.get(mmsi, {})
 
@@ -411,12 +420,6 @@ class HybridEngine(BaseEngine):
                 f"{ship_static.get('length', '')};"
                 f"{ship_static.get('width', '')}\n"
             )
-
-        subprocess.run(
-            ["python3", XLSX_SCRIPT],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
 
     def process_position(self, mmsi, lat, lon, sog, cog, source):
         if lat is None or lon is None:
@@ -546,9 +549,7 @@ class HybridEngine(BaseEngine):
 
             self.write_hajo_txt(name, distance, direction, heading, sog)
 
-        self.write_radar_txt()
-        self.write_radar_kml()
-        self.write_radar_json()
+        self._maybe_write_radar_files()
 
     # --------------------------------------------------
     # AISSTREAM HÁTTÉRSZÁL
