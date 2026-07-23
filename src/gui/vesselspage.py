@@ -16,6 +16,11 @@ from gui.widgets.emptystate import EmptyStateWidget
 from i18n import tr
 
 
+def _ship_row_text(ship) -> str:
+
+    return f"{ship.name:28} {ship.speed:5.1f} {tr('km/h')}"
+
+
 class VesselsPage(QWidget):
 
     shipSelected = Signal(int)
@@ -78,27 +83,50 @@ class VesselsPage(QWidget):
                 key=lambda s: s.name.lower()
             )
 
-            self._last_count = len(ships)
-            self.list.clear()
+            desired_mmsis = [ship.mmsi for ship in ships]
+            current_mmsis = [
+                self.list.item(index).data(Qt.UserRole)
+                for index in range(self.list.count())
+            ]
 
             if not ships:
+                self._last_count = 0
+                self.list.clear()
                 self._stack.setCurrentWidget(self._empty_state)
                 return
 
             self._stack.setCurrentWidget(self.list)
 
-            for ship in ships:
+            # Full rebuild only when membership or sort order changes.
+            if desired_mmsis != current_mmsis:
+                self._rebuild_list(ships)
+                return
 
-                item = QListWidgetItem(
-                    f"{ship.name:28} {ship.speed:5.1f} {tr('km/h')}"
-                )
+            self._last_count = len(ships)
+            ships_by_mmsi = {ship.mmsi: ship for ship in ships}
 
-                item.setData(
-                    Qt.UserRole,
-                    ship.mmsi
-                )
+            for index in range(self.list.count()):
+                item = self.list.item(index)
+                mmsi = item.data(Qt.UserRole)
+                ship = ships_by_mmsi.get(mmsi)
 
-                self.list.addItem(item)
+                if ship is None:
+                    continue
+
+                text = _ship_row_text(ship)
+
+                if item.text() != text:
+                    item.setText(text)
+
+    def _rebuild_list(self, ships) -> None:
+
+        self._last_count = len(ships)
+        self.list.clear()
+
+        for ship in ships:
+            item = QListWidgetItem(_ship_row_text(ship))
+            item.setData(Qt.UserRole, ship.mmsi)
+            self.list.addItem(item)
 
     def item_clicked(self, item):
 

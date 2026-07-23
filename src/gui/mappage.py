@@ -28,7 +28,7 @@ from vessels.flags.flag_manager import flag_manager
 from vessels.photo_manager import photo_manager
 
 
-_MAP_SHIPS_INTERVAL_MS = 500
+_MAP_SHIPS_INTERVAL_MS = 200  # SAVE-106: max 5 Hz marker updates
 _MAP_POPUP_REFRESH_INTERVAL_MS = 2000
 
 
@@ -296,6 +296,8 @@ class MapPage(QWidget):
 
         self._selected_mmsi = None
         self._ships_update_busy = False
+        self._ships_update_pending = None  # serializer waiting while busy
+        self._markers_dirty = True
         self._ship_refresh_generation = 0
 
         language_manager.language_changed.connect(
@@ -470,6 +472,7 @@ class MapPage(QWidget):
                 return
 
             self._start_ship_timers()
+            self._markers_dirty = True
             self._update_ship_markers()
             self._schedule_ships_full(
                 "MapPage._on_pick_mode_changed->NONE"
@@ -482,7 +485,11 @@ class MapPage(QWidget):
                 trace_event("MapPage.on_ship_updated skipped")
                 return
 
-            self._update_ship_markers()
+            # SAVE-106: mark dirty; 5 Hz timer merges requests (no immediate JS).
+            self._markers_dirty = True
+
+            if not self._marker_timer.isActive():
+                self._start_ship_timers()
 
     def select_vessel(self, mmsi: int):
 
@@ -514,6 +521,11 @@ class MapPage(QWidget):
                 trace_event("MapPage._update_ship_markers skipped")
                 return
 
+            if not self._markers_dirty:
+                trace_event("MapPage._update_ship_markers skipped clean")
+                return
+
+            self._markers_dirty = False
             self._publish_ships(_serialize_ship_marker)
 
     def _update_ships_full(self) -> None:
@@ -523,13 +535,18 @@ class MapPage(QWidget):
                 trace_event("MapPage._update_ships_full skipped")
                 return
 
+            self._markers_dirty = False
             self._publish_ships(_serialize_ship)
 
     def _publish_ships(self, serializer) -> None:
 
         if self._ships_update_busy:
+            # Prefer a pending full refresh over a marker-only one.
+            pending = self._ships_update_pending
+            if pending is None or serializer is _serialize_ship:
+                self._ships_update_pending = serializer
             trace_event(
-                f"MapPage._publish_ships skipped busy "
+                f"MapPage._publish_ships merged busy "
                 f"serializer={getattr(serializer, '__name__', serializer)}"
             )
             return
@@ -571,6 +588,15 @@ class MapPage(QWidget):
                     trace_exit("MapPage._publish_ships._refresh_camera_preview")
         finally:
             self._ships_update_busy = False
+            pending = self._ships_update_pending
+            self._ships_update_pending = None
+
+            if pending is not None:
+                schedule_traced_single_shot(
+                    0,
+                    "MapPage._publish_ships.pending",
+                    lambda: self._publish_ships(pending),
+                )
 
     def showEvent(self, event: QShowEvent) -> None:
 

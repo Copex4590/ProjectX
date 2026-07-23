@@ -5,7 +5,7 @@ import json
 from app.paths import resource_path
 from debug.obs_freeze_trace import trace_block, trace_enter, trace_exit, trace_event
 
-from PySide6.QtCore import QObject, Qt, QUrl, Signal, Slot
+from PySide6.QtCore import QObject, Qt, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QKeyEvent, QMouseEvent
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEngineSettings
@@ -71,6 +71,7 @@ class MapWidget(QWebEngineView):
         self._pick_enabled = False
         self._page_ready = False
         self._pending_ships_payload: str | None = None
+        self._ships_flush_scheduled = False
 
     def set_observation_points(self, points: list[dict]) -> None:
 
@@ -268,15 +269,23 @@ class MapWidget(QWebEngineView):
     def update_ships(self, payload: str):
 
         with trace_block(f"MapWidget.update_ships bytes={len(payload)}"):
+            # SAVE-106: keep latest payload only; coalesce duplicate JS flushes.
             self._pending_ships_payload = payload
 
             if not self._page_ready:
                 trace_event("MapWidget.update_ships deferred page_not_ready")
                 return
 
-            self._flush_pending_ships()
+            if self._ships_flush_scheduled:
+                trace_event("MapWidget.update_ships merged pending flush")
+                return
+
+            self._ships_flush_scheduled = True
+            QTimer.singleShot(0, self._flush_pending_ships)
 
     def _flush_pending_ships(self) -> None:
+
+        self._ships_flush_scheduled = False
 
         if not self._page_ready or self._pending_ships_payload is None:
             return

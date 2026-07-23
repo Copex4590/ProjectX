@@ -177,8 +177,35 @@ class AISProvidersSection(QFrame):
         self.refresh()
 
     def refresh(self) -> None:
+        """Rebuild provider rows (membership / configuration changes)."""
 
         self._rebuild_provider_list(ordered_provider_ids())
+
+    def refresh_statuses(self) -> None:
+        """SAVE-106: update labels/counters without rebuilding widgets."""
+
+        provider_ids = ordered_provider_ids()
+        current_ids = [
+            self._provider_list.itemAt(index).widget()._provider_id
+            for index in range(self._provider_list.count())
+            if self._provider_list.itemAt(index) is not None
+            and self._provider_list.itemAt(index).widget() is not None
+        ]
+
+        if provider_ids != current_ids:
+            self._rebuild_provider_list(provider_ids)
+            return
+
+        for index in range(self._provider_list.count()):
+            item = self._provider_list.itemAt(index)
+
+            if item is None:
+                continue
+
+            row = item.widget()
+
+            if row is not None:
+                row.refresh()
 
     def _update_header_text(self) -> None:
 

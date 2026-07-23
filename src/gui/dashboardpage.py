@@ -545,11 +545,12 @@ class DashboardPage(QWidget):
 
     def refresh_ais(self, *_) -> None:
 
-        self._providers_section.refresh()
+        # Status / membership: update labels; rebuild only if provider set changed.
+        self._providers_section.refresh_statuses()
 
     def refresh_rtl(self, *_) -> None:
 
-        self._providers_section.refresh()
+        self._providers_section.refresh_statuses()
 
     def _import_legacy_logbook(self) -> None:
 
@@ -931,9 +932,7 @@ class DashboardPage(QWidget):
     def on_ship_updated(self):
 
         with trace_block("DashboardPage.on_ship_updated"):
-            trace_enter("DashboardPage.on_ship_updated.refresh_ais")
-            self.refresh_ais()
-            trace_exit("DashboardPage.on_ship_updated.refresh_ais")
-            trace_enter("DashboardPage.on_ship_updated.refresh_rtl")
-            self.refresh_rtl()
-            trace_exit("DashboardPage.on_ship_updated.refresh_rtl")
+            # SAVE-106: label/status updates only — no provider widget rebuild.
+            trace_enter("DashboardPage.on_ship_updated.refresh_statuses")
+            self._providers_section.refresh_statuses()
+            trace_exit("DashboardPage.on_ship_updated.refresh_statuses")
