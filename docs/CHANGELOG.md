@@ -11,6 +11,8 @@ First Public Test release (SAVE-205 finalization). Stabilization track SAVE-200�
 - Release notes for `0.3.1-alpha.1`
 - Release candidate and finalization reports (`docs/reports/release_candidate.md`, `release_final.md`)
 - First public test checklist
+- **SAVE-208** — Vessel Database Manager page (sidebar): local DB info, sync controls, session statistics, diagnostics, and maintenance actions (UI + backend hooks)
+- **SAVE-209** — Automatic vessel database synchronization (scheduler, persisted last/next sync, EventBus, online provider hook)
 
 ### Changed
 

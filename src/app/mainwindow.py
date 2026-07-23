@@ -25,6 +25,7 @@ from gui.mappage import MapPage
 from gui.vesselspage import VesselsPage
 from gui.camerapage import CameraPage
 from gui.vesseldatabasepage import VesselDatabasePage
+from gui.vesseldatabasemanagerpage import VesselDatabaseManagerPage
 from gui.vesseltimelinepage import VesselTimelinePage
 from gui.statisticspage import StatisticsPage
 from gui.alertcenterpage import AlertCenterPage
@@ -298,6 +299,7 @@ class MainWindow(QMainWindow):
         self.alert_center_page = AlertCenterPage()
         self.rules_page = RulesPage()
         self.system_health_page = SystemHealthPage()
+        self.vessel_database_manager_page = VesselDatabaseManagerPage()
 
         self.pages.addWidget(self.dashboard_page)        # 0
         self.pages.addWidget(self.map_page)              # 1
@@ -309,6 +311,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self.alert_center_page)     # 7
         self.pages.addWidget(self.rules_page)            # 8
         self.pages.addWidget(self.system_health_page)    # 9
+        self.pages.addWidget(self.vessel_database_manager_page)  # 10
 
         self.system_health_page.attach_hybrid_engine(self.hybrid_engine)
 
@@ -367,6 +370,7 @@ class MainWindow(QMainWindow):
             self.alert_center_page,
             self.rules_page,
             self.system_health_page,
+            self.vessel_database_manager_page,
         ):
             refresh = getattr(page, "refresh_translations", None)
 
@@ -513,6 +517,9 @@ class MainWindow(QMainWindow):
             vessel_sync.stop()
             timeline_recorder.stop()
             arrival_departure_engine.stop()
+            from database.vessel_database_manager import vessel_database_manager
+
+            vessel_database_manager.stop()
         except Exception:
             logger.exception("Failed while stopping background workers")
 

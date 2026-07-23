@@ -202,6 +202,21 @@ class VesselDatabase:
 
         return int(row["total"])
 
+    def latest_updated_at(self) -> datetime | None:
+
+        with self._lock:
+            row = self._conn().execute(
+                "SELECT MAX(updated_at) AS latest FROM vessels"
+            ).fetchone()
+
+        if row is None or not row["latest"]:
+            return None
+
+        try:
+            return datetime.fromisoformat(str(row["latest"]))
+        except ValueError:
+            return None
+
     def _ensure_schema(self) -> None:
 
         self._db_path.parent.mkdir(parents=True, exist_ok=True)

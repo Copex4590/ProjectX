@@ -20,6 +20,15 @@ src/config/camera_packs/state.json
 data/obs_freeze.trace
 **/obs_freeze.trace
 
+# Runtime databases / sync state (development)
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/vessel_db_sync_state.json
+data/vessel_photos/*.db
+data/Hajók/*/
+!data/Hajók/.gitkeep
+
 # Build artifacts
 build/
 dist/
