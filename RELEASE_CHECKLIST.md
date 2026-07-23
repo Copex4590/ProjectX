@@ -1,205 +1,113 @@
-# Project X — Release Readiness Checklist (SAVE-075)
+# Project X — Release Checklist
 
-**Audit date:** 2026-07-05  
-**Branch inspected:** `feature/save-008-svg-icons`  
-**Application version:** `0.3.0-alpha` (`src/version.py`)  
-**Website release ID:** `0.3-alpha` (`website/releases.json`)  
-**Scope:** Full repository audit — application, build, website, repository hygiene. No source code was modified.
+**Release target:** `0.3.1-alpha.1`  
+**Branch:** `release/0.3.1-alpha.1`  
+**Phase:** SAVE-201 Release Stabilization Phase 1 (audit only)  
+**Rule:** No new features. Stabilization evidence only.
 
----
-
-## READY
-
-### Application
-
-| Area | Status | Evidence |
-|------|--------|----------|
-| **Startup** | Ready | `src/app/application.py` — friendly `sys.excepthook`, no user-facing tracebacks; `src/app/logging_config.py` (WARNING default, `PROJECTX_DEBUG=1` for verbose) |
-| **Dashboard** | Ready | `src/gui/dashboardpage.py` — ship counts, connection status, logbook import card, RTL card |
-| **Map** | Ready | `src/gui/mappage.py`, map widgets, offline Leaflet at `src/resources/map/leaflet/`, HTML via `app.paths.resource_path()` |
-| **AIS** | Ready | `src/ais/` providers (AISStream, local, hybrid), AIS wizard, `ais_manager`, System Health checks |
-| **RTL** | Partially ready | RTL-SDR wizard, diagnostics, `rtl_manager`, AIS-Catcher launcher present; hybrid RTL file playback depends on deployment-specific paths (see Needs Attention) |
-| **Cameras** | Ready | Camera Manager, selection engine, preview panel, camera wizard, Hungary pack placeholders |
-| **Playback** | Ready (limited) | Playback framework and settings exist; MPV is the production backend; others are stubs (documented in README) |
-| **Logbook** | Ready | `src/logbook/` — import, XLSX generation, map integration, vessel card logbook button |
-| **Statistics** | Ready | `src/gui/statisticspage.py`, `src/vessel_statistics/` |
-| **Alerts** | Ready (UI + engine) | Alert Center, Rules page, SQLite engine; automatic monitoring hooks not yet wired (documented) |
-| **Translations** | Ready | `en.json` / `hu.json` — 552 keys each, in sync; `language_manager` loads from bundled resources |
-| **Settings** | Ready | Settings page (index 9), preferences auto-created, playback/camera diagnostics modules |
-| **System Health** | Ready | `src/gui/systemhealthpage.py` — 12 subsystem checks, diagnostic report export with API key redaction |
-
-**Additional application readiness**
-
-- First-run wizard: language → observation → AIS → camera (`src/gui/firstrunwizard.py`)
-- Runtime path resolution for packaged builds: `src/app/paths.py` (`%APPDATA%/Project X/` on Windows)
-- Python compile check: `python3 -m compileall src` — **passes**
-- Bundled resources present: translations, Leaflet, branding ICO/PNG/SVG, 250+ flag SVGs
-
-### Build
-
-| Area | Status | Evidence |
-|------|--------|----------|
-| **Windows build** | Ready (scripts) | `scripts/build_windows.bat`, `scripts/build_windows.ps1`, dual-boot workflow in `BUILD_WINDOWS.md` |
-| **Linux build** | Ready (scripts) | `scripts/build_linux.sh`, auto `.venv`, asset checks |
-| **PyInstaller** | Ready | `installer/projectx.spec` — `collect_all` for Qt WebEngine, resources, read-only config subset; runtime `data/` not bundled |
-| **Windows installer script** | Ready | `installer/windows/projectx.iss` (Inno Setup 6) |
-| **Linux installer script** | Ready | `installer/linux/install.sh`, desktop entry, uninstall script |
-| **Runtime resources** | Ready | Leaflet offline bundle, map HTML, translations, flags, camera config packs |
-| **Icons / branding** | Ready | `projectx-logo.svg`, `projectx-logo.png`, `projectx.ico` committed under `src/resources/branding/` |
-| **Clean build** | Ready | `scripts/clean_build.sh` |
-
-### Website
-
-| Area | Status | Evidence |
-|------|--------|----------|
-| **Release configuration** | Ready | `website/releases.json` — single source of truth for version, filenames, metadata |
-| **Dynamic download links** | Ready | `website/js/releases.js` — reads config, generates `downloads/windows/` and `downloads/linux/` URLs |
-| **Documentation page** | Ready | `website/documentation.html` — getting started, requirements, install, source build |
-| **Release notes (Markdown)** | Ready | `website/releases/0.3-alpha.md` loaded automatically on home, download, and documentation pages |
-| **Site structure** | Ready | `index.html`, `download.html`, `documentation.html`, `screenshots.html`, responsive CSS |
-| **Verification script** | Ready | `website/verify_releases.sh` — config, notes, local HTTP checks, URL generation simulation |
-| **GitHub link** | Ready | Points to `https://github.com/Copex4590/ProjectX` |
-
-### Repository
-
-| Area | Status | Evidence |
-|------|--------|----------|
-| **README** | Ready | Comprehensive architecture, install, features, limitations, branding, doc links |
-| **LICENSE** | Ready | MIT License present at repository root |
-| **`.gitignore`** | Ready | Runtime config, SQLite DBs, build artifacts, venv excluded |
-| **Core folder structure** | Ready | `src/`, `installer/`, `scripts/`, `docs/`, `website/`, `data/` |
-| **Release documentation** | Ready | `RELEASE_AUDIT.md`, `BUILD_WINDOWS.md`, `docs/RELEASE_NOTES_0.3_ALPHA.md`, `docs/CHANGELOG.md` |
-| **Build / packaging docs** | Ready | `installer/README.md`, SAVE-066 through SAVE-074 pipeline docs |
+Use this checklist before any public test build. Mark items only after manual verification on a clean machine.
 
 ---
 
-## NEEDS ATTENTION
+## Crash Safety
 
-### Application
+- [ ] Application survives AISStream disconnect / 503 / network drop without exiting
+- [ ] Application survives AIS-catcher TCP drop without exiting
+- [ ] Closing main window stops HybridEngine without hang or zombie process
+- [ ] Unhandled exception dialog appears for GUI-thread failures (`sys.excepthook`)
+- [ ] Daemon worker exceptions do not kill the Qt process (EventBus / background queues)
+- [ ] Map WebEngine crash / reload does not take down the process (document if unrecoverable)
 
-| Item | Notes |
-|------|-------|
-| **HybridEngine deployment paths** | `src/engines/rtl/hybrid_engine.py` uses hardcoded `/home/zoli/...` paths for RTL file playback, cache, and API key. Functional on original Linux deployment only unless env/deployment is adjusted. |
-| **AIS-Catcher default executable** | `src/config/aiscatcher.py` defaults to `/home/zoli/AIS-catcher/build/AIS-catcher`. Windows/end-user installs must set `PROJECTX_AIS_CATCHER_EXECUTABLE`. |
-| **Vessel photo storage paths** | Fixed — `photo_registry.py` uses `runtime_data_dir()`; `ensure_runtime_data_dirs()` creates structure at startup |
-| **Playback config path** | `src/config/playback.py` uses package directory, not frozen runtime config dir — read-only defaults OK, user overrides via env only. |
-| **Alert automation** | Alert evaluation API exists; automatic hooks from monitoring/timeline not wired (documented in README). |
-| **Camera packs → active registry** | Packs managed but not fully loaded into active camera registry (README limitation). |
-| **Map tiles** | Leaflet bundled offline; map tiles still fetched from OpenStreetMap CDN — not fully offline. |
-| **Windows/Qt WebEngine validation** | PyInstaller hooks added but no recorded smoke test on a clean Windows VM in this audit. |
+## Exception Handling
 
-### Build
+- [ ] No bare `except:` in `src/` (verified in SAVE-201 audit)
+- [ ] Silent `except Exception: pass` on hot paths reviewed and ticketed (VesselSync, TimelineRecorder, ArrivalDeparture)
+- [ ] EventBus handler failures are logged and do not stop other listeners
+- [ ] HybridEngine AIS/RTL outer loops catch errors and continue or reconnect
+- [ ] Logbook / XLSX failures cannot crash AIS ingest (known risk — see readiness report)
 
-| Item | Notes |
-|------|-------|
-| **No CI release pipeline** | No GitHub Actions or automated build on tag. Builds are manual (dual-boot Windows + Linux scripts). |
-| **Inno Setup output not in repo** | `projectx.iss` ready; compiled `ProjectX-Setup.exe` not produced or committed (expected). |
-| **UPX enabled in spec** | May trigger antivirus false positives on some Windows systems. |
-| **No code signing** | Unsigned `.exe` and installer may trigger SmartScreen warnings. |
+## Provider Recovery
 
-### Website
+- [ ] AISStream: reconnect after disconnect with bounded backoff
+- [ ] AISStream: websocket closed on stop / provider disable / observation change
+- [ ] AISStream: no duplicate concurrent reconnect storms
+- [ ] RTL / AIS-catcher: reconnect after TCP loss
+- [ ] RTL: socket timeout so stop/disable cannot block forever
+- [ ] Future providers (MarineTraffic / AISHub): clearly marked not-ready; wizard cannot enable them silently
+- [ ] Provider disable purges AIS-only / RTL-only vessels as designed
 
-| Item | Notes |
-|------|-------|
-| **Screenshots are placeholders** | `website/images/screenshots/*.svg` are stylized mockups, not real application captures. |
-| **Installer file sizes** | `releases.json` lists `"size": "TBD"` for both platforms. |
-| **Version string mismatch** | App/docs use `0.3.0-alpha`; website release portal uses `0.3-alpha`. Consistent enough for alpha but confusing for users and filenames. |
-| **Documentation still references repo release doc name** | `docs/RELEASE_NOTES_0.3_ALPHA.md` vs website `0.3-alpha.md` — two parallel naming schemes. |
+## Logging
 
-### Repository
+- [ ] Dual logging systems documented (`app.logging_config` + `core.logger`)
+- [ ] Hot-path `print()` replaced or deferred (SAVE-202)
+- [ ] Default log level suitable for public alpha (`WARNING` unless `PROJECTX_DEBUG` / `PROJECTX_LOG_LEVEL`)
+- [ ] Rotating file log path known to testers (`~/.local/share/Project X/logs/projectx.log`)
+- [ ] `PROJECTX_OBS_FREEZE_TRACE` remains **off** by default (SAVE-P0)
 
-| Item | Notes |
-|------|-------|
-| **Legacy backup trees in Git** | `src_backup_001/`, `src_backup_002/`, `src_backup_003/` — ~106 tracked files; increases repo noise and confusion for release consumers. |
-| **macOS icon placeholder** | `projectx.icns.placeholder` only — no macOS bundle pipeline. |
-| **No automated test suite** | Manual verification only; no pytest/CI gate before release. |
+## GUI Stability
 
----
+- [ ] Map page: no multi-second freeze under normal Duna-scale traffic
+- [ ] Switching pages (Map / Dashboard / Vessels / Settings) does not deadlock
+- [ ] Wizards (First Run, AIS, RTL, Camera, Observation) cancel cleanly
+- [ ] QThread workers in wizards do not outlive dialog without wait/quit policy
+- [ ] Notification banner / AIS connection countdown behaves after reconnect
+- [ ] Language switch does not leave stale strings on critical pages
 
-## OPTIONAL
+## Memory
 
-1. **GitHub Actions** — Windows build on tag + artifact upload to `website/downloads/`.
-2. **AppImage build script** — Only needed if Linux distribution remains AppImage-based (see Blockers).
-3. **Code signing** — Authenticode for `projectx.exe` and Inno Setup installer.
-4. **Real website screenshots** — Replace SVG mockups with PNG/WebP from a running build.
-5. **User data migration tool** — Import dev `src/config/*.json` into `%APPDATA%/Project X/config/`.
-6. **Offline tile cache** — Bundle or cache OSM tiles for fully offline map use.
-7. **Remove `src_backup_*` from repository** — Archive externally or move to a release branch/tag only.
-8. **Unified version naming** — Align `0.3-alpha`, `0.3.0-alpha`, and installer filenames.
-9. **Desktop notifications for alerts** — Future beta feature.
-10. **Inspector GUI** — Currently programmatic only.
+- [ ] Long run (2–4 h): ShipRegistry / radar_data growth bounded or documented
+- [ ] No unbounded `obs_freeze.trace` growth when trace disabled
+- [ ] Timeline DB / vessel DB growth acceptable for alpha (document retention gap)
+- [ ] WebEngine map + optional wizard maps do not exhaust RAM on low-end hardware
 
----
+## CPU
 
-## BLOCKERS
+- [ ] Idle with AIS connected: CPU acceptable on reference laptop
+- [ ] Map visible: marker/full refresh rates match SAVE-106 expectations
+- [ ] Radar export interval does not saturate disk/CPU (known Performance Initiative item)
+- [ ] Statistics auto-refresh off by default or safe when enabled
 
-### 1. Release installer files not published
+## Packaging
 
-| Field | Detail |
-|-------|--------|
-| **Priority** | **P0 — Critical** |
-| **Reason** | The official release portal links to `downloads/windows/ProjectX-0.3-alpha-Setup.exe` and `downloads/linux/ProjectX-0.3-alpha.AppImage`, but neither file exists in the repository or upload directory. New users following the website get **404** on download. |
-| **Recommended fix** | Build on native Windows (`scripts/build_windows.bat`), compile Inno Setup, produce Linux artifact, copy both into `website/downloads/windows/` and `website/downloads/linux/`, update `releases.json` sizes, run `website/verify_releases.sh`, then publish the website. |
+- [ ] Version string matches `0.3.1-alpha.1` in About / metadata
+- [ ] Runtime data dirs created without writing into source tree unexpectedly
+- [ ] Hardcoded absolute paths (`/home/zoli/rtl-monitor`, etc.) documented as **blocker for public machines**
+- [ ] Dependencies pinned / install instructions for alpha testers
+- [ ] No secrets (API keys) shipped in repo or default config
 
-### 2. Linux distribution format mismatch (AppImage vs actual build pipeline)
+## First Run
 
-| Field | Detail |
-|-------|--------|
-| **Priority** | **P0 — Critical** |
-| **Reason** | `website/releases.json` and release notes advertise **`ProjectX-0.3-alpha.AppImage`**, but the repository provides **`installer/linux/install.sh`** (source-tree shell installer) and **`scripts/build_linux.sh`** (PyInstaller one-dir bundle). **No AppImage build script or artifact pipeline exists.** |
-| **Recommended fix** | Either (a) add an AppImage build step and produce the advertised file, or (b) change `releases.json`, release notes, and documentation to match the actual Linux deliverable (e.g. tarball of `dist/projectx/` or the shell installer script) before publishing. |
+- [ ] Language welcome → First Run wizard path works on empty observation set
+- [ ] Observation reference required before AISStream subscribe
+- [ ] AIS provider configure + test connection works
+- [ ] RTL wizard can complete without crashing if no dongle present
+- [ ] Splash timing does not hide fatal startup errors
+- [ ] Factory reset / clean profile path documented for testers
 
-### 3. Windows release not validated on a clean target system
+## Known Issues
 
-| Field | Detail |
-|-------|--------|
-| **Priority** | **P1 — High** |
-| **Reason** | First public Windows release requires proof that `projectx.exe` starts, Qt WebEngine map loads, first-run wizard completes, and user data lands in `%APPDATA%/Project X/`. This audit found scripts and spec ready but **no recorded clean-VM smoke test**. |
-| **Recommended fix** | On a fresh Windows 10/11 VM: `git pull` → `scripts/build_windows.bat` → run `dist/projectx/projectx.exe` → verify map, translations, System Health full check → compile and test Inno Setup installer end-to-end. Document results in release notes or a short `docs/WINDOWS_SMOKE_TEST.md`. |
+Track explicitly in release notes (see `docs/reports/release_readiness.md`):
 
-### 4. Version identifier inconsistency across release surfaces
-
-| Field | Detail |
-|-------|--------|
-| **Priority** | **P1 — High** |
-| **Reason** | Application and Inno Setup use **`0.3.0-alpha`** (`src/version.py`, `installer/windows/projectx.iss`); website portal uses **`0.3-alpha`** and filenames like `ProjectX-0.3-alpha-Setup.exe`. Support, caching, and user trust suffer when version strings diverge. |
-| **Recommended fix** | Pick one canonical public version (recommend `0.3.0-alpha` to match the app) and align `website/releases.json`, release notes filename, installer filenames, and marketing copy in a single maintenance pass. |
-
-### 5. HybridEngine unusable on default Windows/end-user installs
-
-| Field | Detail |
-|-------|--------|
-| **Priority** | **P1 — High** (for RTL/hybrid AIS users) |
-| **Reason** | Hybrid RTL mode relies on hardcoded Linux paths in `hybrid_engine.py` for ship folders, cache, and API key. A Windows user installing from the release portal **cannot use hybrid RTL file playback** without manual path/env changes not covered by the installer. |
-| **Recommended fix** | Before marketing RTL/hybrid mode on the website, document it as Linux-only OR route hybrid paths through `app.paths` / preferences (separate change). For alpha, explicitly label RTL-SDR and AIS-Catcher as optional advanced setup in website documentation. |
+- [ ] Hardcoded HybridEngine data paths (non-portable)
+- [ ] Sync logbook XLSX on AIS EventBus path
+- [ ] HybridEngine threads: daemon, no `join`/`wait` on stop
+- [ ] RTL socket: no timeout
+- [ ] AISStream reconnect: fixed `sleep(5)`, no exponential backoff / jitter
+- [ ] Dual logging + widespread `print()` diagnostics
+- [ ] Silent exception swallow in background DB workers
+- [ ] Performance Initiative items deferred (SAVE-P1+)
 
 ---
 
-## Pre-release action summary
+## Sign-off
 
-| Step | Owner | Blocker addressed |
-|------|-------|-------------------|
-| Resolve Linux artifact format (AppImage vs installer script) | Release | #2 |
-| Build and upload Windows + Linux installers to `website/downloads/` | Release | #1 |
-| Align version strings across app, installer, website | Release | #4 |
-| Clean Windows VM smoke test | QA | #3 |
-| Document RTL/hybrid limitations on website docs | Docs | #5 |
-| Replace screenshot placeholders before public launch | Website | — |
-| Run `./website/verify_releases.sh` after uploads | Release | #1 |
+| Role | Name | Date | Result |
+|------|------|------|--------|
+| Engineering | | | Pass / Fail |
+| Test lead | | | Pass / Fail |
+| Release owner | | | Go / No-Go |
 
----
+**Related reports**
 
-## Audit verification performed
-
-| Check | Result |
-|-------|--------|
-| `python3 -m compileall src` | Pass |
-| Bundled resources (`paths.resource_path`) | Pass — translations, Leaflet, ICO present |
-| `website/verify_releases.sh` | Pass — config, markdown notes, local HTTP 200; installer files **warn** (missing) |
-| Translation key parity | Pass — 552 lines each in `en.json` / `hu.json` |
-| `.gitignore` excludes runtime DB/config | Pass |
-| `LICENSE` present | Pass — MIT |
-| PyInstaller spec WebEngine hooks | Pass — `collect_all` in `installer/projectx.spec` |
-| Website dynamic links from `releases.json` | Pass — simulated 0.4-beta URL generation |
-
-**Overall assessment:** Project X is **structurally ready for an alpha release candidate** — application subsystems, build scripts, packaging spec, and release portal infrastructure are in place. **Public release is blocked** until installer artifacts are produced/uploaded, the Linux distribution format mismatch is resolved, and a clean Windows validation pass is completed.
+- `docs/reports/stabilization_audit.md`
+- `docs/reports/release_readiness.md`
