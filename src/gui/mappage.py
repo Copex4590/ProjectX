@@ -21,9 +21,14 @@ from gui.mapcontroller import MapController
 from gui.map_core import PickMode
 from gui.widgets.camerapreviewpanel import CameraPreviewPanel
 from gui.widgets.vessel_details_panel import VesselDetailsPanel
+from gui.widgets.vessel_timeline_panel import (
+    VesselTimelinePanel,
+    sync_panel_from_engine,
+)
 from i18n import language_manager, tr
 from vessel_statistics.statistics_manager import statistics_manager
 from timeline.timeline_manager import timeline_manager
+from timeline.vessel_playback import PlaybackMode, vessel_playback_engine
 from logbook import logbook_manager
 from vessels.flags.flag_manager import flag_manager
 from vessels.photo_manager import photo_manager
@@ -329,6 +334,9 @@ class MapPage(QWidget):
         self.vessel_details = VesselDetailsPanel()
         right_layout.addWidget(self.vessel_details, 1)
 
+        self.vessel_timeline = VesselTimelinePanel()
+        right_layout.addWidget(self.vessel_timeline, 0)
+
         self.camera_preview = CameraPreviewPanel()
         right_layout.addWidget(self.camera_preview, 0)
 
@@ -342,6 +350,7 @@ class MapPage(QWidget):
         self._marker_fingerprints: dict[int, tuple] = {}
         self._full_fingerprints: dict[int, tuple] = {}
         self._force_map_full_sync = True
+        self._playback = vessel_playback_engine
 
         language_manager.language_changed.connect(
             lambda _code: self.apply_personalization()
@@ -353,6 +362,7 @@ class MapPage(QWidget):
         self._map_controller.pick_mode_changed.connect(
             self._on_pick_mode_changed
         )
+        self._connect_timeline_playback()
         self.apply_personalization()
         self._map_controller.refresh_observation_points()
 
@@ -481,11 +491,15 @@ class MapPage(QWidget):
             self.camera_preview.setMaximumWidth(480)
             self.vessel_details.setMinimumWidth(400)
             self.vessel_details.setMaximumWidth(480)
+            self.vessel_timeline.setMinimumWidth(400)
+            self.vessel_timeline.setMaximumWidth(480)
         else:
             self.camera_preview.setMinimumWidth(300)
             self.camera_preview.setMaximumWidth(360)
             self.vessel_details.setMinimumWidth(320)
             self.vessel_details.setMaximumWidth(400)
+            self.vessel_timeline.setMinimumWidth(320)
+            self.vessel_timeline.setMaximumWidth(400)
 
         if self._map_updates_enabled():
             self._schedule_ships_full(
@@ -538,10 +552,13 @@ class MapPage(QWidget):
             if not self._marker_timer.isActive():
                 self._start_ship_timers()
 
+            self._append_selected_playback_sample()
+
     def select_vessel(self, mmsi: int):
 
         self._selected_mmsi = int(mmsi)
         self.vessel_details.set_mmsi(self._selected_mmsi)
+        self._bind_timeline_vessel(self._selected_mmsi)
         self._refresh_camera_preview()
 
     def _open_logbook(self, mmsi: int) -> None:
@@ -553,11 +570,125 @@ class MapPage(QWidget):
         if self._selected_mmsi is None:
             self.camera_preview.show_empty()
             self.vessel_details.clear()
+            self._bind_timeline_vessel(None)
             return
 
         ship = registry.get(self._selected_mmsi)
         self.camera_preview.show_for_ship(ship)
         self.vessel_details.set_mmsi(self._selected_mmsi)
+
+    def _connect_timeline_playback(self) -> None:
+
+        panel = self.vessel_timeline
+        engine = self._playback
+
+        panel.playPauseRequested.connect(self._on_timeline_play_pause)
+        panel.liveRequested.connect(self._on_timeline_live)
+        panel.rateChanged.connect(engine.set_rate)
+        panel.seekFractionChanged.connect(self._on_timeline_seek)
+
+        engine.mode_changed.connect(self._on_playback_mode_changed)
+        engine.samples_changed.connect(self._on_playback_samples_changed)
+        engine.index_changed.connect(self._on_playback_index_changed)
+        engine.position_changed.connect(self._on_playback_position_changed)
+        engine.rate_changed.connect(lambda _rate: sync_panel_from_engine(panel, engine))
+
+        panel.set_enabled_for_vessel(False)
+
+    def _bind_timeline_vessel(self, mmsi: int | None) -> None:
+
+        ship = registry.get(mmsi) if mmsi is not None else None
+        self._playback.bind_vessel(mmsi, ship)
+        sync_panel_from_engine(self.vessel_timeline, self._playback)
+        self.vessel_timeline.set_enabled_for_vessel(mmsi is not None)
+
+        if mmsi is None or self._playback.is_live():
+            self._map_controller.clear_playback()
+        else:
+            self._apply_playback_overlay()
+
+    def _append_selected_playback_sample(self) -> None:
+
+        if self._selected_mmsi is None:
+            return
+
+        ship = registry.get(self._selected_mmsi)
+        if ship is None:
+            return
+
+        self._playback.append_live_ship(ship)
+        if self._playback.is_live():
+            sync_panel_from_engine(self.vessel_timeline, self._playback)
+
+    def _on_timeline_play_pause(self) -> None:
+
+        if self._selected_mmsi is None:
+            return
+        self._playback.toggle_play_pause()
+
+    def _on_timeline_live(self) -> None:
+
+        self._playback.go_live()
+        self._map_controller.clear_playback()
+        self._markers_dirty = True
+        self._force_map_full_sync = True
+        self._update_ship_markers()
+        sync_panel_from_engine(self.vessel_timeline, self._playback)
+
+    def _on_timeline_seek(self, fraction: float) -> None:
+
+        self._playback.seek_fraction(fraction)
+
+    def _on_playback_mode_changed(self, mode: str) -> None:
+
+        sync_panel_from_engine(self.vessel_timeline, self._playback)
+        if mode == PlaybackMode.LIVE.value:
+            self._map_controller.clear_playback()
+            self._markers_dirty = True
+            self._force_map_full_sync = True
+            if self._map_updates_enabled():
+                self._update_ship_markers()
+            return
+
+        self._apply_playback_overlay()
+
+    def _on_playback_samples_changed(self) -> None:
+
+        sync_panel_from_engine(self.vessel_timeline, self._playback)
+        if self._playback.is_playback_active():
+            self._map_controller.set_playback_trail(self._playback.trail_points())
+
+    def _on_playback_index_changed(self, _index: int, _total: int) -> None:
+
+        sync_panel_from_engine(self.vessel_timeline, self._playback)
+
+    def _on_playback_position_changed(self, sample) -> None:
+
+        if self._playback.is_live() or sample is None:
+            return
+        self._apply_playback_overlay(sample)
+
+    def _apply_playback_overlay(self, sample=None) -> None:
+
+        if self._selected_mmsi is None:
+            self._map_controller.clear_playback()
+            return
+
+        current = sample or self._playback.current_sample()
+        points = self._playback.trail_points()
+        self._map_controller.set_playback_active(self._selected_mmsi)
+        self._map_controller.set_playback_trail(points)
+
+        if current is None:
+            self._map_controller.set_playback_cursor(None, None)
+            return
+
+        heading = current.heading if current.heading is not None else current.course
+        self._map_controller.set_playback_cursor(
+            current.latitude,
+            current.longitude,
+            heading,
+        )
 
     def update_ships(self) -> None:
 

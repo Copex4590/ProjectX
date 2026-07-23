@@ -72,6 +72,7 @@ class MapWidget(QWebEngineView):
         self._page_ready = False
         self._pending_ships_payload: str | None = None
         self._ships_flush_scheduled = False
+        self._pending_playback: dict | None = None
 
     def set_observation_points(self, points: list[dict]) -> None:
 
@@ -209,6 +210,7 @@ class MapWidget(QWebEngineView):
             self._apply_observation_points()
 
         self._flush_pending_ships()
+        self._flush_pending_playback()
 
     def _apply_location_pick(self) -> None:
 
@@ -265,6 +267,80 @@ class MapWidget(QWebEngineView):
     def focus_ship(self, mmsi: int):
 
         self._run_js(f"focusShip({int(mmsi)});")
+
+    def set_playback_active(self, mmsi: int | None) -> None:
+
+        state = self._pending_playback if self._pending_playback is not None else {}
+        state = dict(state)
+        state["active_mmsi"] = None if mmsi is None else int(mmsi)
+        self._pending_playback = state
+        self._flush_pending_playback()
+
+    def set_playback_trail(self, points: list[tuple[float, float]]) -> None:
+
+        state = self._pending_playback if self._pending_playback is not None else {}
+        state = dict(state)
+        state["trail"] = [[float(lat), float(lon)] for lat, lon in points]
+        self._pending_playback = state
+        self._flush_pending_playback()
+
+    def set_playback_cursor(
+        self,
+        lat: float | None,
+        lon: float | None,
+        heading: float | None = None,
+    ) -> None:
+
+        state = self._pending_playback if self._pending_playback is not None else {}
+        state = dict(state)
+        if lat is None or lon is None:
+            state["cursor"] = None
+        else:
+            state["cursor"] = {
+                "lat": float(lat),
+                "lon": float(lon),
+                "heading": float(heading or 0.0),
+            }
+        self._pending_playback = state
+        self._flush_pending_playback()
+
+    def clear_playback(self) -> None:
+
+        self._pending_playback = {"clear": True}
+        self._flush_pending_playback()
+
+    def _flush_pending_playback(self) -> None:
+
+        if not self._page_ready or self._pending_playback is None:
+            return
+
+        state = self._pending_playback
+        self._pending_playback = None
+
+        if state.get("clear"):
+            self._run_js("clearPlayback();")
+            return
+
+        if "active_mmsi" in state:
+            mmsi = state["active_mmsi"]
+            if mmsi is None:
+                self._run_js("setPlaybackActive(null);")
+            else:
+                self._run_js(f"setPlaybackActive({int(mmsi)});")
+
+        if "trail" in state:
+            payload = json.dumps(state["trail"])
+            self._run_js(f"setPlaybackTrail({payload});")
+
+        if "cursor" in state:
+            cursor = state["cursor"]
+            if cursor is None:
+                self._run_js("setPlaybackCursor(null, null, 0);")
+            else:
+                self._run_js(
+                    "setPlaybackCursor("
+                    f"{cursor['lat']}, {cursor['lon']}, {cursor['heading']});"
+                )
 
     def update_ships(self, payload: str):
 

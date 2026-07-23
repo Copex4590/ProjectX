@@ -434,6 +434,9 @@ const trails = {};
 let openPopupMmsi = null;
 let bridge = null;
 let pendingPickLocation = null;
+let playbackActiveMmsi = null;
+let playbackTrail = null;
+let playbackCursor = null;
 
 function reportPickLocation(latitude, longitude)
 {
@@ -970,6 +973,10 @@ function upsertShipMarker(ship)
 {
     const mmsi = ship.mmsi;
     const pos = [ship.lat, ship.lon];
+    const playbackFrozen = (
+        playbackActiveMmsi !== null
+        && Number(mmsi) === Number(playbackActiveMmsi)
+    );
 
     if (!ships[mmsi])
     {
@@ -986,7 +993,7 @@ function upsertShipMarker(ship)
 
         ships[mmsi].bindPopup("");
     }
-    else
+    else if (!playbackFrozen)
     {
         ships[mmsi].setLatLng(pos);
     }
@@ -1019,6 +1026,9 @@ function upsertShipMarker(ship)
 
     if (popupOpen)
         attachLogbookHandlers(marker.getPopup().getElement());
+
+    if (playbackFrozen)
+        return;
 
     if (!trails[mmsi])
     {
@@ -1109,6 +1119,106 @@ function focusShip(mmsi)
     );
 
     ships[mmsi].openPopup();
+}
+
+function setPlaybackActive(mmsi)
+{
+    playbackActiveMmsi = (mmsi === null || mmsi === undefined) ? null : Number(mmsi);
+}
+
+function setPlaybackTrail(points)
+{
+    if (playbackTrail)
+    {
+        map.removeLayer(playbackTrail);
+        playbackTrail = null;
+    }
+
+    if (!Array.isArray(points) || points.length === 0)
+        return;
+
+    const latlngs = [];
+
+    for (const point of points)
+    {
+        if (!point || point.length < 2)
+            continue;
+        latlngs.push([Number(point[0]), Number(point[1])]);
+    }
+
+    if (!latlngs.length)
+        return;
+
+    playbackTrail = L.polyline(latlngs, {
+        color: "#6b80b5",
+        weight: 3,
+        opacity: 0.9
+    }).addTo(map);
+}
+
+function setPlaybackCursor(lat, lon, heading)
+{
+    if (lat === null || lon === null || lat === undefined || lon === undefined)
+    {
+        if (playbackCursor)
+        {
+            map.removeLayer(playbackCursor);
+            playbackCursor = null;
+        }
+        return;
+    }
+
+    const pos = [Number(lat), Number(lon)];
+    const rotation = Number(heading || 0);
+
+    if (!playbackCursor)
+    {
+        const icon = L.divIcon({
+            className: "ship-icon playback-cursor",
+            html: "<div class='ship-body ship-body--moving'>▲</div>",
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+        });
+
+        playbackCursor = L.marker(pos, {
+            icon: icon,
+            zIndexOffset: 1000
+        }).addTo(map);
+    }
+    else
+    {
+        playbackCursor.setLatLng(pos);
+    }
+
+    const body = playbackCursor.getElement()
+        ? playbackCursor.getElement().querySelector(".ship-body")
+        : null;
+
+    if (body)
+    {
+        body.style.transform = "rotate(" + rotation + "deg)";
+        body.classList.add("ship-body--moving");
+    }
+
+    if (playbackActiveMmsi !== null && ships[playbackActiveMmsi])
+        ships[playbackActiveMmsi].setLatLng(pos);
+}
+
+function clearPlayback()
+{
+    playbackActiveMmsi = null;
+
+    if (playbackTrail)
+    {
+        map.removeLayer(playbackTrail);
+        playbackTrail = null;
+    }
+
+    if (playbackCursor)
+    {
+        map.removeLayer(playbackCursor);
+        playbackCursor = null;
+    }
 }
 
 </script>

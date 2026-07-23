@@ -254,6 +254,27 @@ class MapController(QObject):
 
         self._widget.focus_ship(mmsi)
 
+    def set_playback_active(self, mmsi: int | None) -> None:
+
+        self._widget.set_playback_active(mmsi)
+
+    def set_playback_trail(self, points: list[tuple[float, float]]) -> None:
+
+        self._widget.set_playback_trail(points)
+
+    def set_playback_cursor(
+        self,
+        lat: float | None,
+        lon: float | None,
+        heading: float | None = None,
+    ) -> None:
+
+        self._widget.set_playback_cursor(lat, lon, heading)
+
+    def clear_playback(self) -> None:
+
+        self._widget.clear_playback()
+
     def maybe_prompt_reference_selection(self) -> None:
 
         with trace_block("MapController.maybe_prompt_reference_selection"):
