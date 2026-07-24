@@ -196,7 +196,7 @@ class HybridEngine(BaseEngine):
             self.last_printed_state.pop(mmsi, None)
 
         if removed:
-            eventbus.publish("ship.updated")
+            hybrid_ais_engine.notify_ships_changed()
 
     def purge_ais_only_vessels(self) -> None:
 
@@ -218,7 +218,7 @@ class HybridEngine(BaseEngine):
             self.last_printed_state.pop(mmsi, None)
 
         if removed:
-            eventbus.publish("ship.updated")
+            hybrid_ais_engine.notify_ships_changed()
 
     def _aisstream_api_key(self) -> str:
 

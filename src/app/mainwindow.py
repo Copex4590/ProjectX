@@ -193,6 +193,16 @@ class MainWindow(QMainWindow):
             ),
             connection,
         )
+        self.event_bridge.ship_updated.connect(
+            trace_slot(
+                "MainWindow->TimelinePage.on_ship_updated",
+                lambda: self._call_loaded_page(
+                    "vessel_timeline_page",
+                    "on_ship_updated",
+                ),
+            ),
+            connection,
+        )
         self.event_bridge.ais_status.connect(
             self.connection_panel.on_ais_status,
             connection,
@@ -519,6 +529,7 @@ class MainWindow(QMainWindow):
                 index=14,
                 attr_name="analytics_dashboard_page",
                 factory=self._factory_analytics_dashboard_page,
+                binder=self._bind_analytics_dashboard_page,
             )
         )
         registry.register(
@@ -634,6 +645,10 @@ class MainWindow(QMainWindow):
             )
             self._map_controller_wired = True
 
+        details = getattr(page, "vessel_details", None)
+        if details is not None and hasattr(details, "connect_event_bridge"):
+            details.connect_event_bridge(self.event_bridge)
+
         MapController.instance().maybe_prompt_reference_selection()
 
     def _bind_vessels_page(self, page) -> None:
@@ -647,6 +662,11 @@ class MainWindow(QMainWindow):
     def _bind_vessel_timeline_page(self, page) -> None:
 
         page.vesselSelected.connect(self.focus_ship)
+
+    def _bind_analytics_dashboard_page(self, page) -> None:
+
+        if hasattr(page, "connect_event_bridge"):
+            page.connect_event_bridge(self.event_bridge)
 
     def _bind_alert_center_page(self, page) -> None:
 

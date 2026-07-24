@@ -4,8 +4,10 @@
 #
 # Single ingestion layer between AIS runtime providers and ShipRegistry.
 #
-# Architecture:
-#   AIS Providers -> HybridAisEngine -> ShipRegistry -> EventBus -> UI
+# Canonical ship-update pipeline (SAVE-232):
+#   AIS/RTL Providers -> HybridAisEngine -> ShipRegistry
+#       -> EventBus("ship.updated") -> EventBridge (coalesce)
+#       -> Qt signals -> ALL UI consumers
 # ============================================================================
 
 from __future__ import annotations
@@ -18,7 +20,10 @@ from models.ship import Ship
 
 
 class HybridAisEngine:
-    """Orchestrates AIS providers and publishes ships to the runtime registry."""
+    """Orchestrates AIS providers and publishes ships to the runtime registry.
+
+    This is the **only** canonical publisher of ``ship.updated`` for live traffic.
+    """
 
     def __init__(self) -> None:
         self._providers: list[AISRuntimeProvider] = []
@@ -42,13 +47,27 @@ class HybridAisEngine:
         return self._started
 
     def publish_ship(self, ship: Ship) -> None:
-        """Publish one ship update through the single registry ingestion path."""
+        """Ingest one ship and publish the canonical ``ship.updated`` event."""
 
         registry.add(ship)
         with trace_block(
             f"HybridAisEngine.publish_ship mmsi={ship.mmsi} source={ship.source}"
         ):
             eventbus.publish("ship.updated", ship=ship)
+
+    def notify_ships_changed(self, ship: Ship | None = None) -> None:
+        """Publish ``ship.updated`` after registry mutations (e.g. purge).
+
+        Prefer ``publish_ship`` for normal ingest. Use this when the registry
+        changed without a single new Ship payload (bulk remove / reconnect).
+        """
+
+        if ship is not None:
+            self.publish_ship(ship)
+            return
+
+        with trace_block("HybridAisEngine.notify_ships_changed"):
+            eventbus.publish("ship.updated")
 
     def _on_provider_ship(self, ship: Ship) -> None:
         self.publish_ship(ship)

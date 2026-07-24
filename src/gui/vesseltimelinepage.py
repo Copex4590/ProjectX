@@ -183,6 +183,17 @@ class VesselTimelinePage(QWidget):
             return
         self._request_progressive_load(force=False)
 
+    def on_ship_updated(self) -> None:
+        """EventBridge coalesced ship update — refresh name lookup only (SAVE-232)."""
+
+        if not self._data_ready:
+            return
+        self._name_lookup = {
+            ship.mmsi: _display_text(ship.name)
+            for ship in registry.all()
+            if _display_text(ship.name) != "—"
+        }
+
     def hideEvent(self, event) -> None:
         """Cancel in-flight progressive load when leaving the page."""
 

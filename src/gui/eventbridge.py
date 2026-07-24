@@ -2,6 +2,12 @@
 # Project X
 # Event Bridge (EventBus -> Qt signals)
 # ============================================================================
+"""Canonical GUI fan-out for high-frequency EventBus traffic (SAVE-232).
+
+Live ship updates are published once by ``HybridAisEngine`` onto EventBus.
+``EventBridge`` is the only path that delivers coalesced ``ship.updated``
+notifications to UI pages (Dashboard, Map, Analytics, Vessel Details, Timeline).
+"""
 
 from PySide6.QtCore import QMetaObject, QObject, Qt, QTimer, Signal, Slot
 

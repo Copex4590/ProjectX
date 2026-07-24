@@ -30,6 +30,7 @@ from database.vessel_database_manager import (
 )
 from engines.camera import camera_selection_engine
 from events import eventbus
+from gui.eventbridge import EventBridge
 from gui.i18n_support import bind_language_refresh
 from gui.theme import ThemeColors, card_stylesheet
 from gui.vesselcard.layouts.base import (
@@ -282,6 +283,7 @@ class VesselDetailsPanel(QWidget):
 
         self._mmsi: int | None = None
         self._sections: list[_SectionCard] = []
+        self._event_bridge: EventBridge | None = None
         self._bus = _GuiBridge(self)
         self._bus.refresh_requested.connect(self.refresh)
 
@@ -386,12 +388,12 @@ class VesselDetailsPanel(QWidget):
         layout.addStretch(1)
 
     def initialize(self) -> None:
-        """One-shot: language binding and EventBus subscriptions."""
+        """One-shot: language binding and sync EventBus subscriptions."""
 
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
         self.clear()
-        self._connect_eventbus()
+        self._connect_sync_events()
 
     def activate(self) -> None:
         """Refresh the selected vessel sheet when the map page is shown."""
@@ -399,17 +401,37 @@ class VesselDetailsPanel(QWidget):
         if self._mmsi is not None:
             self.refresh()
 
-    def _connect_eventbus(self) -> None:
+    def connect_event_bridge(self, bridge: EventBridge) -> None:
+        """Receive coalesced ship updates via EventBridge only (SAVE-232)."""
 
-        eventbus.subscribe("ship.updated", self._on_ship_updated_event)
+        if self._event_bridge is bridge:
+            return
+        self._disconnect_event_bridge()
+        self._event_bridge = bridge
+        bridge.ship_updated.connect(self._on_ship_updated_from_bridge)
+
+    def _disconnect_event_bridge(self) -> None:
+
+        bridge = self._event_bridge
+        if bridge is None:
+            return
+        try:
+            bridge.ship_updated.disconnect(self._on_ship_updated_from_bridge)
+        except (RuntimeError, TypeError):
+            pass
+        self._event_bridge = None
+
+    def _connect_sync_events(self) -> None:
+        """DB sync events stay on EventBus (not live ship.updated)."""
+
         eventbus.subscribe(EVENT_SYNC_COMPLETED, self._on_sync_event)
 
     def shutdown(self) -> None:
 
-        eventbus.unsubscribe("ship.updated", self._on_ship_updated_event)
+        self._disconnect_event_bridge()
         eventbus.unsubscribe(EVENT_SYNC_COMPLETED, self._on_sync_event)
 
-    def _on_ship_updated_event(self, *args, **kwargs) -> None:
+    def _on_ship_updated_from_bridge(self) -> None:
 
         if self._mmsi is None:
             return

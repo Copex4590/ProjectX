@@ -33,6 +33,7 @@ from analytics.records import (
 )
 from events import eventbus
 from gui.deferred_load import make_loading_label
+from gui.eventbridge import EventBridge
 from gui.i18n_support import bind_language_refresh
 from gui.progressive_pipeline import ProgressiveDataPipeline
 from gui.theme import (
@@ -44,8 +45,6 @@ from gui.theme import (
 from shiboken6 import isValid
 from gui.widgets.analytics_charts import BarChartWidget, LineChartWidget, PieChartWidget
 from i18n import tr
-
-_LIVE_REFRESH_MS = 10000
 
 
 class _GuiBridge(QWidget):
@@ -140,14 +139,11 @@ class AnalyticsDashboardPage(QWidget):
         self._live_pending = False
         self._data_ready = False
         self._atomic_refresh = False
+        self._event_bridge: EventBridge | None = None
 
         self.setStyleSheet(f"background: {ThemeColors.Background};")
         self._build_ui()
         self._connect_signals()
-
-        self._timer = QTimer(self)
-        self._timer.setInterval(_LIVE_REFRESH_MS)
-        self._timer.timeout.connect(self.refresh)
 
         self._pipeline = ProgressiveDataPipeline(self)
         self._pipeline.batch_ready.connect(self._on_progressive_batch)
@@ -155,19 +151,43 @@ class AnalyticsDashboardPage(QWidget):
         self._pipeline.failed.connect(self._on_progressive_failed)
 
     def initialize(self) -> None:
-        """One-shot: language binding and EventBus subscriptions."""
+        """One-shot: language binding and alert EventBus subscriptions."""
 
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
-        self._subscribe_events()
+        self._subscribe_alert_events()
 
     def activate(self) -> None:
         """Show immediately; stream analytics in phases if cache is empty."""
 
         if not self._data_ready:
             self._request_progressive_load(force=False)
-        if not self._timer.isActive():
-            self._timer.start()
+
+    def connect_event_bridge(self, bridge: EventBridge) -> None:
+        """Receive coalesced ship/status updates via EventBridge only (SAVE-232)."""
+
+        if self._event_bridge is bridge:
+            return
+        self._disconnect_event_bridge()
+        self._event_bridge = bridge
+        bridge.ship_updated.connect(self._on_bridge_refresh)
+        bridge.ais_status.connect(self._on_bridge_refresh)
+        bridge.rtl_status.connect(self._on_bridge_refresh)
+        bridge.providers_changed.connect(self._on_bridge_refresh)
+
+    def _disconnect_event_bridge(self) -> None:
+
+        bridge = self._event_bridge
+        if bridge is None:
+            return
+        try:
+            bridge.ship_updated.disconnect(self._on_bridge_refresh)
+            bridge.ais_status.disconnect(self._on_bridge_refresh)
+            bridge.rtl_status.disconnect(self._on_bridge_refresh)
+            bridge.providers_changed.disconnect(self._on_bridge_refresh)
+        except (RuntimeError, TypeError):
+            pass
+        self._event_bridge = None
 
     def hideEvent(self, event) -> None:
         """Cancel in-flight progressive load when leaving the page."""
@@ -175,25 +195,22 @@ class AnalyticsDashboardPage(QWidget):
         self._cancel_progressive_on_leave()
         super().hideEvent(event)
 
-    def _subscribe_events(self) -> None:
+    def _subscribe_alert_events(self) -> None:
+        """Alerts are low-frequency; stay on EventBus (not ship.updated)."""
 
-        eventbus.subscribe("ship.updated", self._on_bus_event)
-        eventbus.subscribe("ais.status", self._on_bus_event)
-        eventbus.subscribe("rtl.status", self._on_bus_event)
-        eventbus.subscribe("providers.changed", self._on_bus_event)
         eventbus.subscribe(EVENT_ALERT_FIRED, self._on_bus_event)
         eventbus.subscribe(EVENT_ALERT_CLEARED, self._on_bus_event)
 
     def shutdown(self) -> None:
 
-        self._timer.stop()
         self._pipeline.cancel()
-        eventbus.unsubscribe("ship.updated", self._on_bus_event)
-        eventbus.unsubscribe("ais.status", self._on_bus_event)
-        eventbus.unsubscribe("rtl.status", self._on_bus_event)
-        eventbus.unsubscribe("providers.changed", self._on_bus_event)
+        self._disconnect_event_bridge()
         eventbus.unsubscribe(EVENT_ALERT_FIRED, self._on_bus_event)
         eventbus.unsubscribe(EVENT_ALERT_CLEARED, self._on_bus_event)
+
+    def _on_bridge_refresh(self, *args, **kwargs) -> None:
+
+        self._bridge.refresh_requested.emit()
 
     def _on_bus_event(self, *args, **kwargs) -> None:
 
