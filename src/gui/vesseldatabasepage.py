@@ -23,8 +23,12 @@ from shiboken6 import isValid
 
 from database import registry
 from database.vessel_database import VesselDatabase, vessel_database
-from gui.deferred_load import DeferredDataLoader, make_loading_label
+from gui.deferred_load import make_loading_label
 from gui.i18n_support import bind_language_refresh
+from gui.progressive_pipeline import (
+    ProgressiveDataPipeline,
+    progressive_batch_size,
+)
 from gui.tableutils import show_empty_table_message
 from gui.theme import analytics_page_stylesheet
 from i18n import tr
@@ -34,6 +38,8 @@ from models.vessel_record import VesselRecord
 _ALL_FILTER = "All"
 _YES_FILTER = "Yes"
 _NO_FILTER = "No"
+_TABLE_FILL_CHUNK = 250
+_PROGRESSIVE_VISIBLE_CAP = 1000
 _ACTIVE_FILTER = "Active"
 _INACTIVE_FILTER = "Inactive"
 
@@ -137,17 +143,24 @@ class VesselDatabasePage(QWidget):
 
         self._database = database or vessel_database
         self._records: list[VesselRecord] = []
+        self._staging_records: list[VesselRecord] = []
         self._registry_lookup: dict[int, Ship] = {}
+        self._pending_registry_lookup: dict[int, Ship] = {}
         self._filters = ViewerFilters()
         self._data_ready = False
+        self._atomic_refresh = False
         self._populate_generation = 0
         self._fill_rows: list[VesselRecord] = []
         self._fill_index = 0
         self._fill_generation = 0
 
-        self._loader = DeferredDataLoader(self)
-        self._loader.finished.connect(self._on_deferred_loaded)
-        self._loader.failed.connect(self._on_deferred_failed)
+        self._pipeline = ProgressiveDataPipeline(self)
+        self._pipeline.batch_ready.connect(self._on_progressive_batch)
+        self._pipeline.finished.connect(self._on_progressive_finished)
+        self._pipeline.failed.connect(self._on_progressive_failed)
+        self._progressive_repaint_token = 0
+        self._pending_append: list[VesselRecord] = []
+        self._append_pump_active = False
 
         self._build_ui()
         self._connect_signals()
@@ -159,11 +172,17 @@ class VesselDatabasePage(QWidget):
         self.refresh_translations()
 
     def activate(self) -> None:
-        """Show immediately; load heavy data in the background if needed."""
+        """Show immediately; stream data in batches if cache is empty."""
 
         if self._data_ready:
             return
-        self._request_deferred_load(force=False)
+        self._request_progressive_load(force=False)
+
+    def hideEvent(self, event) -> None:
+        """Cancel in-flight progressive load when leaving the page."""
+
+        self._cancel_progressive_on_leave()
+        super().hideEvent(event)
 
     def refresh_translations(self) -> None:
 
@@ -189,31 +208,203 @@ class VesselDatabasePage(QWidget):
         self._refresh_translatable_combos()
 
     def refresh(self) -> list[VesselRecord]:
-        """Manual refresh — force a new background load."""
+        """Manual refresh — progressive reload; cache swaps atomically on success."""
 
-        self._request_deferred_load(force=True)
+        self._request_progressive_load(force=True)
         return list(self._records)
 
     def shutdown(self) -> None:
 
         self._populate_generation += 1
-        self._loader.cancel()
+        self._pipeline.cancel()
 
-    def _request_deferred_load(self, *, force: bool) -> None:
+    def _cancel_progressive_on_leave(self) -> None:
+
+        if not self._pipeline.busy:
+            return
+        self._pipeline.cancel()
+        self._staging_records = []
+        self._pending_registry_lookup = {}
+        if self._atomic_refresh:
+            self._atomic_refresh = False
+        self._set_loading(False)
+
+    def _request_progressive_load(self, *, force: bool) -> None:
 
         if not force and self._data_ready:
             return
-        started = self._loader.start(self._fetch_payload, force=force)
+        self._atomic_refresh = bool(force and self._data_ready)
+        self._staging_records = []
+        self._pending_registry_lookup = {}
+        started = self._pipeline.start(
+            self._produce_batches,
+            force=force,
+            assemble=self._assemble_batches,
+        )
         if started:
             self._set_loading(True, tr("Loading vessels…"))
+            self._start_ui_pulse()
 
-    def _fetch_payload(self) -> tuple[list[VesselRecord], dict[int, Ship]]:
+    def _produce_batches(self):
 
-        records = self._database.all()
         lookup = {ship.mmsi: ship for ship in registry.all()}
+        yield {"meta": True, "registry_lookup": lookup}
+        batch_size = progressive_batch_size()
+        for batch in self._database.iter_batches(batch_size):
+            yield {"meta": False, "records": batch}
+
+    @staticmethod
+    def _assemble_batches(
+        batches: list,
+    ) -> tuple[list[VesselRecord], dict[int, Ship]]:
+
+        records: list[VesselRecord] = []
+        lookup: dict[int, Ship] = {}
+        for batch in batches:
+            if not isinstance(batch, dict):
+                continue
+            if batch.get("meta"):
+                lookup = dict(batch.get("registry_lookup") or {})
+                continue
+            records.extend(batch.get("records") or [])
         return records, lookup
 
-    def _on_deferred_loaded(
+    def _on_progressive_batch(self, batch: object, index: int) -> None:
+
+        if not isValid(self):
+            return
+        if not isinstance(batch, dict):
+            return
+        if batch.get("meta"):
+            self._pending_registry_lookup = dict(
+                batch.get("registry_lookup") or {}
+            )
+            return
+
+        records = list(batch.get("records") or [])
+        self._staging_records.extend(records)
+        if self._atomic_refresh:
+            return
+
+        records = list(batch.get("records") or [])
+        self._staging_records.extend(records)
+        if self._atomic_refresh:
+            return
+
+        self._records = list(self._staging_records)
+        if self._pending_registry_lookup:
+            self._registry_lookup = dict(self._pending_registry_lookup)
+        first_visible = (
+            self._pipeline.metrics is not None
+            and self._pipeline.metrics.time_to_first_visible_ms is None
+        )
+        self._update_summary()
+        if first_visible:
+            self._pending_append.clear()
+            self._populate_filter_options()
+            self._populate_table()
+            if self.table.rowCount() > 0:
+                self._pipeline.note_first_visible()
+        elif self._filters_are_active():
+            self._pending_append.clear()
+            self._schedule_progressive_repaint(immediate=False)
+        elif self.table.rowCount() < _PROGRESSIVE_VISIBLE_CAP:
+            self._pending_append.extend(records)
+            self._set_loading(
+                True,
+                tr("Loading vessels… ({count})").format(
+                    count=len(self._staging_records),
+                ),
+            )
+            self._kick_append_pump()
+        else:
+            self._set_loading(
+                True,
+                tr("Loading vessels… ({count})").format(
+                    count=len(self._staging_records),
+                ),
+            )
+
+    def _filters_are_active(self) -> bool:
+
+        filters = self._filters
+        return bool(
+            filters.search_text
+            or filters.ship_type != _ALL_FILTER
+            or filters.flag != _ALL_FILTER
+            or filters.source != _ALL_FILTER
+            or filters.has_imo != _ALL_FILTER
+            or filters.has_callsign != _ALL_FILTER
+            or filters.seen_today != _ALL_FILTER
+            or filters.activity != _ALL_FILTER
+        )
+
+    def _kick_append_pump(self) -> None:
+
+        if self._append_pump_active:
+            return
+        self._append_pump_active = True
+        QTimer.singleShot(0, self._append_table_pump)
+
+    def _append_table_pump(self) -> None:
+
+        if not isValid(self) or self._atomic_refresh:
+            self._append_pump_active = False
+            self._pending_append.clear()
+            return
+        if not self._pending_append:
+            self._append_pump_active = False
+            return
+
+        chunk = self._pending_append[:_TABLE_FILL_CHUNK]
+        del self._pending_append[:_TABLE_FILL_CHUNK]
+        start = self.table.rowCount()
+        self.table.setRowCount(start + len(chunk))
+        for offset, record in enumerate(chunk):
+            row_index = start + offset
+            values = [
+                _display_text(record.name),
+                str(record.mmsi),
+                _display_text(record.imo),
+                _display_text(record.callsign),
+                _display_text(record.ship_type),
+                _display_text(record.flag),
+                _format_length(record.length),
+                _format_last_seen(record.last_seen),
+            ]
+            for column_index, value in enumerate(values):
+                item = QTableWidgetItem(value)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                item.setData(Qt.ItemDataRole.UserRole, record.mmsi)
+                self.table.setItem(row_index, column_index, item)
+
+        if self._pending_append:
+            QTimer.singleShot(0, self._append_table_pump)
+        else:
+            self._append_pump_active = False
+
+    def _schedule_progressive_repaint(self, *, immediate: bool) -> None:
+
+        self._progressive_repaint_token += 1
+        token = self._progressive_repaint_token
+
+        def _flush() -> None:
+            if token != self._progressive_repaint_token:
+                return
+            if not isValid(self) or self._atomic_refresh:
+                return
+            self._update_summary()
+            self._populate_filter_options()
+            self._populate_table()
+            if self.table.rowCount() > 0:
+                self._pipeline.note_first_visible()
+
+        if immediate:
+            _flush()
+        else:
+            QTimer.singleShot(80, _flush)
+
+    def _on_progressive_finished(
         self,
         payload: tuple[list[VesselRecord], dict[int, Ship]],
     ) -> None:
@@ -221,25 +412,44 @@ class VesselDatabasePage(QWidget):
         if not isValid(self):
             return
         records, lookup = payload
+        self._progressive_repaint_token += 1
+        self._pending_append.clear()
+        self._append_pump_active = False
         self._records = list(records)
         self._registry_lookup = dict(lookup)
+        self._staging_records = []
+        self._pending_registry_lookup = {}
+        self._atomic_refresh = False
         self._data_ready = True
         self._update_summary()
         self._populate_filter_options()
         self._populate_table()
+        self._pipeline.note_first_visible()
 
-    def _on_deferred_failed(self, message: str) -> None:
+    def _on_progressive_failed(self, message: str) -> None:
 
         if not isValid(self):
             return
+        self._atomic_refresh = False
+        self._staging_records = []
         self._set_loading(True, tr("Failed to load: {error}").format(error=message))
+
+    def _start_ui_pulse(self) -> None:
+
+        def _pulse() -> None:
+            if not isValid(self) or not self._pipeline.busy:
+                return
+            self._pipeline.note_ui_pulse()
+            QTimer.singleShot(16, _pulse)
+
+        QTimer.singleShot(16, _pulse)
 
     def _set_loading(self, visible: bool, text: str | None = None) -> None:
 
         if text is not None:
             self.loading_label.setText(text)
         self.loading_label.setVisible(visible)
-        self.refresh_button.setEnabled(not self._loader.busy)
+        self.refresh_button.setEnabled(not self._pipeline.busy)
 
     def search(self, text: str) -> None:
 
@@ -770,7 +980,8 @@ class VesselDatabasePage(QWidget):
                 self.table,
                 "No vessels found",
             )
-            self._set_loading(False)
+            if not self._pipeline.busy:
+                self._set_loading(False)
             return
 
         self.table.setRowCount(len(rows))
@@ -817,7 +1028,10 @@ class VesselDatabasePage(QWidget):
             return
 
         self.table.resizeColumnsToContents()
-        self._set_loading(False)
+        if self._pipeline.busy:
+            self._set_loading(True, tr("Loading vessels…"))
+        else:
+            self._set_loading(False)
 
     def _on_row_double_clicked(self, row: int, _column: int) -> None:
 

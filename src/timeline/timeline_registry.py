@@ -210,6 +210,44 @@ class TimelineRegistry:
 
         return [TimelineRecord.from_row(row) for row in rows]
 
+    def slice(self, offset: int, limit: int) -> list[TimelineRecord]:
+        """Return a page of timeline rows (newest first)."""
+
+        safe_offset = max(0, int(offset))
+        safe_limit = max(0, int(limit))
+        if safe_limit == 0:
+            return []
+
+        with self._lock:
+            rows = self._conn().execute(
+                """
+                SELECT * FROM vessel_timeline
+                ORDER BY timestamp DESC, id DESC
+                LIMIT ? OFFSET ?
+                """,
+                (safe_limit, safe_offset),
+            ).fetchall()
+
+        return [TimelineRecord.from_row(row) for row in rows]
+
+    def iter_batches(self, batch_size: int = 200):
+        """Yield timeline rows in configurable batches (SAVE-229).
+
+        The first page uses ``LIMIT`` so the GUI can paint immediately. The
+        remainder is loaded once and sliced in memory (avoids slow ``OFFSET``
+        scans on large tables).
+        """
+
+        size = max(1, int(batch_size))
+        first = self.slice(0, size)
+        if first:
+            yield first
+        if len(first) < size:
+            return
+        remaining = self.all()[len(first) :]
+        for offset in range(0, len(remaining), size):
+            yield remaining[offset : offset + size]
+
     def _ensure_schema(self) -> None:
 
         self._db_path.parent.mkdir(parents=True, exist_ok=True)

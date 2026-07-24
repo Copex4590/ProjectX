@@ -40,5 +40,13 @@ class TimelineManager:
 
         return self._registry.all()
 
+    def slice(self, offset: int, limit: int) -> list[TimelineRecord]:
+
+        return self._registry.slice(offset, limit)
+
+    def iter_batches(self, batch_size: int = 200):
+
+        return self._registry.iter_batches(batch_size)
+
 
 timeline_manager = TimelineManager()

@@ -86,14 +86,28 @@ class AnalyticsManager:
 
         with self._lock:
             if force or self._cache is None:
-                self._cache = self._build_snapshot_locked()
+                self._cache = self._build_snapshot_locked(include_timeline=True)
             return self._cache
 
     def refresh(self) -> AnalyticsSnapshot:
 
         return self.snapshot(force=True)
 
-    def _build_snapshot_locked(self) -> AnalyticsSnapshot:
+    def iter_snapshot_phases(self):
+        """Yield fleet-first partial snapshot, then full (with timeline).
+
+        Progressive GUI pipeline (SAVE-229): cards/lists first, traffic chart last.
+        """
+
+        with self._lock:
+            partial = self._build_snapshot_locked(include_timeline=False)
+        yield partial
+        with self._lock:
+            full = self._build_snapshot_locked(include_timeline=True)
+            self._cache = full
+        yield full
+
+    def _build_snapshot_locked(self, *, include_timeline: bool = True) -> AnalyticsSnapshot:
 
         now = datetime.now()
         window = INTERVAL_DELTAS.get(self._interval, timedelta(hours=24))
@@ -127,28 +141,34 @@ class AnalyticsManager:
             if destination:
                 route_counter[destination] += 1
 
-        timeline = [
-            record
-            for record in timeline_manager.all()
-            if record.timestamp >= since
-            and record.event_type == EVENT_POSITION_UPDATE
-        ]
-
-        hour_counter: Counter[str] = Counter()
-        for record in timeline:
-            hour_counter[f"{record.timestamp.hour:02d}"] += 1
-
-        # Prefer a full 24-slot axis for readability when interval ≤ 24h.
-        if window <= timedelta(hours=24):
-            traffic = [
-                NamedCount(label=f"{hour:02d}", count=hour_counter.get(f"{hour:02d}", 0))
-                for hour in range(24)
+        if include_timeline:
+            timeline = [
+                record
+                for record in timeline_manager.all()
+                if record.timestamp >= since
+                and record.event_type == EVENT_POSITION_UPDATE
             ]
+
+            hour_counter: Counter[str] = Counter()
+            for record in timeline:
+                hour_counter[f"{record.timestamp.hour:02d}"] += 1
+
+            # Prefer a full 24-slot axis for readability when interval ≤ 24h.
+            if window <= timedelta(hours=24):
+                traffic = [
+                    NamedCount(
+                        label=f"{hour:02d}",
+                        count=hour_counter.get(f"{hour:02d}", 0),
+                    )
+                    for hour in range(24)
+                ]
+            else:
+                traffic = [
+                    NamedCount(label=label, count=count)
+                    for label, count in sorted(hour_counter.items())
+                ]
         else:
-            traffic = [
-                NamedCount(label=label, count=count)
-                for label, count in sorted(hour_counter.items())
-            ]
+            traffic = []
 
         speed_distribution = [
             NamedCount(label=label, count=speed_counter.get(label, 0))

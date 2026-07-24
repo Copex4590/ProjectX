@@ -26,8 +26,12 @@ from engines.timeline.arrival_departure_engine import (
     EVENT_ARRIVAL,
     EVENT_DEPARTURE,
 )
-from gui.deferred_load import DeferredDataLoader, make_loading_label
+from gui.deferred_load import make_loading_label
 from gui.i18n_support import bind_language_refresh
+from gui.progressive_pipeline import (
+    ProgressiveDataPipeline,
+    progressive_batch_size,
+)
 from gui.tableutils import show_empty_table_message
 from gui.theme import analytics_page_stylesheet
 from i18n import tr
@@ -37,6 +41,7 @@ from timeline.timeline_record import TimelineRecord
 
 _ALL_FILTER = "All"
 _TABLE_FILL_CHUNK = 250
+_PROGRESSIVE_VISIBLE_CAP = 1000
 
 _EVENT_FILTERS = (
     _ALL_FILTER,
@@ -143,17 +148,24 @@ class VesselTimelinePage(QWidget):
 
         self._manager = manager or timeline_manager
         self._records: list[TimelineRecord] = []
+        self._staging_records: list[TimelineRecord] = []
         self._name_lookup: dict[int, str] = {}
+        self._pending_name_lookup: dict[int, str] = {}
         self._filters = TimelineViewerFilters()
         self._data_ready = False
+        self._atomic_refresh = False
         self._populate_generation = 0
         self._fill_rows: list[TimelineRecord] = []
         self._fill_index = 0
         self._fill_generation = 0
 
-        self._loader = DeferredDataLoader(self)
-        self._loader.finished.connect(self._on_deferred_loaded)
-        self._loader.failed.connect(self._on_deferred_failed)
+        self._pipeline = ProgressiveDataPipeline(self)
+        self._pipeline.batch_ready.connect(self._on_progressive_batch)
+        self._pipeline.finished.connect(self._on_progressive_finished)
+        self._pipeline.failed.connect(self._on_progressive_failed)
+        self._progressive_repaint_token = 0
+        self._pending_append: list[TimelineRecord] = []
+        self._append_pump_active = False
 
         self._build_ui()
         self._connect_signals()
@@ -165,11 +177,17 @@ class VesselTimelinePage(QWidget):
         self.refresh_translations()
 
     def activate(self) -> None:
-        """Show immediately; load heavy data in the background if needed."""
+        """Show immediately; stream data in batches if cache is empty."""
 
         if self._data_ready:
             return
-        self._request_deferred_load(force=False)
+        self._request_progressive_load(force=False)
+
+    def hideEvent(self, event) -> None:
+        """Cancel in-flight progressive load when leaving the page."""
+
+        self._cancel_progressive_on_leave()
+        super().hideEvent(event)
 
     def refresh_translations(self) -> None:
 
@@ -193,35 +211,195 @@ class VesselTimelinePage(QWidget):
         self._refresh_event_filter()
 
     def refresh(self) -> list[TimelineRecord]:
-        """Manual refresh — force a new background load."""
+        """Manual refresh — progressive reload; cache swaps atomically on success."""
 
-        self._request_deferred_load(force=True)
+        self._request_progressive_load(force=True)
         return list(self._records)
 
     def shutdown(self) -> None:
 
         self._populate_generation += 1
-        self._loader.cancel()
+        self._pipeline.cancel()
 
-    def _request_deferred_load(self, *, force: bool) -> None:
+    def _cancel_progressive_on_leave(self) -> None:
+
+        if not self._pipeline.busy:
+            return
+        self._pipeline.cancel()
+        self._staging_records = []
+        self._pending_name_lookup = {}
+        if self._atomic_refresh:
+            self._atomic_refresh = False
+        self._set_loading(False)
+
+    def _request_progressive_load(self, *, force: bool) -> None:
 
         if not force and self._data_ready:
             return
-        started = self._loader.start(self._fetch_payload, force=force)
+        self._atomic_refresh = bool(force and self._data_ready)
+        self._staging_records = []
+        self._pending_name_lookup = {}
+        started = self._pipeline.start(
+            self._produce_batches,
+            force=force,
+            assemble=self._assemble_batches,
+        )
         if started:
             self._set_loading(True, tr("Loading timeline…"))
+            self._start_ui_pulse()
 
-    def _fetch_payload(self) -> tuple[list[TimelineRecord], dict[int, str]]:
+    def _produce_batches(self):
 
-        records = self._manager.all()
         name_lookup = {
             ship.mmsi: _display_text(ship.name)
             for ship in registry.all()
             if _display_text(ship.name) != "—"
         }
+        yield {"meta": True, "name_lookup": name_lookup}
+        batch_size = progressive_batch_size()
+        for batch in self._manager.iter_batches(batch_size):
+            yield {"meta": False, "records": batch}
+
+    @staticmethod
+    def _assemble_batches(batches: list) -> tuple[list[TimelineRecord], dict[int, str]]:
+
+        records: list[TimelineRecord] = []
+        name_lookup: dict[int, str] = {}
+        for batch in batches:
+            if not isinstance(batch, dict):
+                continue
+            if batch.get("meta"):
+                name_lookup = dict(batch.get("name_lookup") or {})
+                continue
+            records.extend(batch.get("records") or [])
         return records, name_lookup
 
-    def _on_deferred_loaded(
+    def _on_progressive_batch(self, batch: object, index: int) -> None:
+
+        if not isValid(self):
+            return
+        if not isinstance(batch, dict):
+            return
+        if batch.get("meta"):
+            self._pending_name_lookup = dict(batch.get("name_lookup") or {})
+            return
+
+        records = list(batch.get("records") or [])
+        self._staging_records.extend(records)
+        if self._atomic_refresh:
+            return
+
+        self._records = list(self._staging_records)
+        if self._pending_name_lookup:
+            self._name_lookup = dict(self._pending_name_lookup)
+        first_visible = (
+            self._pipeline.metrics is not None
+            and self._pipeline.metrics.time_to_first_visible_ms is None
+        )
+        self._update_summary()
+        if first_visible:
+            self._pending_append.clear()
+            self._populate_table()
+            if self.table.rowCount() > 0:
+                self._pipeline.note_first_visible()
+        elif self._filters_are_active():
+            self._pending_append.clear()
+            self._schedule_progressive_repaint(immediate=False)
+        elif self.table.rowCount() < _PROGRESSIVE_VISIBLE_CAP:
+            self._pending_append.extend(records)
+            self._set_loading(
+                True,
+                tr("Loading timeline… ({count})").format(
+                    count=len(self._staging_records),
+                ),
+            )
+            self._kick_append_pump()
+        else:
+            self._set_loading(
+                True,
+                tr("Loading timeline… ({count})").format(
+                    count=len(self._staging_records),
+                ),
+            )
+
+    def _filters_are_active(self) -> bool:
+
+        filters = self._filters
+        return bool(
+            filters.search_text
+            or (
+                filters.event_type
+                and filters.event_type != _ALL_FILTER
+            )
+            or filters.date_from
+            or filters.date_to
+        )
+
+    def _kick_append_pump(self) -> None:
+
+        if self._append_pump_active:
+            return
+        self._append_pump_active = True
+        QTimer.singleShot(0, self._append_table_pump)
+
+    def _append_table_pump(self) -> None:
+
+        if not isValid(self) or self._atomic_refresh:
+            self._append_pump_active = False
+            self._pending_append.clear()
+            return
+        if not self._pending_append:
+            self._append_pump_active = False
+            return
+
+        chunk = self._pending_append[:_TABLE_FILL_CHUNK]
+        del self._pending_append[:_TABLE_FILL_CHUNK]
+        start = self.table.rowCount()
+        self.table.setRowCount(start + len(chunk))
+        for offset, record in enumerate(chunk):
+            row_index = start + offset
+            values = [
+                _format_timestamp(record.timestamp),
+                _tr_event_type(record.event_type),
+                str(record.mmsi),
+                self._vessel_name(record.mmsi),
+                _format_coordinate(record.latitude),
+                _format_coordinate(record.longitude),
+                _format_speed(record.speed),
+                _display_text(record.source),
+            ]
+            for column_index, value in enumerate(values):
+                item = QTableWidgetItem(value)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                item.setData(Qt.ItemDataRole.UserRole, record.mmsi)
+                self.table.setItem(row_index, column_index, item)
+
+        if self._pending_append:
+            QTimer.singleShot(0, self._append_table_pump)
+        else:
+            self._append_pump_active = False
+
+    def _schedule_progressive_repaint(self, *, immediate: bool) -> None:
+
+        self._progressive_repaint_token += 1
+        token = self._progressive_repaint_token
+
+        def _flush() -> None:
+            if token != self._progressive_repaint_token:
+                return
+            if not isValid(self) or self._atomic_refresh:
+                return
+            self._update_summary()
+            self._populate_table()
+            if self.table.rowCount() > 0:
+                self._pipeline.note_first_visible()
+
+        if immediate:
+            _flush()
+        else:
+            QTimer.singleShot(80, _flush)
+
+    def _on_progressive_finished(
         self,
         payload: tuple[list[TimelineRecord], dict[int, str]],
     ) -> None:
@@ -229,24 +407,44 @@ class VesselTimelinePage(QWidget):
         if not isValid(self):
             return
         records, name_lookup = payload
+        # Atomic cache replace after successful completion (esp. refresh).
+        self._progressive_repaint_token += 1
+        self._pending_append.clear()
+        self._append_pump_active = False
         self._records = list(records)
         self._name_lookup = dict(name_lookup)
+        self._staging_records = []
+        self._pending_name_lookup = {}
+        self._atomic_refresh = False
         self._data_ready = True
         self._update_summary()
         self._populate_table()
+        self._pipeline.note_first_visible()
 
-    def _on_deferred_failed(self, message: str) -> None:
+    def _on_progressive_failed(self, message: str) -> None:
 
         if not isValid(self):
             return
+        self._atomic_refresh = False
+        self._staging_records = []
         self._set_loading(True, tr("Failed to load: {error}").format(error=message))
+
+    def _start_ui_pulse(self) -> None:
+
+        def _pulse() -> None:
+            if not isValid(self) or not self._pipeline.busy:
+                return
+            self._pipeline.note_ui_pulse()
+            QTimer.singleShot(16, _pulse)
+
+        QTimer.singleShot(16, _pulse)
 
     def _set_loading(self, visible: bool, text: str | None = None) -> None:
 
         if text is not None:
             self.loading_label.setText(text)
         self.loading_label.setVisible(visible)
-        self.refresh_button.setEnabled(not self._loader.busy)
+        self.refresh_button.setEnabled(not self._pipeline.busy)
 
     def apply_filters(self) -> list[TimelineRecord]:
 
@@ -529,7 +727,8 @@ class VesselTimelinePage(QWidget):
                 self.table,
                 "No events found",
             )
-            self._set_loading(False)
+            if not self._pipeline.busy:
+                self._set_loading(False)
             return
 
         self.table.setRowCount(len(rows))
@@ -576,7 +775,10 @@ class VesselTimelinePage(QWidget):
             return
 
         self.table.resizeColumnsToContents()
-        self._set_loading(False)
+        if self._pipeline.busy:
+            self._set_loading(True, tr("Loading timeline…"))
+        else:
+            self._set_loading(False)
 
     def _on_row_double_clicked(self, row: int, _column: int) -> None:
 

@@ -190,6 +190,39 @@ class VesselDatabase:
 
         return [VesselRecord.from_row(row) for row in rows]
 
+    def slice(self, offset: int, limit: int) -> list[VesselRecord]:
+        """Return a page of vessel rows ordered by MMSI."""
+
+        safe_offset = max(0, int(offset))
+        safe_limit = max(0, int(limit))
+        if safe_limit == 0:
+            return []
+
+        with self._lock:
+            rows = self._conn().execute(
+                "SELECT * FROM vessels ORDER BY mmsi LIMIT ? OFFSET ?",
+                (safe_limit, safe_offset),
+            ).fetchall()
+
+        return [VesselRecord.from_row(row) for row in rows]
+
+    def iter_batches(self, batch_size: int = 200):
+        """Yield vessel rows in configurable batches (SAVE-229).
+
+        First page uses ``LIMIT`` for immediate paint; remainder is sliced from
+        a single follow-up ``all()`` load.
+        """
+
+        size = max(1, int(batch_size))
+        first = self.slice(0, size)
+        if first:
+            yield first
+        if len(first) < size:
+            return
+        remaining = self.all()[len(first) :]
+        for offset in range(0, len(remaining), size):
+            yield remaining[offset : offset + size]
+
     def count(self) -> int:
 
         with self._lock:

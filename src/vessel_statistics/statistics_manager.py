@@ -159,6 +159,83 @@ class StatisticsManager:
 
             return self._global_cache
 
+    def iter_dashboard_phases(self):
+        """Yield a vessels-first partial dashboard, then the full snapshot.
+
+        Used by the progressive GUI pipeline (SAVE-229) so metric cards appear
+        before timeline-backed charts finish computing.
+        """
+
+        vessels = self._vessel_database.all()
+        now = datetime.now()
+        yield self._build_vessels_only_dashboard(vessels, now)
+
+        with self._lock:
+            self._rebuild_cache_locked()
+            full = self._dashboard_cache or DashboardStatistics()
+        yield full
+
+    def _build_vessels_only_dashboard(
+        self,
+        vessels: list[VesselRecord],
+        now: datetime,
+    ) -> DashboardStatistics:
+        """Fast first paint: vessel-derived cards/lists, empty timeline charts."""
+
+        active_threshold = now - timedelta(hours=ACTIVE_VESSEL_HOURS)
+        ship_type_counter = Counter(
+            vessel.ship_type.strip()
+            for vessel in vessels
+            if vessel.ship_type.strip()
+        )
+        flag_counter = Counter(
+            vessel.flag.strip()
+            for vessel in vessels
+            if vessel.flag.strip()
+        )
+        top_active = sorted(
+            (
+                ActiveVesselEntry(
+                    mmsi=vessel.mmsi,
+                    name=vessel.name.strip() or str(vessel.mmsi),
+                    activity_count=0,
+                )
+                for vessel in vessels
+                if vessel.last_seen >= active_threshold
+            ),
+            key=lambda entry: entry.mmsi,
+        )[:10]
+
+        global_stats = GlobalStatistics(
+            total_vessels=len(vessels),
+            active_vessels=sum(
+                1
+                for vessel in vessels
+                if vessel.last_seen >= active_threshold
+            ),
+            arrivals_today=0,
+            departures_today=0,
+            position_updates_today=0,
+            average_vessel_speed=None,
+            most_common_ship_type=_most_common([
+                vessel.ship_type for vessel in vessels
+            ]),
+            most_common_flag=_most_common([
+                vessel.flag for vessel in vessels
+            ]),
+            computed_at=now,
+        )
+
+        return DashboardStatistics(
+            global_stats=global_stats,
+            top_ship_types=ship_type_counter.most_common(10),
+            top_flags=flag_counter.most_common(10),
+            top_active_vessels=top_active,
+            arrivals_by_hour=[0] * 24,
+            departures_by_hour=[0] * 24,
+            activity_last_24_hours=[0] * 24,
+        )
+
     def dashboard_statistics(self) -> DashboardStatistics:
 
         with self._lock:

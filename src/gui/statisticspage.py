@@ -20,8 +20,9 @@ from PySide6.QtWidgets import (
 )
 from shiboken6 import isValid
 
-from gui.deferred_load import DeferredDataLoader, make_loading_label
+from gui.deferred_load import make_loading_label
 from gui.i18n_support import bind_language_refresh
+from gui.progressive_pipeline import ProgressiveDataPipeline
 from gui.theme import (
     ACCENT,
     BG_BASE,
@@ -209,14 +210,17 @@ class StatisticsPage(QWidget):
         self._manager = manager or statistics_manager
         self._auto_refresh_enabled = False
         self._data_ready = False
+        self._atomic_refresh = False
+        self._staging_dashboard: DashboardStatistics | None = None
 
         self._auto_refresh_timer = QTimer(self)
         self._auto_refresh_timer.setInterval(_AUTO_REFRESH_MS)
         self._auto_refresh_timer.timeout.connect(self.refresh)
 
-        self._loader = DeferredDataLoader(self)
-        self._loader.finished.connect(self._on_deferred_loaded)
-        self._loader.failed.connect(self._on_deferred_failed)
+        self._pipeline = ProgressiveDataPipeline(self)
+        self._pipeline.batch_ready.connect(self._on_progressive_batch)
+        self._pipeline.finished.connect(self._on_progressive_finished)
+        self._pipeline.failed.connect(self._on_progressive_failed)
 
         self._build_ui()
 
@@ -227,17 +231,23 @@ class StatisticsPage(QWidget):
         self.refresh_translations()
 
     def activate(self) -> None:
-        """Show immediately; load stats in the background if needed."""
+        """Show immediately; stream stats in phases if cache is empty."""
 
         if not self._data_ready:
-            self._request_deferred_load(force=False)
+            self._request_progressive_load(force=False)
         if self._auto_refresh_enabled and not self._auto_refresh_timer.isActive():
             self._auto_refresh_timer.start()
+
+    def hideEvent(self, event) -> None:
+        """Cancel in-flight progressive load when leaving the page."""
+
+        self._cancel_progressive_on_leave()
+        super().hideEvent(event)
 
     def shutdown(self) -> None:
 
         self._auto_refresh_timer.stop()
-        self._loader.cancel()
+        self._pipeline.cancel()
 
     def refresh_translations(self) -> None:
 
@@ -270,43 +280,94 @@ class StatisticsPage(QWidget):
             chart.refresh_translations()
 
     def refresh(self) -> None:
-        """Manual / timer refresh — force a new background load."""
+        """Manual / timer refresh — progressive reload; cache swaps on success."""
 
-        self._request_deferred_load(force=True)
+        self._request_progressive_load(force=True)
 
-    def _request_deferred_load(self, *, force: bool) -> None:
+    def _cancel_progressive_on_leave(self) -> None:
+
+        if not self._pipeline.busy:
+            return
+        self._pipeline.cancel()
+        self._staging_dashboard = None
+        self._atomic_refresh = False
+        self._set_loading(False)
+
+    def _request_progressive_load(self, *, force: bool) -> None:
 
         if not force and self._data_ready:
             return
-        started = self._loader.start(self._fetch_payload, force=force)
+        self._atomic_refresh = bool(force and self._data_ready)
+        self._staging_dashboard = None
+        started = self._pipeline.start(
+            self._produce_batches,
+            force=force,
+            assemble=self._assemble_batches,
+        )
         if started:
             self._set_loading(True, tr("Loading statistics…"))
+            self._start_ui_pulse()
 
-    def _fetch_payload(self) -> DashboardStatistics:
+    def _produce_batches(self):
 
-        self._manager.refresh()
-        return self._manager.dashboard_statistics()
+        yield from self._manager.iter_dashboard_phases()
 
-    def _on_deferred_loaded(self, dashboard: DashboardStatistics) -> None:
+    @staticmethod
+    def _assemble_batches(batches: list) -> DashboardStatistics:
+
+        if not batches:
+            return DashboardStatistics()
+        return batches[-1]
+
+    def _on_progressive_batch(self, batch: object, index: int) -> None:
+
+        if not isValid(self):
+            return
+        if not isinstance(batch, DashboardStatistics):
+            return
+        self._staging_dashboard = batch
+        if self._atomic_refresh:
+            return
+        self._apply_dashboard(batch)
+        self._pipeline.note_first_visible()
+        if index == 0:
+            self._set_loading(True, tr("Loading charts…"))
+
+    def _on_progressive_finished(self, dashboard: DashboardStatistics) -> None:
 
         if not isValid(self):
             return
         self._apply_dashboard(dashboard)
+        self._staging_dashboard = None
+        self._atomic_refresh = False
         self._data_ready = True
+        self._pipeline.note_first_visible()
         self._set_loading(False)
 
-    def _on_deferred_failed(self, message: str) -> None:
+    def _on_progressive_failed(self, message: str) -> None:
 
         if not isValid(self):
             return
+        self._atomic_refresh = False
+        self._staging_dashboard = None
         self._set_loading(True, tr("Failed to load: {error}").format(error=message))
+
+    def _start_ui_pulse(self) -> None:
+
+        def _pulse() -> None:
+            if not isValid(self) or not self._pipeline.busy:
+                return
+            self._pipeline.note_ui_pulse()
+            QTimer.singleShot(16, _pulse)
+
+        QTimer.singleShot(16, _pulse)
 
     def _set_loading(self, visible: bool, text: str | None = None) -> None:
 
         if text is not None:
             self.loading_label.setText(text)
         self.loading_label.setVisible(visible)
-        self.refresh_button.setEnabled(not self._loader.busy)
+        self.refresh_button.setEnabled(not self._pipeline.busy)
 
     def _apply_dashboard(self, dashboard: DashboardStatistics) -> None:
 
