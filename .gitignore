@@ -29,8 +29,13 @@ data/*.db-shm
 data/vessel_db_sync_state.json
 data/plugins_state.json
 data/vessel_photos/*.db
-data/Hajók/*/
+# SAVE-237 — data/Hajók/** is the repository-managed ship database (not ignored).
 !data/Hajók/.gitkeep
+
+# Local runtime trees under data/ (never commit)
+data/hybrid/
+data/logs/
+data/cache/
 
 # Local backups (SAVE-210)
 backups/*
