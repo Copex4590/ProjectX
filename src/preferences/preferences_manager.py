@@ -162,6 +162,10 @@ class PreferencesManager:
             "startup_page",
             "startup_maximized",
             "startup_restore_session",
+            "window_restore_geometry",
+            "window_auto_fit",
+            "window_always_center",
+            "window_limit_to_monitor",
             "ais_auto_connect",
             "ais_reconnect_enabled",
             "ais_reconnect_min_s",
@@ -196,6 +200,10 @@ class PreferencesManager:
         current.startup_page = defaults.startup_page
         current.startup_maximized = defaults.startup_maximized
         current.startup_restore_session = defaults.startup_restore_session
+        current.window_restore_geometry = defaults.window_restore_geometry
+        current.window_auto_fit = defaults.window_auto_fit
+        current.window_always_center = defaults.window_always_center
+        current.window_limit_to_monitor = defaults.window_limit_to_monitor
         current.ais_auto_connect = defaults.ais_auto_connect
         current.ais_reconnect_enabled = defaults.ais_reconnect_enabled
         current.ais_reconnect_min_s = defaults.ais_reconnect_min_s

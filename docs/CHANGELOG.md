@@ -11,6 +11,7 @@ Beta release preparation (SAVE-220). No new product features in this tag — aud
 - **SAVE-220** — Beta release preparation: release audit, build audit notes, README/ROADMAP refresh, release notes, `docs/reports/BETA_READY.md`
 - Release notes for `0.3.1-beta` (`docs/RELEASE_NOTES_v0.3.1-beta.md`, `release/notes/0.3.1-beta.md`)
 - `docs/ROADMAP.md` marking SAVE-208 … SAVE-220 completed
+- **SAVE-222** — Configurable Window Management (Settings section + `WindowGeometryManager`)
 
 ### Changed
 

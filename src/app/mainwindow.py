@@ -12,11 +12,8 @@ from PySide6.QtWidgets import (
 )
 
 from app.window_geometry import (
-    available_work_area,
-    default_startup_geometry,
-    ensure_visible_on_work_area,
-    parse_window_geometry,
-    window_geometry_to_dict,
+    WindowManagementSettings,
+    window_geometry_manager,
 )
 from branding.assets import app_icon
 from gui.aboutdialog import AboutDialog
@@ -482,40 +479,40 @@ class MainWindow(QMainWindow):
 
         preferences = preferences_manager.get()
 
-        self._apply_startup_geometry(preferences.window_geometry)
+        plan = window_geometry_manager.plan_startup(
+            WindowManagementSettings(
+                start_maximized=preferences.startup_maximized,
+                restore_last=preferences.window_restore_geometry,
+                auto_fit=preferences.window_auto_fit,
+                always_center=preferences.window_always_center,
+                limit_to_monitor=preferences.window_limit_to_monitor,
+                saved_geometry=preferences.window_geometry,
+            ),
+            self,
+        )
 
-        if preferences.startup_maximized:
+        if plan.maximized:
             self.showMaximized()
+        elif plan.geometry is not None:
+            self.setGeometry(plan.geometry)
 
         page_index = startup_page_index(preferences)
         if 0 <= page_index < self.pages.count():
             self.pages.setCurrentIndex(page_index)
 
-    def _apply_startup_geometry(self, saved: dict[str, int] | None) -> None:
-
-        available = available_work_area(self)
-        if available is None:
-            return
-
-        restored = parse_window_geometry(saved)
-        if restored is None:
-            geometry = default_startup_geometry(available)
-        else:
-            geometry = ensure_visible_on_work_area(restored, available)
-
-        self.setGeometry(geometry)
-
     def _persist_window_geometry(self) -> None:
 
         try:
-            available = available_work_area(self)
-            geometry = self.normalGeometry()
-            if available is not None:
-                geometry = ensure_visible_on_work_area(geometry, available)
+            preferences = preferences_manager.get()
+            if not preferences.window_restore_geometry:
+                return
 
-            current = preferences_manager.get()
-            current.window_geometry = window_geometry_to_dict(geometry)
-            preferences_manager.save(current)
+            geometry = window_geometry_manager.geometry_for_persist(
+                self,
+                limit_to_monitor=preferences.window_limit_to_monitor,
+            )
+            preferences.window_geometry = geometry
+            preferences_manager.save(preferences)
         except Exception:
             logger.exception("Failed to persist main window geometry")
 

@@ -210,13 +210,31 @@ class ApplicationSettingsManagerPage(QWidget):
             SUPPORTED_STARTUP_PAGES,
             _STARTUP_LABELS,
         )
-        self._startup_maximized = self._add_checkbox(
-            self._general_card,
-            "Start maximized",
-        )
         self._startup_restore = self._add_checkbox(
             self._general_card,
             "Restore previous session layout",
+        )
+
+        self._window_card = self._add_section(layout, "Window Management")
+        self._startup_maximized = self._add_checkbox(
+            self._window_card,
+            "Start maximized",
+        )
+        self._window_restore_geometry = self._add_checkbox(
+            self._window_card,
+            "Restore last window size and position",
+        )
+        self._window_auto_fit = self._add_checkbox(
+            self._window_card,
+            "Automatically fit window to current monitor",
+        )
+        self._window_always_center = self._add_checkbox(
+            self._window_card,
+            "Always center window on startup",
+        )
+        self._window_limit_to_monitor = self._add_checkbox(
+            self._window_card,
+            "Limit window size to current monitor work area",
         )
 
         self._ais_card = self._add_section(layout, "AIS")
@@ -512,6 +530,10 @@ class ApplicationSettingsManagerPage(QWidget):
         for widget in (
             self._startup_maximized,
             self._startup_restore,
+            self._window_restore_geometry,
+            self._window_auto_fit,
+            self._window_always_center,
+            self._window_limit_to_monitor,
             self._ais_auto_connect,
             self._ais_reconnect,
             self._camera_auto_selection,
@@ -584,6 +606,14 @@ class ApplicationSettingsManagerPage(QWidget):
             self._set_combo_value(self._startup_page_combo, preferences.startup_page)
             self._startup_maximized.setChecked(preferences.startup_maximized)
             self._startup_restore.setChecked(preferences.startup_restore_session)
+            self._window_restore_geometry.setChecked(
+                preferences.window_restore_geometry
+            )
+            self._window_auto_fit.setChecked(preferences.window_auto_fit)
+            self._window_always_center.setChecked(preferences.window_always_center)
+            self._window_limit_to_monitor.setChecked(
+                preferences.window_limit_to_monitor
+            )
 
             enabled = {
                 normalize_provider_type(value)
@@ -668,6 +698,10 @@ class ApplicationSettingsManagerPage(QWidget):
             startup_page=startup_page,
             startup_maximized=self._startup_maximized.isChecked(),
             startup_restore_session=self._startup_restore.isChecked(),
+            window_restore_geometry=self._window_restore_geometry.isChecked(),
+            window_auto_fit=self._window_auto_fit.isChecked(),
+            window_always_center=self._window_always_center.isChecked(),
+            window_limit_to_monitor=self._window_limit_to_monitor.isChecked(),
             ais_auto_connect=self._ais_auto_connect.isChecked(),
             ais_reconnect_enabled=self._ais_reconnect.isChecked(),
             ais_reconnect_min_s=reconnect_min,

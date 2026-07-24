@@ -145,8 +145,12 @@ class Preferences:
     startup_page: str = DEFAULT_STARTUP_PAGE
     startup_maximized: bool = False
     startup_restore_session: bool = True
-    # SAVE-221 — last normal MainWindow geometry (x, y, width, height)
+    # SAVE-221 / SAVE-222 — MainWindow geometry + Window Management
     window_geometry: dict[str, int] | None = None
+    window_restore_geometry: bool = True
+    window_auto_fit: bool = True
+    window_always_center: bool = False
+    window_limit_to_monitor: bool = True
 
     # SAVE-211 AIS
     ais_auto_connect: bool = True
@@ -207,6 +211,10 @@ class Preferences:
             "window_geometry": (
                 dict(self.window_geometry) if self.window_geometry else None
             ),
+            "window_restore_geometry": self.window_restore_geometry,
+            "window_auto_fit": self.window_auto_fit,
+            "window_always_center": self.window_always_center,
+            "window_limit_to_monitor": self.window_limit_to_monitor,
             "ais_auto_connect": self.ais_auto_connect,
             "ais_reconnect_enabled": self.ais_reconnect_enabled,
             "ais_reconnect_min_s": self.ais_reconnect_min_s,
@@ -325,6 +333,10 @@ class Preferences:
             startup_maximized=bool(data.get("startup_maximized", False)),
             startup_restore_session=bool(data.get("startup_restore_session", True)),
             window_geometry=_parse_window_geometry(data.get("window_geometry")),
+            window_restore_geometry=bool(data.get("window_restore_geometry", True)),
+            window_auto_fit=bool(data.get("window_auto_fit", True)),
+            window_always_center=bool(data.get("window_always_center", False)),
+            window_limit_to_monitor=bool(data.get("window_limit_to_monitor", True)),
             ais_auto_connect=bool(data.get("ais_auto_connect", True)),
             ais_reconnect_enabled=bool(data.get("ais_reconnect_enabled", True)),
             ais_reconnect_min_s=reconnect_min,
@@ -456,6 +468,16 @@ class Preferences:
         )
         migrated["window_geometry"] = _parse_window_geometry(
             migrated.get("window_geometry")
+        )
+        migrated["window_restore_geometry"] = bool(
+            migrated.get("window_restore_geometry", True)
+        )
+        migrated["window_auto_fit"] = bool(migrated.get("window_auto_fit", True))
+        migrated["window_always_center"] = bool(
+            migrated.get("window_always_center", False)
+        )
+        migrated["window_limit_to_monitor"] = bool(
+            migrated.get("window_limit_to_monitor", True)
         )
         migrated["ais_auto_connect"] = bool(migrated.get("ais_auto_connect", True))
         migrated["ais_reconnect_enabled"] = bool(
