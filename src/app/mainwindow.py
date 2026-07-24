@@ -1,16 +1,18 @@
 import logging
 
-from PySide6.QtCore import Qt, QEventLoop, QTimer
+from PySide6.QtCore import Qt, QEventLoop, QSize, QTimer
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
     QMainWindow,
     QMessageBox,
+    QSizePolicy,
     QStackedWidget,
     QWidget,
 )
 
+from app.page_registry import PageRegistry, PageSpec
 from app.window_geometry import (
     WindowManagementSettings,
     window_geometry_manager,
@@ -25,21 +27,6 @@ from gui.menubar import MenuBar
 from gui.dashboardpage import DashboardPage
 from gui.mapcontroller import MapController
 from gui.map_core import MAP_PAGE_INDEX, PickMode
-from gui.mappage import MapPage
-from gui.vesselspage import VesselsPage
-from gui.camerapage import CameraPage
-from gui.vesseldatabasepage import VesselDatabasePage
-from gui.vesseldatabasemanagerpage import VesselDatabaseManagerPage
-from gui.backupmanagerpage import BackupManagerPage
-from gui.applicationsettingsmanagerpage import ApplicationSettingsManagerPage
-from gui.installedpluginspage import InstalledPluginsPage
-from gui.vesseltimelinepage import VesselTimelinePage
-from gui.analyticsdashboardpage import AnalyticsDashboardPage
-from gui.sessionrecordingpage import SessionRecordingPage
-from gui.statisticspage import StatisticsPage
-from gui.alertcenterpage import AlertCenterPage
-from gui.rulespage import RulesPage
-from gui.systemhealthpage import SystemHealthPage
 from gui.eventbridge import EventBridge
 from gui.notifications import AisConnectionMonitor, notification_manager
 from gui.providers import refresh_open_provider_windows
@@ -67,6 +54,23 @@ from gui.rtlsdrwizard import RTLSdrWizard
 
 logger = logging.getLogger(__name__)
 
+# Fits 1366×768 work areas with chrome; Window Management may size larger.
+_MAINWINDOW_MINIMUM_SIZE = QSize(800, 500)
+
+
+class _FlexibleStackedWidget(QStackedWidget):
+    """Host pages without letting their content drive MainWindow minimum size."""
+
+    def minimumSizeHint(self) -> QSize:
+        return QSize(0, 0)
+
+    def sizeHint(self) -> QSize:
+        current = self.currentWidget()
+        if current is None:
+            return QSize(400, 300)
+        hint = current.sizeHint()
+        return QSize(max(400, hint.width()), max(300, hint.height()))
+
 
 class MainWindow(QMainWindow):
 
@@ -75,11 +79,33 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle(f"{PROJECT_NAME} {PROJECT_VERSION}")
         self.setWindowIcon(app_icon())
+        self.setMinimumSize(_MAINWINDOW_MINIMUM_SIZE)
 
         self.hybrid_engine = HybridEngine()
         logbook_recorder.start()
         ais_manager.start()
         rtl_manager.start()
+
+        self._page_registry: PageRegistry | None = None
+        self._map_controller_wired = False
+        self._session_replay_bridge = None
+
+        # Lazy page attributes (set by PageRegistry; None until first open).
+        self.map_page = None
+        self.vessels_page = None
+        self.camera_page = None
+        self.vessel_database_page = None
+        self.vessel_timeline_page = None
+        self.statistics_page = None
+        self.alert_center_page = None
+        self.rules_page = None
+        self.system_health_page = None
+        self.vessel_database_manager_page = None
+        self.backup_manager_page = None
+        self.application_settings_page = None
+        self.installed_plugins_page = None
+        self.analytics_dashboard_page = None
+        self.session_recording_page = None
 
         self.build_ui()
 
@@ -114,6 +140,34 @@ class MainWindow(QMainWindow):
 
         self.hybrid_engine.sync_enabled_providers()
 
+    def _call_loaded_page(self, attr_name: str, method_name: str, *args, **kwargs):
+        """Invoke a page method only if that page has been materialized."""
+
+        registry = self._page_registry
+        if registry is None:
+            return None
+
+        page = registry.get_loaded(attr=attr_name)
+        if page is None:
+            return None
+
+        method = getattr(page, method_name, None)
+        if not callable(method):
+            return None
+
+        return method(*args, **kwargs)
+
+    def _require_page(self, attr_name: str):
+        assert self._page_registry is not None
+        return self._page_registry.ensure_attr(attr_name)
+
+    def show_page(self, index: int) -> None:
+        """Ensure the page exists, then switch the stack to it."""
+
+        assert self._page_registry is not None
+        self._page_registry.ensure(index)
+        self.pages.setCurrentIndex(index)
+
     def _connect_event_bridge(self):
 
         connection = Qt.ConnectionType.QueuedConnection
@@ -121,7 +175,7 @@ class MainWindow(QMainWindow):
         self.event_bridge.ship_updated.connect(
             trace_slot(
                 "MainWindow->VesselsPage.refresh",
-                self.vessels_page.refresh,
+                lambda: self._call_loaded_page("vessels_page", "refresh"),
             ),
             connection,
         )
@@ -135,7 +189,7 @@ class MainWindow(QMainWindow):
         self.event_bridge.ship_updated.connect(
             trace_slot(
                 "MainWindow->MapPage.on_ship_updated",
-                self.map_page.on_ship_updated,
+                lambda: self._call_loaded_page("map_page", "on_ship_updated"),
             ),
             connection,
         )
@@ -232,7 +286,10 @@ class MainWindow(QMainWindow):
         observation_manager.changed.connect(
             trace_slot(
                 "MainWindow->MapPage.on_observation_changed",
-                self.map_page.on_observation_changed,
+                lambda: self._call_loaded_page(
+                    "map_page",
+                    "on_observation_changed",
+                ),
             ),
             connection,
         )
@@ -257,7 +314,7 @@ class MainWindow(QMainWindow):
         if wizard.result() != FirstRunWizard.DialogCode.Accepted:
             return
 
-        self.pages.setCurrentIndex(0)
+        self.show_page(0)
 
     def _connect_cameras(self) -> None:
 
@@ -290,7 +347,7 @@ class MainWindow(QMainWindow):
         self.menu_bar.about_requested.connect(self._show_about)
         self.menu_bar.exit_requested.connect(QApplication.instance().quit)
         self.menu_bar._dashboard_action.triggered.connect(
-            lambda: self.pages.setCurrentIndex(0)
+            lambda: self.show_page(0)
         )
         self.menu_bar._map_action.triggered.connect(self.navigate_to_map)
         self.menu_bar._settings_action.triggered.connect(
@@ -304,48 +361,14 @@ class MainWindow(QMainWindow):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        self.pages = QStackedWidget()
-
-        self.dashboard_page = DashboardPage()
-        self.map_page = MapPage()
-        MapController.instance().set_dialog_parent(self)
-        MapController.instance().navigation_requested.connect(
-            lambda _page_index: self.navigate_to_map(),
-            Qt.ConnectionType.QueuedConnection,
+        self.pages = _FlexibleStackedWidget()
+        self.pages.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding,
         )
-        self.vessels_page = VesselsPage()
-        self.camera_page = CameraPage()
-        self.vessel_database_page = VesselDatabasePage()
-        self.vessel_timeline_page = VesselTimelinePage()
-        self.statistics_page = StatisticsPage()
-        self.alert_center_page = AlertCenterPage()
-        self.rules_page = RulesPage()
-        self.system_health_page = SystemHealthPage()
-        self.vessel_database_manager_page = VesselDatabaseManagerPage()
-        self.backup_manager_page = BackupManagerPage()
-        self.application_settings_page = ApplicationSettingsManagerPage()
-        self.installed_plugins_page = InstalledPluginsPage()
-        self.analytics_dashboard_page = AnalyticsDashboardPage()
-        self.session_recording_page = SessionRecordingPage()
 
-        self.pages.addWidget(self.dashboard_page)        # 0
-        self.pages.addWidget(self.map_page)              # 1
-        self.pages.addWidget(self.vessels_page)          # 2
-        self.pages.addWidget(self.camera_page)           # 3
-        self.pages.addWidget(self.vessel_database_page)  # 4
-        self.pages.addWidget(self.vessel_timeline_page)  # 5
-        self.pages.addWidget(self.statistics_page)       # 6
-        self.pages.addWidget(self.alert_center_page)     # 7
-        self.pages.addWidget(self.rules_page)            # 8
-        self.pages.addWidget(self.system_health_page)    # 9
-        self.pages.addWidget(self.vessel_database_manager_page)  # 10
-        self.pages.addWidget(self.backup_manager_page)   # 11
-        self.pages.addWidget(self.application_settings_page)  # 12
-        self.pages.addWidget(self.installed_plugins_page)  # 13
-        self.pages.addWidget(self.analytics_dashboard_page)  # 14
-        self.pages.addWidget(self.session_recording_page)  # 15
-
-        self.system_health_page.attach_hybrid_engine(self.hybrid_engine)
+        self._page_registry = PageRegistry(self, self.pages)
+        self._register_pages()
 
         try:
             from session.bridge import SessionReplayBridge
@@ -354,10 +377,6 @@ class MainWindow(QMainWindow):
         except Exception:
             logger.exception("Session replay bridge failed to initialize")
             self._session_replay_bridge = None
-
-        self.session_recording_page.navigateToMapRequested.connect(
-            self.navigate_to_map
-        )
 
         self.sidebar = Sidebar()
         self.sidebar.pageSelected.connect(self._on_page_selected)
@@ -369,21 +388,6 @@ class MainWindow(QMainWindow):
         language_manager.language_changed.connect(
             self._apply_personalization
         )
-
-        self.vessels_page.shipSelected.connect(
-            self.focus_ship
-        )
-        self.vessel_database_page.vesselSelected.connect(
-            self.focus_ship
-        )
-        self.vessel_timeline_page.vesselSelected.connect(
-            self.focus_ship
-        )
-        self.alert_center_page.vesselSelected.connect(
-            self.focus_ship
-        )
-
-        self._connect_system_health()
 
         root.addWidget(self.sidebar)
         root.addWidget(self.pages, 1)
@@ -400,35 +404,282 @@ class MainWindow(QMainWindow):
             logger.exception("Plugin framework failed to initialize")
         self._apply_startup_options()
 
+    def _register_pages(self) -> None:
+
+        registry = self._page_registry
+        assert registry is not None
+
+        registry.register(
+            PageSpec(
+                index=0,
+                attr_name="dashboard_page",
+                factory=DashboardPage,
+                eager=True,
+            )
+        )
+        registry.register(
+            PageSpec(
+                index=1,
+                attr_name="map_page",
+                factory=self._factory_map_page,
+                binder=self._bind_map_page,
+            )
+        )
+        registry.register(
+            PageSpec(
+                index=2,
+                attr_name="vessels_page",
+                factory=self._factory_vessels_page,
+                binder=self._bind_vessels_page,
+            )
+        )
+        registry.register(
+            PageSpec(
+                index=3,
+                attr_name="camera_page",
+                factory=self._factory_camera_page,
+            )
+        )
+        registry.register(
+            PageSpec(
+                index=4,
+                attr_name="vessel_database_page",
+                factory=self._factory_vessel_database_page,
+                binder=self._bind_vessel_database_page,
+            )
+        )
+        registry.register(
+            PageSpec(
+                index=5,
+                attr_name="vessel_timeline_page",
+                factory=self._factory_vessel_timeline_page,
+                binder=self._bind_vessel_timeline_page,
+            )
+        )
+        registry.register(
+            PageSpec(
+                index=6,
+                attr_name="statistics_page",
+                factory=self._factory_statistics_page,
+            )
+        )
+        registry.register(
+            PageSpec(
+                index=7,
+                attr_name="alert_center_page",
+                factory=self._factory_alert_center_page,
+                binder=self._bind_alert_center_page,
+            )
+        )
+        registry.register(
+            PageSpec(
+                index=8,
+                attr_name="rules_page",
+                factory=self._factory_rules_page,
+            )
+        )
+        registry.register(
+            PageSpec(
+                index=9,
+                attr_name="system_health_page",
+                factory=self._factory_system_health_page,
+                binder=self._bind_system_health_page,
+            )
+        )
+        registry.register(
+            PageSpec(
+                index=10,
+                attr_name="vessel_database_manager_page",
+                factory=self._factory_vessel_database_manager_page,
+            )
+        )
+        registry.register(
+            PageSpec(
+                index=11,
+                attr_name="backup_manager_page",
+                factory=self._factory_backup_manager_page,
+            )
+        )
+        registry.register(
+            PageSpec(
+                index=12,
+                attr_name="application_settings_page",
+                factory=self._factory_application_settings_page,
+            )
+        )
+        registry.register(
+            PageSpec(
+                index=13,
+                attr_name="installed_plugins_page",
+                factory=self._factory_installed_plugins_page,
+            )
+        )
+        registry.register(
+            PageSpec(
+                index=14,
+                attr_name="analytics_dashboard_page",
+                factory=self._factory_analytics_dashboard_page,
+            )
+        )
+        registry.register(
+            PageSpec(
+                index=15,
+                attr_name="session_recording_page",
+                factory=self._factory_session_recording_page,
+                binder=self._bind_session_recording_page,
+            )
+        )
+
+    # --- lazy factories (defer heavy module import until first open) ---
+
+    @staticmethod
+    def _factory_map_page():
+        from gui.mappage import MapPage
+
+        return MapPage()
+
+    @staticmethod
+    def _factory_vessels_page():
+        from gui.vesselspage import VesselsPage
+
+        return VesselsPage()
+
+    @staticmethod
+    def _factory_camera_page():
+        from gui.camerapage import CameraPage
+
+        return CameraPage()
+
+    @staticmethod
+    def _factory_vessel_database_page():
+        from gui.vesseldatabasepage import VesselDatabasePage
+
+        return VesselDatabasePage()
+
+    @staticmethod
+    def _factory_vessel_timeline_page():
+        from gui.vesseltimelinepage import VesselTimelinePage
+
+        return VesselTimelinePage()
+
+    @staticmethod
+    def _factory_statistics_page():
+        from gui.statisticspage import StatisticsPage
+
+        return StatisticsPage()
+
+    @staticmethod
+    def _factory_alert_center_page():
+        from gui.alertcenterpage import AlertCenterPage
+
+        return AlertCenterPage()
+
+    @staticmethod
+    def _factory_rules_page():
+        from gui.rulespage import RulesPage
+
+        return RulesPage()
+
+    @staticmethod
+    def _factory_system_health_page():
+        from gui.systemhealthpage import SystemHealthPage
+
+        return SystemHealthPage()
+
+    @staticmethod
+    def _factory_vessel_database_manager_page():
+        from gui.vesseldatabasemanagerpage import VesselDatabaseManagerPage
+
+        return VesselDatabaseManagerPage()
+
+    @staticmethod
+    def _factory_backup_manager_page():
+        from gui.backupmanagerpage import BackupManagerPage
+
+        return BackupManagerPage()
+
+    @staticmethod
+    def _factory_application_settings_page():
+        from gui.applicationsettingsmanagerpage import ApplicationSettingsManagerPage
+
+        return ApplicationSettingsManagerPage()
+
+    @staticmethod
+    def _factory_installed_plugins_page():
+        from gui.installedpluginspage import InstalledPluginsPage
+
+        return InstalledPluginsPage()
+
+    @staticmethod
+    def _factory_analytics_dashboard_page():
+        from gui.analyticsdashboardpage import AnalyticsDashboardPage
+
+        return AnalyticsDashboardPage()
+
+    @staticmethod
+    def _factory_session_recording_page():
+        from gui.sessionrecordingpage import SessionRecordingPage
+
+        return SessionRecordingPage()
+
+    # --- first-open binders (signals / host wiring once per page) ---
+
+    def _bind_map_page(self, page) -> None:
+
+        if not self._map_controller_wired:
+            MapController.instance().set_dialog_parent(self)
+            MapController.instance().navigation_requested.connect(
+                lambda _page_index: self.navigate_to_map(),
+                Qt.ConnectionType.QueuedConnection,
+            )
+            self._map_controller_wired = True
+
         MapController.instance().maybe_prompt_reference_selection()
+
+    def _bind_vessels_page(self, page) -> None:
+
+        page.shipSelected.connect(self.focus_ship)
+
+    def _bind_vessel_database_page(self, page) -> None:
+
+        page.vesselSelected.connect(self.focus_ship)
+
+    def _bind_vessel_timeline_page(self, page) -> None:
+
+        page.vesselSelected.connect(self.focus_ship)
+
+    def _bind_alert_center_page(self, page) -> None:
+
+        page.vesselSelected.connect(self.focus_ship)
+
+    def _bind_system_health_page(self, page) -> None:
+
+        page.attach_hybrid_engine(self.hybrid_engine)
+        self._connect_system_health(page)
+
+    def _bind_session_recording_page(self, page) -> None:
+
+        page.navigateToMapRequested.connect(self.navigate_to_map)
 
     def _on_page_selected(self, index: int) -> None:
 
-        self.pages.setCurrentIndex(index)
+        self.show_page(index)
 
     def _apply_personalization(self) -> None:
 
-        self.map_page.apply_personalization()
+        self._call_loaded_page("map_page", "apply_personalization")
 
-        for page in (
-            self.dashboard_page,
-            self.vessels_page,
-            self.camera_page,
-            self.vessel_database_page,
-            self.vessel_timeline_page,
-            self.statistics_page,
-            self.alert_center_page,
-            self.rules_page,
-            self.system_health_page,
-            self.vessel_database_manager_page,
-            self.backup_manager_page,
-            self.application_settings_page,
-            self.installed_plugins_page,
-            self.analytics_dashboard_page,
-            self.session_recording_page,
-        ):
+        pages = [self.dashboard_page]
+        if self._page_registry is not None:
+            pages.extend(self._page_registry.loaded_pages())
+
+        seen: set[int] = set()
+        for page in pages:
+            ident = id(page)
+            if ident in seen:
+                continue
+            seen.add(ident)
             refresh = getattr(page, "refresh_translations", None)
-
             if callable(refresh):
                 refresh()
 
@@ -455,22 +706,25 @@ class MainWindow(QMainWindow):
         if callable(status_refresh):
             status_refresh()
 
-    def _connect_system_health(self) -> None:
+    def _connect_system_health(self, page=None) -> None:
 
-        page = self.system_health_page
+        if page is None:
+            page = self.system_health_page
+        if page is None:
+            return
 
         page.configureAisRequested.connect(self._open_ais_configure)
         page.testAisRequested.connect(self._test_ais_from_health)
         page.rtlSetupRequested.connect(self._open_rtl_setup)
         page.rtlDiagnosticsRequested.connect(self._open_rtl_diagnostics)
         page.openSettingsRequested.connect(self._open_settings_manager)
-        page.openDashboardRequested.connect(lambda: self.pages.setCurrentIndex(0))
+        page.openDashboardRequested.connect(lambda: self.show_page(0))
         page.openMapRequested.connect(self.navigate_to_map)
         page.cameraDiagnosticsRequested.connect(self._open_camera_diagnostics)
 
     def _open_settings_manager(self) -> None:
 
-        self.pages.setCurrentIndex(12)
+        self.show_page(12)
         reload = getattr(self.application_settings_page, "reload_from_preferences", None)
         if callable(reload):
             reload()
@@ -482,7 +736,7 @@ class MainWindow(QMainWindow):
 
         page_index = startup_page_index(preferences)
         if 0 <= page_index < self.pages.count():
-            self.pages.setCurrentIndex(page_index)
+            self.show_page(page_index)
 
     def apply_startup_window_management(self, preferences=None) -> None:
         """
@@ -534,22 +788,22 @@ class MainWindow(QMainWindow):
 
     def _open_dashboard_configuration(self) -> None:
 
-        self.pages.setCurrentIndex(0)
+        self.show_page(0)
         self.dashboard_page.open_configuration_section()
 
     def _open_ais_configure(self) -> None:
 
-        self.pages.setCurrentIndex(0)
+        self.show_page(0)
         wizard = AISWizard(self)
 
         if wizard.exec() == AISWizard.DialogCode.Accepted:
             self.dashboard_page.refresh_ais()
 
-        self.system_health_page.refresh()
+        self._call_loaded_page("system_health_page", "refresh")
 
     def _test_ais_from_health(self) -> None:
 
-        self.pages.setCurrentIndex(0)
+        self.show_page(0)
         result = ais_manager.test_current()
 
         if result.success:
@@ -566,28 +820,28 @@ class MainWindow(QMainWindow):
             )
 
         self.dashboard_page.refresh_ais()
-        self.system_health_page.refresh()
+        self._call_loaded_page("system_health_page", "refresh")
 
     def _open_rtl_setup(self) -> None:
 
-        self.pages.setCurrentIndex(0)
+        self.show_page(0)
         wizard = RTLSdrWizard(self)
 
         if wizard.exec() == RTLSdrWizard.DialogCode.Accepted:
             self.dashboard_page.refresh_rtl()
             self.dashboard_page.refresh_ais()
 
-        self.system_health_page.refresh()
+        self._call_loaded_page("system_health_page", "refresh")
 
     def _open_rtl_diagnostics(self) -> None:
 
         dialog = RTLSdrDiagnosticsDialog(self)
         dialog.exec()
-        self.system_health_page.refresh()
+        self._call_loaded_page("system_health_page", "refresh")
 
     def _open_camera_diagnostics(self) -> None:
 
-        self.pages.setCurrentIndex(0)
+        self.show_page(0)
         self.dashboard_page.open_configuration_section(focus_diagnostics=True)
 
     def navigate_to_map(self, *, focus_mmsi: int | None = None) -> None:
@@ -597,10 +851,11 @@ class MainWindow(QMainWindow):
 
         self.raise_()
         self.activateWindow()
-        self.pages.setCurrentIndex(MAP_PAGE_INDEX)
+        self.show_page(MAP_PAGE_INDEX)
 
         if focus_mmsi is not None:
-            self.map_page.select_vessel(int(focus_mmsi))
+            map_page = self._require_page("map_page")
+            map_page.select_vessel(int(focus_mmsi))
             MapController.instance().focus_ship(int(focus_mmsi))
 
     def focus_ship(self, mmsi):
@@ -614,15 +869,18 @@ class MainWindow(QMainWindow):
 
     def _cancel_active_location_pick(self) -> None:
 
+        if MapController._instance is None:
+            return
+
         if MapController.instance().pick_mode() != PickMode.NONE:
             MapController.instance().cancel_pick_mode()
 
     def closeEvent(self, event):
 
-        if MapController.instance().pick_mode() != PickMode.NONE:
-            MapController.instance().cancel_pick_mode(restore_host=False)
-
-        MapController.release_application_modality()
+        if MapController._instance is not None:
+            if MapController.instance().pick_mode() != PickMode.NONE:
+                MapController.instance().cancel_pick_mode(restore_host=False)
+            MapController.release_application_modality()
 
         self._persist_window_geometry()
 
@@ -651,8 +909,13 @@ class MainWindow(QMainWindow):
                 session_player.stop()
             if getattr(self, "_session_replay_bridge", None) is not None:
                 self._session_replay_bridge.shutdown()
-            self.alert_center_page.apply_session_replay_alerts(None)
-            self.map_page._map_controller.clear_playback()
+            self._call_loaded_page(
+                "alert_center_page",
+                "apply_session_replay_alerts",
+                None,
+            )
+            if MapController._instance is not None:
+                MapController.instance().clear_playback()
         except Exception:
             logger.exception("Failed while stopping session replay")
 
