@@ -943,6 +943,8 @@ class MainWindow(QMainWindow):
                 "analytics_dashboard_page",
                 "map_page",
                 "statistics_page",
+                "vessel_timeline_page",
+                "vessel_database_page",
             ):
                 page = getattr(self, attr, None)
                 shutdown = getattr(page, "shutdown", None)

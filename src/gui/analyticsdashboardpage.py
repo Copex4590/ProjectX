@@ -32,6 +32,7 @@ from analytics.records import (
     NamedCount,
 )
 from events import eventbus
+from gui.deferred_load import DeferredDataLoader, make_loading_label
 from gui.i18n_support import bind_language_refresh
 from gui.theme import (
     ThemeColors,
@@ -39,6 +40,7 @@ from gui.theme import (
     primary_button_stylesheet,
     secondary_button_stylesheet,
 )
+from shiboken6 import isValid
 from gui.widgets.analytics_charts import BarChartWidget, LineChartWidget, PieChartWidget
 from i18n import tr
 
@@ -134,6 +136,7 @@ class AnalyticsDashboardPage(QWidget):
         self._bridge = _GuiBridge()
         self._bridge.refresh_requested.connect(self._request_live_refresh)
         self._live_pending = False
+        self._data_ready = False
 
         self.setStyleSheet(f"background: {ThemeColors.Background};")
         self._build_ui()
@@ -143,6 +146,10 @@ class AnalyticsDashboardPage(QWidget):
         self._timer.setInterval(_LIVE_REFRESH_MS)
         self._timer.timeout.connect(self.refresh)
 
+        self._loader = DeferredDataLoader(self)
+        self._loader.finished.connect(self._on_deferred_loaded)
+        self._loader.failed.connect(self._on_deferred_failed)
+
     def initialize(self) -> None:
         """One-shot: language binding and EventBus subscriptions."""
 
@@ -151,9 +158,10 @@ class AnalyticsDashboardPage(QWidget):
         self._subscribe_events()
 
     def activate(self) -> None:
-        """Refresh analytics and ensure the live timer is running."""
+        """Show immediately; load analytics in the background if needed."""
 
-        self.refresh()
+        if not self._data_ready:
+            self._request_deferred_load(force=False)
         if not self._timer.isActive():
             self._timer.start()
 
@@ -169,6 +177,7 @@ class AnalyticsDashboardPage(QWidget):
     def shutdown(self) -> None:
 
         self._timer.stop()
+        self._loader.cancel()
         eventbus.unsubscribe("ship.updated", self._on_bus_event)
         eventbus.unsubscribe("ais.status", self._on_bus_event)
         eventbus.unsubscribe("rtl.status", self._on_bus_event)
@@ -191,6 +200,108 @@ class AnalyticsDashboardPage(QWidget):
 
         self._live_pending = False
         self.refresh()
+
+    def refresh(self) -> None:
+        """Manual / live refresh — force a new background load."""
+
+        self._request_deferred_load(force=True)
+
+    def _request_deferred_load(self, *, force: bool) -> None:
+
+        if not force and self._data_ready:
+            return
+        started = self._loader.start(self._fetch_payload, force=force)
+        if started:
+            self._set_loading(True, tr("Loading analytics…"))
+
+    def _fetch_payload(self) -> AnalyticsSnapshot:
+
+        return self._manager.refresh()
+
+    def _on_deferred_loaded(self, snapshot: AnalyticsSnapshot) -> None:
+
+        if not isValid(self):
+            return
+        self._snapshot = snapshot
+        self._apply_snapshot(snapshot)
+        self._data_ready = True
+        self._set_loading(False)
+
+    def _on_deferred_failed(self, message: str) -> None:
+
+        if not isValid(self):
+            return
+        self._set_loading(True, tr("Failed to load: {error}").format(error=message))
+
+    def _set_loading(self, visible: bool, text: str | None = None) -> None:
+
+        if text is not None:
+            self.loading_label.setText(text)
+        self.loading_label.setVisible(visible)
+        self._refresh_btn.setEnabled(not self._loader.busy)
+
+    def _apply_snapshot(self, snap: AnalyticsSnapshot) -> None:
+
+        self._active_card.set_value(
+            str(snap.active_vessels),
+            tr("Live / recent in interval"),
+        )
+        self._tracked_card.set_value(
+            str(snap.tracked_vessels),
+            tr("In memory registry"),
+        )
+        self._camera_card.set_value(
+            str(snap.cameras.total),
+            tr("{enabled} enabled").format(enabled=snap.cameras.enabled),
+        )
+        self._alert_card.set_value(
+            str(snap.alerts.active),
+            tr("{history} acknowledged").format(history=snap.alerts.history),
+        )
+
+        self._ship_type_pie.set_items(snap.ship_types)
+        self._speed_bars.set_items(snap.speed_distribution)
+        self._traffic_line.set_items(snap.traffic_by_hour)
+        self._routes_bars.set_items(snap.common_routes)
+
+        self._providers_panel.set_lines([
+            f"{row.display_name}: {row.status} — "
+            f"{tr('messages')}={row.message_count}, {tr('ships')}={row.ships_detected}"
+            for row in snap.providers
+        ])
+        camera_lines = [
+            f"{tr('Total')}: {snap.cameras.total}",
+            f"{tr('Enabled')}: {snap.cameras.enabled}",
+            f"{tr('Disabled')}: {snap.cameras.disabled}",
+        ]
+        camera_lines.extend(
+            f"{item.label}: {item.count}" for item in snap.cameras.by_country
+        )
+        self._cameras_panel.set_lines(camera_lines)
+
+        alert_lines = [
+            f"{tr('Active')}: {snap.alerts.active}",
+            f"{tr('History')}: {snap.alerts.history}",
+            f"{tr('Critical')}: {snap.alerts.critical}",
+            f"{tr('Warning')}: {snap.alerts.warning}",
+            f"{tr('Info')}: {snap.alerts.info}",
+        ]
+        alert_lines.extend(
+            f"{item.label}: {item.count}" for item in snap.alerts.by_type
+        )
+        self._alerts_panel.set_lines(alert_lines)
+
+        self._severity_pie.set_items([
+            NamedCount(tr("Critical"), snap.alerts.critical),
+            NamedCount(tr("Warning"), snap.alerts.warning),
+            NamedCount(tr("Info"), snap.alerts.info),
+        ])
+
+        self._updated.setText(
+            tr("Updated {time}").format(
+                time=snap.computed_at.strftime("%Y-%m-%d %H:%M:%S")
+            )
+        )
 
     def _build_ui(self) -> None:
 
@@ -225,6 +336,9 @@ class AnalyticsDashboardPage(QWidget):
         self._updated.setStyleSheet(f"color: {ThemeColors.TextSecondary}; font-size: 9pt;")
         header.addWidget(self._updated)
         layout.addLayout(header)
+
+        self.loading_label = make_loading_label()
+        layout.addWidget(self.loading_label)
 
         controls = QFrame()
         controls.setStyleSheet(card_stylesheet(radius=10))
@@ -351,72 +465,6 @@ class AnalyticsDashboardPage(QWidget):
         self._traffic_line.set_title(tr("Hourly Traffic"))
         self._routes_bars.set_title(tr("Most Common Routes"))
         self._severity_pie.set_title(tr("Alerts by Severity"))
-
-    def refresh(self) -> None:
-
-        self._snapshot = self._manager.refresh()
-        snap = self._snapshot
-
-        self._active_card.set_value(
-            str(snap.active_vessels),
-            tr("Live / recent in interval"),
-        )
-        self._tracked_card.set_value(
-            str(snap.tracked_vessels),
-            tr("In memory registry"),
-        )
-        self._camera_card.set_value(
-            str(snap.cameras.total),
-            tr("{enabled} enabled").format(enabled=snap.cameras.enabled),
-        )
-        self._alert_card.set_value(
-            str(snap.alerts.active),
-            tr("{history} acknowledged").format(history=snap.alerts.history),
-        )
-
-        self._ship_type_pie.set_items(snap.ship_types)
-        self._speed_bars.set_items(snap.speed_distribution)
-        self._traffic_line.set_items(snap.traffic_by_hour)
-        self._routes_bars.set_items(snap.common_routes)
-
-        self._providers_panel.set_lines([
-            f"{row.display_name}: {row.status} — "
-            f"{tr('messages')}={row.message_count}, {tr('ships')}={row.ships_detected}"
-            for row in snap.providers
-        ])
-        camera_lines = [
-            f"{tr('Total')}: {snap.cameras.total}",
-            f"{tr('Enabled')}: {snap.cameras.enabled}",
-            f"{tr('Disabled')}: {snap.cameras.disabled}",
-        ]
-        camera_lines.extend(
-            f"{item.label}: {item.count}" for item in snap.cameras.by_country
-        )
-        self._cameras_panel.set_lines(camera_lines)
-
-        alert_lines = [
-            f"{tr('Active')}: {snap.alerts.active}",
-            f"{tr('History')}: {snap.alerts.history}",
-            f"{tr('Critical')}: {snap.alerts.critical}",
-            f"{tr('Warning')}: {snap.alerts.warning}",
-            f"{tr('Info')}: {snap.alerts.info}",
-        ]
-        alert_lines.extend(
-            f"{item.label}: {item.count}" for item in snap.alerts.by_type
-        )
-        self._alerts_panel.set_lines(alert_lines)
-
-        self._severity_pie.set_items([
-            NamedCount(tr("Critical"), snap.alerts.critical),
-            NamedCount(tr("Warning"), snap.alerts.warning),
-            NamedCount(tr("Info"), snap.alerts.info),
-        ])
-
-        self._updated.setText(
-            tr("Updated {time}").format(
-                time=snap.computed_at.strftime("%Y-%m-%d %H:%M:%S")
-            )
-        )
 
     def _export_csv(self) -> None:
 

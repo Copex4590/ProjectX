@@ -18,7 +18,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from shiboken6 import isValid
 
+from gui.deferred_load import DeferredDataLoader, make_loading_label
 from gui.i18n_support import bind_language_refresh
 from gui.theme import (
     ACCENT,
@@ -32,6 +34,7 @@ from gui.theme import (
 )
 from i18n import tr
 from vessel_statistics.statistics_manager import StatisticsManager, statistics_manager
+from vessel_statistics.statistics_record import DashboardStatistics
 
 _AUTO_REFRESH_MS = 30000
 
@@ -205,29 +208,36 @@ class StatisticsPage(QWidget):
 
         self._manager = manager or statistics_manager
         self._auto_refresh_enabled = False
+        self._data_ready = False
 
         self._auto_refresh_timer = QTimer(self)
         self._auto_refresh_timer.setInterval(_AUTO_REFRESH_MS)
         self._auto_refresh_timer.timeout.connect(self.refresh)
 
+        self._loader = DeferredDataLoader(self)
+        self._loader.finished.connect(self._on_deferred_loaded)
+        self._loader.failed.connect(self._on_deferred_failed)
+
         self._build_ui()
 
     def initialize(self) -> None:
-        """One-shot: language binding (timer already constructed)."""
+        """One-shot: language binding (models only; no data load)."""
 
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
 
     def activate(self) -> None:
-        """Refresh stats; restart auto-refresh timer if enabled."""
+        """Show immediately; load stats in the background if needed."""
 
-        self.refresh()
+        if not self._data_ready:
+            self._request_deferred_load(force=False)
         if self._auto_refresh_enabled and not self._auto_refresh_timer.isActive():
             self._auto_refresh_timer.start()
 
     def shutdown(self) -> None:
 
         self._auto_refresh_timer.stop()
+        self._loader.cancel()
 
     def refresh_translations(self) -> None:
 
@@ -260,9 +270,46 @@ class StatisticsPage(QWidget):
             chart.refresh_translations()
 
     def refresh(self) -> None:
+        """Manual / timer refresh — force a new background load."""
+
+        self._request_deferred_load(force=True)
+
+    def _request_deferred_load(self, *, force: bool) -> None:
+
+        if not force and self._data_ready:
+            return
+        started = self._loader.start(self._fetch_payload, force=force)
+        if started:
+            self._set_loading(True, tr("Loading statistics…"))
+
+    def _fetch_payload(self) -> DashboardStatistics:
 
         self._manager.refresh()
-        dashboard = self._manager.dashboard_statistics()
+        return self._manager.dashboard_statistics()
+
+    def _on_deferred_loaded(self, dashboard: DashboardStatistics) -> None:
+
+        if not isValid(self):
+            return
+        self._apply_dashboard(dashboard)
+        self._data_ready = True
+        self._set_loading(False)
+
+    def _on_deferred_failed(self, message: str) -> None:
+
+        if not isValid(self):
+            return
+        self._set_loading(True, tr("Failed to load: {error}").format(error=message))
+
+    def _set_loading(self, visible: bool, text: str | None = None) -> None:
+
+        if text is not None:
+            self.loading_label.setText(text)
+        self.loading_label.setVisible(visible)
+        self.refresh_button.setEnabled(not self._loader.busy)
+
+    def _apply_dashboard(self, dashboard: DashboardStatistics) -> None:
+
         global_stats = dashboard.global_stats
 
         self.total_vessels_card.set_value(str(global_stats.total_vessels))
@@ -351,6 +398,9 @@ class StatisticsPage(QWidget):
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title_label.setProperty("role", "title")
         layout.addWidget(self.title_label)
+
+        self.loading_label = make_loading_label()
+        layout.addWidget(self.loading_label)
 
         controls = QHBoxLayout()
         controls.setSpacing(8)

@@ -6,7 +6,7 @@
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QGridLayout,
@@ -19,12 +19,14 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from shiboken6 import isValid
 
 from database import registry
 from engines.timeline.arrival_departure_engine import (
     EVENT_ARRIVAL,
     EVENT_DEPARTURE,
 )
+from gui.deferred_load import DeferredDataLoader, make_loading_label
 from gui.i18n_support import bind_language_refresh
 from gui.tableutils import show_empty_table_message
 from gui.theme import analytics_page_stylesheet
@@ -34,6 +36,7 @@ from timeline.timeline_recorder import EVENT_POSITION_UPDATE
 from timeline.timeline_record import TimelineRecord
 
 _ALL_FILTER = "All"
+_TABLE_FILL_CHUNK = 250
 
 _EVENT_FILTERS = (
     _ALL_FILTER,
@@ -142,20 +145,31 @@ class VesselTimelinePage(QWidget):
         self._records: list[TimelineRecord] = []
         self._name_lookup: dict[int, str] = {}
         self._filters = TimelineViewerFilters()
+        self._data_ready = False
+        self._populate_generation = 0
+        self._fill_rows: list[TimelineRecord] = []
+        self._fill_index = 0
+        self._fill_generation = 0
+
+        self._loader = DeferredDataLoader(self)
+        self._loader.finished.connect(self._on_deferred_loaded)
+        self._loader.failed.connect(self._on_deferred_failed)
 
         self._build_ui()
         self._connect_signals()
 
     def initialize(self) -> None:
-        """One-shot: language binding (no data load)."""
+        """One-shot: language binding (models only; no data load)."""
 
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
 
     def activate(self) -> None:
-        """Refresh timeline data whenever the page is shown."""
+        """Show immediately; load heavy data in the background if needed."""
 
-        self.refresh()
+        if self._data_ready:
+            return
+        self._request_deferred_load(force=False)
 
     def refresh_translations(self) -> None:
 
@@ -179,16 +193,60 @@ class VesselTimelinePage(QWidget):
         self._refresh_event_filter()
 
     def refresh(self) -> list[TimelineRecord]:
+        """Manual refresh — force a new background load."""
 
-        self._records = self._manager.all()
-        self._name_lookup = {
+        self._request_deferred_load(force=True)
+        return list(self._records)
+
+    def shutdown(self) -> None:
+
+        self._populate_generation += 1
+        self._loader.cancel()
+
+    def _request_deferred_load(self, *, force: bool) -> None:
+
+        if not force and self._data_ready:
+            return
+        started = self._loader.start(self._fetch_payload, force=force)
+        if started:
+            self._set_loading(True, tr("Loading timeline…"))
+
+    def _fetch_payload(self) -> tuple[list[TimelineRecord], dict[int, str]]:
+
+        records = self._manager.all()
+        name_lookup = {
             ship.mmsi: _display_text(ship.name)
             for ship in registry.all()
             if _display_text(ship.name) != "—"
         }
+        return records, name_lookup
+
+    def _on_deferred_loaded(
+        self,
+        payload: tuple[list[TimelineRecord], dict[int, str]],
+    ) -> None:
+
+        if not isValid(self):
+            return
+        records, name_lookup = payload
+        self._records = list(records)
+        self._name_lookup = dict(name_lookup)
+        self._data_ready = True
         self._update_summary()
         self._populate_table()
-        return list(self._records)
+
+    def _on_deferred_failed(self, message: str) -> None:
+
+        if not isValid(self):
+            return
+        self._set_loading(True, tr("Failed to load: {error}").format(error=message))
+
+    def _set_loading(self, visible: bool, text: str | None = None) -> None:
+
+        if text is not None:
+            self.loading_label.setText(text)
+        self.loading_label.setVisible(visible)
+        self.refresh_button.setEnabled(not self._loader.busy)
 
     def apply_filters(self) -> list[TimelineRecord]:
 
@@ -228,6 +286,9 @@ class VesselTimelinePage(QWidget):
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title_label.setProperty("role", "title")
         layout.addWidget(self.title_label)
+
+        self.loading_label = make_loading_label()
+        layout.addWidget(self.loading_label)
 
         summary = QGridLayout()
         self.total_events_label = self._summary_label("Total Events")
@@ -460,17 +521,37 @@ class VesselTimelinePage(QWidget):
     def _populate_table(self) -> None:
 
         rows = self._filtered_records()
+        self._populate_generation += 1
+        generation = self._populate_generation
 
         if not rows:
             show_empty_table_message(
                 self.table,
                 "No events found",
             )
+            self._set_loading(False)
             return
 
         self.table.setRowCount(len(rows))
+        self._fill_rows = rows
+        self._fill_index = 0
+        self._fill_generation = generation
+        self._set_loading(True, tr("Rendering timeline…"))
+        self._fill_table_chunk()
 
-        for row_index, record in enumerate(rows):
+    def _fill_table_chunk(self) -> None:
+
+        if self._fill_generation != self._populate_generation:
+            return
+        if not isValid(self):
+            return
+
+        rows = self._fill_rows
+        start = self._fill_index
+        end = min(start + _TABLE_FILL_CHUNK, len(rows))
+
+        for row_index in range(start, end):
+            record = rows[row_index]
             values = [
                 _format_timestamp(record.timestamp),
                 _tr_event_type(record.event_type),
@@ -488,7 +569,14 @@ class VesselTimelinePage(QWidget):
                 item.setData(Qt.ItemDataRole.UserRole, record.mmsi)
                 self.table.setItem(row_index, column_index, item)
 
+        self._fill_index = end
+
+        if end < len(rows):
+            QTimer.singleShot(0, self._fill_table_chunk)
+            return
+
         self.table.resizeColumnsToContents()
+        self._set_loading(False)
 
     def _on_row_double_clicked(self, row: int, _column: int) -> None:
 
