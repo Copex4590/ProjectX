@@ -211,9 +211,19 @@ class StatisticsPage(QWidget):
         self._auto_refresh_timer.timeout.connect(self.refresh)
 
         self._build_ui()
+
+    def initialize(self) -> None:
+        """One-shot: language binding (timer already constructed)."""
+
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
+
+    def activate(self) -> None:
+        """Refresh stats; restart auto-refresh timer if enabled."""
+
         self.refresh()
+        if self._auto_refresh_enabled and not self._auto_refresh_timer.isActive():
+            self._auto_refresh_timer.start()
 
     def shutdown(self) -> None:
 

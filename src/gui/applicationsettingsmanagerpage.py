@@ -149,8 +149,16 @@ class ApplicationSettingsManagerPage(QWidget):
         self.setStyleSheet(f"background: {ThemeColors.Background};")
         self._build_ui()
         self._connect_signals()
+
+    def initialize(self) -> None:
+        """One-shot: language binding."""
+
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
+
+    def activate(self) -> None:
+        """Reload preferences into the form whenever Settings is shown."""
+
         self.reload_from_preferences()
 
     def _build_ui(self) -> None:

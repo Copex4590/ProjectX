@@ -97,16 +97,24 @@ class AlertCenterPage(QWidget):
         self.setStyleSheet(f"background: {ThemeColors.Background};")
         self._build_ui()
         self._connect_signals()
-        bind_language_refresh(self.refresh_translations)
-        self.refresh_translations()
-        self.refresh()
 
         self._timer = QTimer(self)
         self._timer.setInterval(_AUTO_REFRESH_MS)
         self._timer.timeout.connect(self.refresh)
-        self._timer.start()
 
+    def initialize(self) -> None:
+        """One-shot: language binding and EventBus subscription."""
+
+        bind_language_refresh(self.refresh_translations)
+        self.refresh_translations()
         eventbus.subscribe(EVENT_ALERT_FIRED, self._on_alert_fired)
+
+    def activate(self) -> None:
+        """Refresh alerts and ensure the live timer is running."""
+
+        self.refresh()
+        if not self._timer.isActive():
+            self._timer.start()
 
     def shutdown(self) -> None:
 

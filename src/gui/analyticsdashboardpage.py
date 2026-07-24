@@ -138,16 +138,24 @@ class AnalyticsDashboardPage(QWidget):
         self.setStyleSheet(f"background: {ThemeColors.Background};")
         self._build_ui()
         self._connect_signals()
-        bind_language_refresh(self.refresh_translations)
-        self.refresh_translations()
-        self.refresh()
 
         self._timer = QTimer(self)
         self._timer.setInterval(_LIVE_REFRESH_MS)
         self._timer.timeout.connect(self.refresh)
-        self._timer.start()
 
+    def initialize(self) -> None:
+        """One-shot: language binding and EventBus subscriptions."""
+
+        bind_language_refresh(self.refresh_translations)
+        self.refresh_translations()
         self._subscribe_events()
+
+    def activate(self) -> None:
+        """Refresh analytics and ensure the live timer is running."""
+
+        self.refresh()
+        if not self._timer.isActive():
+            self._timer.start()
 
     def _subscribe_events(self) -> None:
 

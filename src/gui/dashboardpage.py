@@ -358,9 +358,6 @@ class DashboardPage(QWidget):
         self._delete_button.clicked.connect(self._delete_active)
         self._language_combo.currentIndexChanged.connect(self._on_language_changed)
         self._layout_combo.currentIndexChanged.connect(self._on_layout_changed)
-        language_manager.language_changed.connect(
-            lambda _code: self._refresh_configuration_labels()
-        )
         self._add_camera_button.clicked.connect(self._add_camera)
         self._import_logbook_button.clicked.connect(self._import_legacy_logbook)
         self._cameras_help_button.clicked.connect(
@@ -371,17 +368,26 @@ class DashboardPage(QWidget):
             )
         )
 
-        bind_language_refresh(self.refresh_translations)
+    def initialize(self) -> None:
+        """One-shot: language bindings (UI already built in __init__)."""
 
+        language_manager.language_changed.connect(
+            lambda _code: self._refresh_configuration_labels()
+        )
+        bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
+
+    def activate(self) -> None:
+        """Refresh dashboard cards whenever the page is shown."""
+
         self.refresh_configuration()
         self.refresh_observation()
         self.refresh_cameras()
+        self.camera_diagnostics.refresh()
 
     def showEvent(self, event: QShowEvent) -> None:
 
         super().showEvent(event)
-        self.camera_diagnostics.refresh()
 
     def open_configuration_section(self, *, focus_diagnostics: bool = False) -> None:
 

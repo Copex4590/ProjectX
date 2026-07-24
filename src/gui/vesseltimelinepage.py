@@ -145,8 +145,16 @@ class VesselTimelinePage(QWidget):
 
         self._build_ui()
         self._connect_signals()
+
+    def initialize(self) -> None:
+        """One-shot: language binding (no data load)."""
+
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
+
+    def activate(self) -> None:
+        """Refresh timeline data whenever the page is shown."""
+
         self.refresh()
 
     def refresh_translations(self) -> None:

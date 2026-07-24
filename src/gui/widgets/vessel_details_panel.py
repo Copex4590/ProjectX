@@ -385,10 +385,19 @@ class VesselDetailsPanel(QWidget):
 
         layout.addStretch(1)
 
+    def initialize(self) -> None:
+        """One-shot: language binding and EventBus subscriptions."""
+
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
         self.clear()
         self._connect_eventbus()
+
+    def activate(self) -> None:
+        """Refresh the selected vessel sheet when the map page is shown."""
+
+        if self._mmsi is not None:
+            self.refresh()
 
     def _connect_eventbus(self) -> None:
 

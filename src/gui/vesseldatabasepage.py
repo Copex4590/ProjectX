@@ -138,8 +138,16 @@ class VesselDatabasePage(QWidget):
 
         self._build_ui()
         self._connect_signals()
+
+    def initialize(self) -> None:
+        """One-shot: language binding (no table populate)."""
+
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
+
+    def activate(self) -> None:
+        """Reload vessel records whenever the page is shown."""
+
         self.refresh()
 
     def refresh_translations(self) -> None:

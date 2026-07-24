@@ -2,9 +2,16 @@ import json
 import logging
 from collections import Counter
 
-from PySide6.QtCore import Qt, QTimer, QUrl
+from PySide6.QtCore import Qt, QSize, QTimer, QUrl
 from PySide6.QtGui import QKeyEvent, QHideEvent, QShowEvent
-from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QScrollArea,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from database import registry
 from engines.camera import camera_selection_engine
@@ -319,21 +326,25 @@ class MapPage(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding,
+        )
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
         map_container = QWidget()
-        map_layout = QVBoxLayout(map_container)
-        map_layout.setContentsMargins(0, 0, 0, 0)
+        self._map_layout = QVBoxLayout(map_container)
+        self._map_layout.setContentsMargins(0, 0, 0, 0)
 
-        self._map_controller = MapController.instance()
-        self.map = self._map_controller.widget()
-        map_layout.addWidget(self.map)
-
+        self._map_controller = None
+        self.map = None
         layout.addWidget(map_container, 1)
 
         right_column = QWidget()
+        right_column.setObjectName("mapRightColumn")
         right_layout = QVBoxLayout(right_column)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
@@ -350,18 +361,43 @@ class MapPage(QWidget):
         self.camera_preview = CameraPreviewPanel()
         right_layout.addWidget(self.camera_preview, 0)
 
-        layout.addWidget(right_column)
+        right_scroll = QScrollArea()
+        right_scroll.setObjectName("mapRightScroll")
+        right_scroll.setWidgetResizable(True)
+        right_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        right_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        right_scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        right_scroll.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Expanding,
+        )
+        right_scroll.setWidget(right_column)
+        layout.addWidget(right_scroll)
 
         self._selected_mmsi = None
         self._camera_link = intelligent_camera_link_manager
         self._ships_update_busy = False
-        self._ships_update_pending = None  # serializer waiting while busy
+        self._ships_update_pending = None
         self._markers_dirty = True
         self._ship_refresh_generation = 0
         self._marker_fingerprints: dict[int, tuple] = {}
         self._full_fingerprints: dict[int, tuple] = {}
         self._force_map_full_sync = True
         self._playback = vessel_playback_engine
+
+        self._marker_timer = QTimer(self)
+        self._popup_timer = QTimer(self)
+
+    def initialize(self) -> None:
+        """One-shot: WebEngine map surface, long-lived signals, camera inventory."""
+
+        self._map_controller = MapController.instance()
+        self.map = self._map_controller.widget()
+        self._map_layout.addWidget(self.map)
 
         language_manager.language_changed.connect(
             lambda _code: self.apply_personalization()
@@ -376,30 +412,44 @@ class MapPage(QWidget):
         self._connect_timeline_playback()
         self.camera_link.refreshRequested.connect(self._on_camera_link_refresh)
         self.camera_link.coverageToggled.connect(self._on_camera_coverage_toggled)
-        try:
-            from cameras import camera_manager as _camera_manager
 
-            _camera_manager.load()
-        except Exception:
-            logger.exception("Failed to load camera pack inventory for MapPage")
-        self.apply_personalization()
-        self._map_controller.refresh_observation_points()
-
-        self._marker_timer = QTimer(self)
         self._marker_timer.timeout.connect(
             trace_timer_callback(
                 "MapPage._marker_timer",
                 self._update_ship_markers,
             )
         )
-
-        self._popup_timer = QTimer(self)
         self._popup_timer.timeout.connect(
             trace_timer_callback(
                 "MapPage._popup_timer",
                 self._update_ships_full,
             )
         )
+
+        try:
+            from cameras import camera_manager as _camera_manager
+
+            _camera_manager.load()
+        except Exception:
+            logger.exception("Failed to load camera pack inventory for MapPage")
+
+        details_init = getattr(self.vessel_details, "initialize", None)
+        if callable(details_init):
+            details_init()
+
+    def activate(self) -> None:
+        """Refresh map presentation state on every visit."""
+
+        self.apply_personalization()
+        if self._map_controller is not None:
+            self._map_controller.refresh_observation_points()
+        details_activate = getattr(self.vessel_details, "activate", None)
+        if callable(details_activate):
+            details_activate()
+
+    def minimumSizeHint(self) -> QSize:
+        # Side panels scroll internally; do not inflate MainWindow minimum height.
+        return QSize(0, 0)
 
     def shutdown(self) -> None:
 
@@ -1019,6 +1069,8 @@ class MapPage(QWidget):
 
         with trace_block("MapPage.showEvent"):
             super().showEvent(event)
+            if self._map_controller is None:
+                return
             self._map_controller.on_map_page_visible()
         self._force_map_full_sync = True
         self._start_ship_timers()
