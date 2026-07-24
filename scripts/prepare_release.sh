@@ -58,9 +58,10 @@ sync_artifact() {
 }
 
 echo "Syncing Windows release artifact..."
+"$PYTHON" "$ROOT/scripts/sync_windows_installer.py" fetch
 if [[ ! -f "$WIN_RELEASE" ]]; then
-    echo "[FAIL] Windows installer missing: $WIN_RELEASE"
-    echo "       Build on Windows: scripts\\build_windows.bat"
+    echo "[FAIL] Windows installer missing after automatic fetch: $WIN_RELEASE" >&2
+    echo "       Build + publish on Windows: scripts\\build_windows.bat" >&2
     exit 1
 fi
 echo "[OK] Windows installer present: ${WIN_RELEASE#${ROOT}/}"
@@ -70,6 +71,10 @@ if ! cmp -s "$WIN_RELEASE" "$WIN_WEBSITE"; then
     exit 1
 fi
 echo "[OK] Website copy verified: ${WIN_WEBSITE#${ROOT}/}"
+if [[ -f "$ROOT/release/windows/SHA256SUMS" ]]; then
+    sync_artifact "$ROOT/release/windows/SHA256SUMS" \
+        "$ROOT/website/downloads/windows/SHA256SUMS"
+fi
 
 echo "Syncing Linux release artifacts..."
 LINUX_SYNCED=0

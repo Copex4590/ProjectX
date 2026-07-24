@@ -118,6 +118,22 @@ Write-Host "PROJECTX_BUILD=$($env:PROJECTX_BUILD)"
         if (-not (Test-Path $installerPath)) {
             throw "Expected installer not found: release\windows\ProjectX-Setup.exe"
         }
+
+        $websiteDir = Join-Path $Root "website\downloads\windows"
+        New-Item -ItemType Directory -Force -Path $websiteDir | Out-Null
+        Copy-Item -Force $installerPath (Join-Path $websiteDir "ProjectX-Setup.exe")
+        Write-Host "[OK] Synced website\downloads\windows\ProjectX-Setup.exe`n"
+
+        if ($env:PROJECTX_SKIP_WINDOWS_PUBLISH -ne "1") {
+            Write-Host "Publishing Windows installer to GitHub Releases ..."
+            & $venvPython (Join-Path $Root "scripts\sync_windows_installer.py") publish
+            if ($LASTEXITCODE -ne 0) {
+                throw "Automatic GitHub publish failed. Run 'gh auth login' or set GH_TOKEN. Local-only: PROJECTX_SKIP_WINDOWS_PUBLISH=1"
+            }
+        }
+        else {
+            Write-Host "[SKIP] Windows GitHub publish skipped (PROJECTX_SKIP_WINDOWS_PUBLISH=1)`n"
+        }
     }
 
     Write-Host ""
@@ -128,7 +144,7 @@ Write-Host "PROJECTX_BUILD=$($env:PROJECTX_BUILD)"
         Write-Host "Windows installer:`n  $installerPath`n"
         Write-Host "Next steps:"
         Write-Host "  1. Run scripts\verify_windows_installer.bat"
-        Write-Host "  2. Run ./scripts/prepare_release.sh on Linux"
+        Write-Host "  2. On Linux: ./scripts/prepare_release.sh (auto-fetches installer from GitHub)"
     }
     exit 0
 }

@@ -39,7 +39,17 @@ echo "Verifying Windows release artifact..."
 read_names
 
 if [[ ! -f "$WIN_RELEASE" ]]; then
-    fail "Windows installer not found: $WIN_RELEASE (run scripts\\build_windows.bat on Windows)"
+    echo "Local installer missing — attempting automatic fetch (SAVE-239)..."
+    if ! "$PYTHON" "$ROOT/scripts/sync_windows_installer.py" fetch; then
+        fail "Windows installer missing and automatic fetch failed"
+        echo ""
+        echo "Verification failed."
+        exit 1
+    fi
+fi
+
+if [[ ! -f "$WIN_RELEASE" ]]; then
+    fail "Windows installer not found: $WIN_RELEASE"
     echo ""
     echo "Verification failed."
     exit 1

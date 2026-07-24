@@ -55,6 +55,9 @@ echo.
 call :sync_website_installer
 if errorlevel 1 goto :report_failure
 
+call :publish_windows_installer
+if errorlevel 1 goto :report_failure
+
 goto :report_success
 
 :find_python
@@ -235,6 +238,24 @@ echo [OK] Synced website\downloads\windows\ProjectX-Setup.exe
 echo.
 exit /b 0
 
+:publish_windows_installer
+if /I "%PROJECTX_SKIP_WINDOWS_PUBLISH%"=="1" (
+    echo [SKIP] Windows GitHub publish skipped ^(PROJECTX_SKIP_WINDOWS_PUBLISH=1^).
+    echo.
+    exit /b 0
+)
+echo Publishing Windows installer to GitHub Releases ...
+"%VENV_PY%" "%ROOT%\scripts\sync_windows_installer.py" publish
+if errorlevel 1 (
+    echo [FAIL] Automatic GitHub publish failed.
+    echo        Authenticate with: gh auth login
+    echo        Or set GH_TOKEN, then re-run build_windows.bat
+    echo        Local-only build: set PROJECTX_SKIP_WINDOWS_PUBLISH=1
+    exit /b 1
+)
+echo.
+exit /b 0
+
 :report_success
 call :banner "BUILD SUCCESSFUL"
 echo Application bundle:
@@ -245,7 +266,8 @@ if exist "%ROOT%\release\windows\ProjectX-Setup.exe" (
     echo.
     echo Next steps:
     echo   1. Run scripts\verify_windows_installer.bat
-    echo   2. Run ./scripts/prepare_release.sh on Linux to refresh checksums
+    echo   2. On Linux: ./scripts/prepare_release.sh
+    echo      ^(auto-fetches this installer from GitHub if needed^)
     echo   3. On a clean VM: install, confirm First Run Wizard, smoke-test map
 ) else (
     echo.

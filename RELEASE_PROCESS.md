@@ -55,13 +55,17 @@ scripts\verify_windows_installer.bat
 Output:
 
 - `release/windows/ProjectX-Setup.exe`
-- `release/windows/SHA256SUMS` (after checksum generation)
+- `release/windows/SHA256SUMS`
+- GitHub Release asset upload for tag `v<version>` (automatic via `sync_windows_installer.py publish`)
+
+Set `PROJECTX_SKIP_WINDOWS_PUBLISH=1` only for local-only builds that must not touch GitHub.
 
 ---
 
 ## Phase 2 — Prepare release folder
 
-Run on Linux after both platform builds are copied into `release/` (or after Linux build + manual Windows artifact copy):
+Run on Linux after the Windows build has published the installer to GitHub
+(or after a local `release/windows/ProjectX-Setup.exe` already exists):
 
 ```bash
 chmod +x scripts/prepare_release.sh scripts/generate_release_checksums.sh scripts/verify_release.sh
@@ -70,16 +74,31 @@ chmod +x scripts/prepare_release.sh scripts/generate_release_checksums.sh script
 
 This script:
 
-1. Refreshes `release/notes/` from current release notes
-2. Copies artifacts to `website/downloads/windows/` and `website/downloads/linux/`
-3. Generates per-platform `SHA256SUMS` in `release/linux/` and `release/windows/`
-4. Updates `release/manifest.json` build Python version
+1. Cleans runtime artifacts and verifies `data/`
+2. **Fetches** `ProjectX-Setup.exe` from the version-matched GitHub Release if missing locally (`scripts/sync_windows_installer.py fetch`)
+3. Copies artifacts to `website/downloads/windows/` and `website/downloads/linux/`
+4. Generates per-platform `SHA256SUMS` in `release/linux/` and `release/windows/`
+5. Updates `release/manifest.json` build Python version
+
+No manual copy from the Windows machine is required when GitHub publish succeeded.
 
 Generate checksums alone:
 
 ```bash
 ./scripts/generate_release_checksums.sh
 ```
+
+Windows ↔ Linux installer sync:
+
+```bash
+# On Windows after build (also invoked by build_windows.bat):
+python scripts/sync_windows_installer.py publish
+
+# On Linux (also invoked by prepare_release.sh):
+python scripts/sync_windows_installer.py fetch
+```
+
+Version tag = `v` + `release/manifest.json` → `version` (example: `v0.3.1-beta`).
 
 ---
 
@@ -182,8 +201,9 @@ Artifact filenames are **stable**; version information lives in metadata, tags, 
 | Script | Purpose |
 |--------|---------|
 | `scripts/build_linux_release.sh` | Linux AppImage + .deb + SHA256SUMS |
-| `scripts/build_windows.bat` | Windows PyInstaller + installer |
-| `scripts/prepare_release.sh` | Sync notes, website, checksums |
+| `scripts/build_windows.bat` | Windows PyInstaller + installer + GitHub publish |
+| `scripts/sync_windows_installer.py` | Publish/fetch Windows installer via GitHub Releases |
+| `scripts/prepare_release.sh` | Sync notes, auto-fetch Windows installer, website, checksums |
 | `scripts/generate_release_checksums.sh` | Per-platform SHA256SUMS |
 | `scripts/verify_release.sh` | Full public release verification |
 | `scripts/verify_linux_release.sh` | Linux package contents |
