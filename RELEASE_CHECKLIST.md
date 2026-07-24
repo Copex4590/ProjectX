@@ -1,7 +1,7 @@
 # Project X — Release Checklist
 
-**Release target:** `0.3.1-alpha.1`  
-**Branch:** `release/0.3.1-alpha.1`  
+**Release target:** `0.3.1-beta`  
+**Branch:** `release/0.3.1-alpha.1` (beta prep on current release branch)  
 **Phase:** SAVE-201 Release Stabilization Phase 1 (audit only)  
 **Rule:** No new features. Stabilization evidence only.
 
@@ -69,7 +69,7 @@ Use this checklist before any public test build. Mark items only after manual ve
 
 ## Packaging
 
-- [ ] Version string matches `0.3.1-alpha.1` in About / metadata
+- [ ] Version string matches `0.3.1-beta` in About / metadata
 - [ ] Runtime data dirs created without writing into source tree unexpectedly
 - [ ] Hardcoded absolute paths (`/home/zoli/rtl-monitor`, etc.) documented as **blocker for public machines**
 - [ ] Dependencies pinned / install instructions for alpha testers

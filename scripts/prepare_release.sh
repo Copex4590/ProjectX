@@ -38,10 +38,10 @@ mkdir -p \
 read_manifest
 
 echo "Syncing release notes..."
-if [[ -f "$ROOT/release/notes/0.3.1-alpha.1.md" && -f "$ROOT/docs/RELEASE_NOTES_0.3.1_ALPHA.1.md" ]]; then
-    echo "[OK] release notes present for 0.3.1-alpha.1"
+if [[ -f "$ROOT/release/notes/0.3.1-beta.md" && -f "$ROOT/docs/RELEASE_NOTES_v0.3.1-beta.md" ]]; then
+    echo "[OK] release notes present for 0.3.1-beta"
 else
-    echo "[FAIL] missing 0.3.1-alpha.1 release notes" >&2
+    echo "[FAIL] missing 0.3.1-beta release notes" >&2
     exit 1
 fi
 

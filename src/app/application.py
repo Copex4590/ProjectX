@@ -2,7 +2,7 @@
 # Project X
 # File    : application.py
 # Module  : Application
-# Version : 0.3.1-alpha.1
+# Version : 0.3.1-beta
 # ============================================================================
 
 import logging

@@ -293,10 +293,10 @@ else
     record_fail "Windows installer missing: release/windows/ProjectX-Setup.exe"
 fi
 
-if grep -q 'MyAppVersion "0.3.1-alpha.1"' "$WIN_ISS" 2>/dev/null; then
-    record_pass "Windows installer script version: 0.3.1-alpha.1 (projectx.iss)"
+if grep -q 'MyAppVersion "0.3.1-beta"' "$WIN_ISS" 2>/dev/null; then
+    record_pass "Windows installer script version: 0.3.1-beta (projectx.iss)"
 else
-    record_fail "Windows installer script version not 0.3.1-alpha.1"
+    record_fail "Windows installer script version not 0.3.1-beta"
 fi
 
 if [[ -f "$ICON" ]]; then

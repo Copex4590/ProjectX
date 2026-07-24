@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 
 PROJECT_NAME = "Project X"
-PROJECT_VERSION = "0.3.1-alpha.1"
+PROJECT_VERSION = "0.3.1-beta"
 __version__ = PROJECT_VERSION
 PROJECT_BUILD = os.environ.get("PROJECTX_BUILD", "dev")
 GITHUB_URL = os.environ.get(

@@ -7,7 +7,7 @@ ProjectX-Setup.exe
 SHA256SUMS
 ```
 
-**Version:** `0.3.1-alpha.1`  
+**Version:** `0.3.1-beta`  
 **Script:** `installer/windows/projectx.iss` (`MyAppVersion` / `MyAppVersionNumeric`)  
 **Icon:** `src/resources/branding/projectx.ico`
 

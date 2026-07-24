@@ -1,10 +1,10 @@
 {
-  "latest": "0.3.1-alpha.1",
-  "release_date": "2026-07-23",
-  "status": "Alpha — First Public Test",
+  "latest": "0.3.1-beta",
+  "release_date": "2026-07-24",
+  "status": "Beta",
   "github": "https://github.com/Copex4590/ProjectX",
   "windows": {
-    "version": "0.3.1-alpha.1",
+    "version": "0.3.1-beta",
     "file": "ProjectX-Setup.exe",
     "checksum_file": "SHA256SUMS",
     "platform": "Windows 10+",
@@ -12,10 +12,10 @@
     "architecture": "64-bit",
     "size": "TBD",
     "available": false,
-    "note": "Windows installer prepared; build on native Windows before publish."
+    "note": "Windows installer prepared in-repo; build ProjectX-Setup.exe on native Windows before publish."
   },
   "linux": {
-    "version": "0.3.1-alpha.1",
+    "version": "0.3.1-beta",
     "file": "ProjectX.deb",
     "secondary_file": "ProjectX.AppImage",
     "checksum_file": "SHA256SUMS",
@@ -24,6 +24,6 @@
     "architecture": "x86_64",
     "size": "TBD",
     "available": true,
-    "note": "Rebuild packages from HEAD so embedded version matches 0.3.1-alpha.1."
+    "note": "Rebuild .deb / AppImage from this tag so embedded package version matches 0.3.1-beta."
   }
 }

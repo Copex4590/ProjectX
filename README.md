@@ -2,233 +2,192 @@
 
 ![Project X](src/resources/branding/projectx-logo.svg)
 
-Danube vessel monitoring platform with live AIS map, camera selection, playback, vessel database, timeline, statistics, and alert management.
+Danube / maritime vessel monitoring desktop platform: live AIS map, cameras, playback, vessel database, timeline, analytics, alerts, plugins, session recording, and backup.
 
-**Version:** 0.3.1-alpha.1  
-**Status:** Alpha — First Public Test
+**Version:** 0.3.1-beta  
+**Status:** Beta
 
-### Known issues (public test)
+### Known issues (beta)
 
 - Windows installer is prepared in-repo; `ProjectX-Setup.exe` must be built on Windows before publish.
-- Rebuild Linux packages from this tag so embedded `.deb` version matches `0.3.1-alpha.1`.
+- Rebuild Linux `.deb` / AppImage from this tag so embedded package metadata matches `0.3.1-beta`.
 - MarineTraffic / AISHub and File → New Profile are Coming Soon (not activatable).
-- Full list: [release notes](release/notes/0.3.1-alpha.1.md) and [release_final.md](docs/reports/release_final.md).
+- Full list: [release notes](docs/RELEASE_NOTES_v0.3.1-beta.md) and [BETA_READY](docs/reports/BETA_READY.md).
 
-## Architecture overview
+## Project overview
 
-Project X is a PySide6 desktop application organized into layered subsystems:
+Project X is a **PySide6** desktop application for professional vessel monitoring. It combines hybrid AIS + RTL sources, an interactive Leaflet map, camera selection / playback, SQLite vessel and timeline storage, a professional alerts engine, analytics charts, a plugin framework, and session recording/replay.
+
+## Main features
+
+| Area | Capabilities |
+|------|----------------|
+| **Monitoring & map** | Hybrid AIS + RTL engine, live Leaflet map, ship markers, vessel details panel, dashboard |
+| **Vessel database** | SQLite vessel DB, search/filters, Database Manager, automatic sync scheduler |
+| **Timeline** | Position recording, arrival/departure detection, timeline viewer, vessel playback trail |
+| **Cameras** | Camera manager, selection / scoring, Camera Link (AIS-aware), preview, packs |
+| **Alerts** | Professional Alerts Engine, Alert Center (ack/clear/export), rules management |
+| **Analytics** | Live charts, interval filter, CSV / PNG / PDF export |
+| **Session recording** | Record/replay `.pxsession` sessions (map, alerts, camera link) |
+| **Plugins** | Discover / enable / disable installed plugins |
+| **Settings & backup** | Application Settings Manager, Backup & Restore |
+| **Diagnostics** | System Health, inspector APIs, camera diagnostics modules |
+
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  GUI (pages, panels, widgets)                               │
+│  GUI (sidebar pages, panels, widgets)                       │
 ├─────────────────────────────────────────────────────────────┤
-│  Application services (statistics, timeline, alerts, etc.)  │
+│  Application services (alerts, analytics, session, plugins) │
 ├─────────────────────────────────────────────────────────────┤
 │  Engines (AIS, RTL hybrid, camera, playback, timeline)      │
 ├─────────────────────────────────────────────────────────────┤
 │  Registries & persistence (ships, cameras, vessels, SQLite) │
+│  EventBus · Preferences · Paths (user data dirs)            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-- **Monitoring path:** Hybrid RTL Engine → ShipRegistry → EventBridge → GUI pages
-- **Camera path:** CameraManager → Selection Engine → Provider → Playback backend
-- **Timeline path:** ShipRegistry hooks → TimelineRecorder / ArrivalDepartureEngine → SQLite
-- **Alert path:** AlertManager rule evaluation → SQLite events → Alert Center GUI
-- **Inspector:** Headless health report across cameras, playback, and registries
+- **Monitoring:** Hybrid RTL Engine → ShipRegistry → EventBridge → GUI  
+- **Camera:** CameraManager → scoring / selection → provider → playback backend  
+- **Timeline:** ShipRegistry hooks → TimelineRecorder / ArrivalDepartureEngine → SQLite  
+- **Alerts:** Professional Alerts Engine → EventBus → Alert Center  
+- **Session:** SessionRecorder / SessionPlayer → `.pxsession` → map / alerts / camera replay  
 
-Data flows are read-only at the GUI layer except for rule management and playback preferences.
-
-## Features (SAVE-001 → SAVE-050)
-
-### Monitoring & map
-
-- Hybrid AIS + RTL engine with ship registry
-- Live Leaflet map with custom SVG ship markers
-- Vessel information card with photos and flags
-- Dashboard with ship counts and connection status
-
-### Vessel database & timeline
-
-- SQLite vessel database with ShipRegistry synchronization
-- Advanced vessel search, filters, and sorting
-- Automatic timeline recording (position updates)
-- Arrival/departure detection engine
-- Vessel timeline viewer
-
-### Statistics & alerts
-
-- Cached vessel statistics framework
-- Statistics dashboard with summary cards and charts
-- Alert rules engine (SQLite, thread-safe evaluation API)
-- Alert Center (read-only alert viewer)
-- Alert Rules Management Center (CRUD, test, enable/disable)
-
-### Cameras & playback
-
-- Camera Manager with JSON configuration per country
-- Automatic camera selection by vessel position, FOV, and radius
-- Camera preview panel on the map page
-- Official Hungary camera pack (placeholder streams)
-- Camera Pack Manager (install, enable/disable packs)
-- Camera provider framework (HLS, RTSP, Snapshot, YouTube)
-- Playback backend framework (MPV, VLC, Qt, Browser, Custom)
-- Live Camera workflow: selection → provider → backend → session
-- Playback Settings (automatic / user-preferred mode, backend selection)
-
-### Diagnostics
-
-- Camera Diagnostics Engine (configuration, playback, selection)
-- Camera Diagnostics panel (module available; not in main sidebar)
-- Project X Inspector for headless system health reports
+Version identity: `src/version.py` (`PROJECT_VERSION`).
 
 ## Installation
 
-### Which file should I download?
+### Linux (official release)
 
-| Your system | Download | Why |
-|-------------|----------|-----|
-| **Linux Mint, Ubuntu, Debian** | `ProjectX.deb` | **Recommended.** Menu entry, Software Manager / GDebi install, clean uninstall. |
-| **Linux (portable, no install)** | `ProjectX.AppImage` | Advanced. Single file; you must mark it executable; no automatic menu entry. |
-| **Windows 10+** | `ProjectX-Setup.exe` | Standard installer. |
-| **Any platform (optional)** | `SHA256SUMS` | Verify download integrity only — not required to install. |
-
-### Linux (official release — `.deb` recommended)
-
-Download `ProjectX.deb` from the [Project X website](https://github.com/Copex4590/ProjectX) download page or [GitHub Releases](https://github.com/Copex4590/ProjectX/releases).
-
-**Linux Mint / Ubuntu / Debian (recommended):**
-
-Double-click `ProjectX.deb` to open GDebi, or:
+**Recommended — Debian package:**
 
 ```bash
 sudo dpkg -i ProjectX.deb
 sudo apt-get install -f
 ```
 
-Launch **Project X** from the applications menu. Uninstall with Software Manager or `sudo dpkg -r projectx`.
+Launch **Project X** from the applications menu. Uninstall via Software Manager or `sudo dpkg -r projectx`.
 
-**Portable AppImage (advanced — no system install):**
+**Portable AppImage:**
 
 ```bash
 chmod +x ProjectX.AppImage
 ./ProjectX.AppImage
 ```
 
-The AppImage does not add a menu shortcut automatically. Delete the file to remove it.
+Optional: verify with `SHA256SUMS`. Details: [docs/LINUX_INSTALLER.md](docs/LINUX_INSTALLER.md).
 
-Optional: verify downloads with `SHA256SUMS`. See [docs/LINUX_INSTALLER.md](docs/LINUX_INSTALLER.md) for full details.
+### Windows (official release)
+
+Download `ProjectX-Setup.exe` from the Project X website or GitHub Releases. Install, then launch from Start Menu. Uninstall from Apps & features. Details: [docs/WINDOWS_INSTALLER.md](docs/WINDOWS_INSTALLER.md).
+
+> The installer script (`installer/windows/projectx.iss`) is versioned to `0.3.1-beta`; the binary is built on native Windows.
 
 ### Development (from source)
+
+**Linux / macOS:**
 
 ```bash
 git clone https://github.com/Copex4590/ProjectX.git
 cd ProjectX
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 cd src
-python3 main.py
+PYTHONPATH=. python3 main.py
 ```
 
-See [installer/README.md](installer/README.md) for packaging and Windows build metadata.
-
-### Windows (official release)
-
-Download `ProjectX-Setup.exe` from the Project X website or GitHub Releases. See [docs/WINDOWS_INSTALLER.md](docs/WINDOWS_INSTALLER.md).
-
-### Windows (development from source)
+**Windows:**
 
 ```powershell
 git clone https://github.com/Copex4590/ProjectX.git
 cd ProjectX
-python -m venv venv
-venv\Scripts\activate
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
 cd src
 python main.py
 ```
 
-Requires Qt WebEngine (included with PySide6). For external playback, install `mpv` or `vlc` and ensure they are on PATH.
-
-### macOS (development from source)
-
-```bash
-git clone https://github.com/Copex4590/ProjectX.git
-cd ProjectX
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cd src
-python3 main.py
-```
-
-Install `mpv` via Homebrew for external video playback: `brew install mpv`.
+Requires Qt WebEngine (via PySide6). Optional: `mpv` or `vlc` on `PATH` for external playback.
 
 ### Dependencies
 
 | Package | Purpose |
 |---------|---------|
-| PySide6 | GUI (requires Qt WebEngine for map) |
+| PySide6 | GUI (Qt WebEngine for map) |
 | websocket-client | AIS stream client |
 
-Optional: `mpv` or `vlc` on PATH for external video playback.
+## Plugin Framework
 
-## Folder structure
+- Plugins live under the user/repo `plugins/` tree (`plugin.json` + `plugin.py`).
+- Core APIs: `src/plugins/` (loader, registry, manager, metadata, versioning).
+- **Installed Plugins** sidebar page: list, enable/disable, metadata, dependencies.
+- Sample plugin: `plugins/sample_info/`.
+
+## Session Recording
+
+- Record live AIS sessions to compressed **`.pxsession`** files.
+- Captures ship positions, camera link changes, alerts, playback, and timeline events.
+- **Session Recording** page: list, info, delete, import/export, Play / Pause / Seek / speed.
+- Replay drives map, Vessel Details, Alert Center, and Camera Link together; live map updates pause during replay.
+
+## Analytics
+
+- **Analytics** dashboard: live charts with interval filter.
+- Export: CSV, PNG, PDF.
+- Uses ThemeColors and EventBus; timers stop on page shutdown / window close.
+
+## Camera AI (Intelligent Camera & AIS Link)
+
+- Scoring engine ranks cameras for the selected vessel (FOV, distance, coverage).
+- Auto-switch thresholds and coverage zones on the map.
+- **Camera Link** panel on the map page for AIS-linked camera selection.
+
+## Alerts
+
+- **Professional Alerts Engine** with live detectors.
+- **Alert Center**: active/history, acknowledge, clear, export.
+- **Alert Rules** page: rule CRUD, test, enable/disable.
+- Rule types include arrival/departure, speed, region enter/exit, camera visible/lost.
+
+## Backup
+
+- **Backup & Restore** page: full / database / settings backups.
+- List, restore, and delete backups under the user data tree (`backups_dir`).
+
+## Database
+
+- SQLite vessel database with ShipRegistry synchronization.
+- **Vessel Database** viewer (search/filters) and **Database Manager** (info, sync, diagnostics, maintenance).
+- Automatic sync scheduler with persisted last/next sync and EventBus events.
+- Timeline and alerts use separate SQLite stores under user data paths.
+
+## Sidebar pages (16)
+
+Dashboard · Map · Vessels · Cameras · Vessel Database · Vessel Timeline · Statistics · Alert Center · Alert Rules · System Health · Database Manager · Backup & Restore · Settings · Installed Plugins · Analytics · Session Recording
+
+## Folder structure (high level)
 
 ```
-rtl-hajomonitor/
-├── docs/
-│   ├── CHANGELOG.md
-│   ├── PROJECT_STATUS.md
-│   ├── RELEASE_NOTES_0.3_ALPHA.md
-│   └── TODO.md
-├── requirements.txt
-└── src/
-    ├── main.py                 # Application entry point
-    ├── app/                    # Qt application shell
-    ├── gui/                    # Pages, panels, widgets
-    │   ├── settings/           # Playback Settings, Camera Diagnostics
-    │   └── widgets/            # MapWidget, CameraPreviewPanel
-    ├── alerts/                 # Alert rules engine (SQLite)
-    ├── timeline/               # Timeline recording & storage
-    ├── statistics/             # Cached statistics
-    ├── vessels/                # Photos, flags, providers
-    ├── engines/
-    │   ├── ais/                # AIS stream engine
-    │   ├── rtl/                # Hybrid RTL engine
-    │   ├── camera/             # Selection, providers, diagnostics
-    │   ├── playback/           # Backend framework
-    │   └── timeline/           # Arrival/departure detection
-    ├── cameras/                # Manager, loader, pack manager
-    ├── models/                 # Ship, Camera, VesselRecord
-    ├── database/               # Ship, camera, vessel registries
-    ├── playback/               # Preferences, live workflow
-    ├── inspector/              # System health inspector
-    ├── config/
-    │   ├── cameras/            # Legacy camera config (active loader)
-    │   ├── camera_packs/       # Pack manifests
-    │   └── playback.json       # Playback preferences
-    └── resources/
-        ├── branding/           # Official Project X logo (SVG, PNG, ICO)
-        ├── map/                # Leaflet map HTML
-        ├── icons/              # Ship SVG marker
-        └── flags/              # Vessel flag SVGs (250 countries)
+ProjectX/
+├── docs/                 # Changelog, roadmap, release notes, reports
+├── installer/            # PyInstaller spec, Windows Inno, Linux desktop/deb
+├── plugins/              # Installed / sample plugins
+├── release/              # Packaged artifacts + manifest + notes
+├── scripts/              # Build / verify / prepare release
+├── src/                  # Application source (PYTHONPATH root)
+│   ├── version.py
+│   ├── app/ gui/ engines/ alerts/ analytics/ session/ plugins/
+│   ├── database/ timeline/ statistics/ vessels/ cameras/
+│   └── resources/ config/
+└── website/              # Download mirrors + releases.json
 ```
 
-## Configuration
+## Configuration & data
 
-| Path | Description |
-|------|-------------|
-| `src/config/cameras/index.json` | Legacy camera index (active loader) |
-| `src/config/camera_packs/` | Installed camera packs |
-| `src/config/camera_packs/state.json` | Enabled/disabled pack state |
-| `src/config/playback.json` | Playback mode and backend preferences |
-| `src/config/*.json.example` | Runtime config templates (copied on first run) |
-| `src/database/vessels.db` | Vessel database (auto-created) |
-| `src/timeline/timeline.db` | Vessel timeline events (auto-created) |
-| `src/alerts/alerts.db` | Alert rules and events (auto-created) |
-
-Environment overrides:
+Bundled (read-only) samples live under `src/config/`. Writable runtime data (DBs, logbooks, photos, sessions, backups) use `app.paths` user-data directories — the repo `data/` tree is development-only and must not be bundled.
 
 | Variable | Purpose |
 |----------|---------|
@@ -239,95 +198,24 @@ Environment overrides:
 | `PROJECTX_TIMELINE_DATABASE_FILE` | Timeline database path |
 | `PROJECTX_ALERT_DATABASE_FILE` | Alert database path |
 
-## Camera packs
-
-Camera packs are versioned bundles under `src/config/camera_packs/`. Each pack contains:
-
-- `manifest.json` — name, version, author, country, description
-- Regional JSON files — camera definitions per area
-
-The **Hungary** pack (`hungary/`) ships with placeholder stream URLs. The Pack Manager can install and enable/disable packs; the active camera loader still uses the legacy `config/cameras/` index.
-
-## Playback system
-
-1. **Preferences** (`config/playback.json`) — automatic or user-preferred mode, backend choice
-2. **Provider** — resolves stream URL from camera metadata (HLS primary)
-3. **Backend** — launches external player (MPV production-ready; VLC/Qt/Browser stubs)
-4. **Live Camera workflow** — ties selection, provider, and backend into a session
-
-## Timeline system
-
-- **TimelineRecorder** — async, deduplicated `POSITION_UPDATE` events from ShipRegistry
-- **ArrivalDepartureEngine** — detects `ARRIVAL` / `DEPARTURE` after configurable absence timeout
-- **TimelineManager** — SQLite persistence and query API
-- **Vessel Timeline page** — read-only viewer with search and filters
-
-## Statistics
-
-- **StatisticsManager** — cached read-only aggregates from VesselDatabase and TimelineManager
-- **Statistics Dashboard** — summary cards, top lists, hourly bar charts
-
-## Alert engine
-
-- **AlertManager** — thread-safe rule registration and evaluation API
-- **Rule types:** ARRIVAL, DEPARTURE, SPEED_OVER, ENTER_REGION, EXIT_REGION, CAMERA_VISIBLE, CAMERA_LOST
-- **Alert Center** — read-only alert viewer with filters
-- **Rules page** — full rule CRUD, test, enable/disable
-- Automatic alert execution from monitoring is not yet wired (evaluation API only)
-
 ## Supported platforms
 
 | Platform | Status | Notes |
 |----------|--------|-------|
-| Linux | Primary | Tested target; AIS-catcher integration |
-| Windows | Supported | PySide6 + WebEngine; paths may need adjustment |
-| macOS | Supported | PySide6 + WebEngine; install mpv via Homebrew |
-
-## Current limitations
-
-- Camera packs are managed but not yet loaded into the active camera registry
-- Hungary pack uses placeholder stream URLs
-- Alert engine has no automatic monitoring hooks or notifications yet
-- Playback Settings and Camera Diagnostics are module-ready but not in the main sidebar
-- Inspector is available programmatically, not in the GUI
-- MPV is the only production playback backend; others are stubs
-- Hybrid Engine paths are hardcoded for the original deployment environment
-- Menu bar actions (File/View/Tools) are placeholders
-
-## Roadmap toward Beta
-
-1. Wire camera packs into CameraLoader
-2. Real camera stream integration
-3. Automatic alert evaluation from timeline and monitoring events
-4. Notification delivery (desktop, sound, tray)
-5. Settings and diagnostics in main navigation
-6. Inspector GUI / CLI tool
-7. Production playback backends (VLC, Qt, Browser)
-8. Configurable deployment paths and automated test suite
-9. Cross-platform packaging (AppImage, Windows installer) — **Linux AppImage and `.deb` available** via official release builds
-
-## Branding
-
-Official Project X artwork lives in `src/resources/branding/`:
-
-- `projectx-logo.svg` — master vector logo (two ship bows forming an X)
-- `projectx-logo.png` — application, splash, and About dialog
-- `projectx.ico` — Windows / installer icon
-- `projectx.icns` — macOS bundle icon (future)
-
-Regenerate raster assets:
-
-```bash
-python3 scripts/generate_branding_assets.py
-```
+| Linux | Primary | `.deb` + AppImage packaging |
+| Windows | Supported | Inno Setup installer (native build) |
+| macOS | Dev from source | PySide6 + WebEngine; `brew install mpv` optional |
 
 ## Documentation
 
 - [CHANGELOG](docs/CHANGELOG.md)
-- [Release Notes 0.3.1-alpha.1](docs/RELEASE_NOTES_0.3.1_ALPHA.1.md)
-- [Release finalization report](docs/reports/release_final.md)
+- [ROADMAP](docs/ROADMAP.md)
+- [Release Notes 0.3.1-beta](docs/RELEASE_NOTES_v0.3.1-beta.md)
+- [Beta readiness](docs/reports/BETA_READY.md)
+- [Linux installer](docs/LINUX_INSTALLER.md)
+- [Windows installer](docs/WINDOWS_INSTALLER.md)
 - [Project Status](docs/PROJECT_STATUS.md)
-- [TODO / known issues](docs/TODO.md)
+- [TODO](docs/TODO.md)
 
 ## License
 

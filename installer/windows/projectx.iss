@@ -20,8 +20,8 @@
 ;   "%ProgramFiles%\Project X\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
 
 #define MyAppName "Project X"
-#define MyAppVersion "0.3.1-alpha.1"
-#define MyAppVersionNumeric "0.3.1.1"
+#define MyAppVersion "0.3.1-beta"
+#define MyAppVersionNumeric "0.3.1.2"
 #define MyAppPublisher "Project X"
 #define MyAppExeName "projectx.exe"
 #define MyAppOutput "ProjectX-Setup"

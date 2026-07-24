@@ -2,6 +2,45 @@
 
 All notable changes to Project X are documented in this file.
 
+## [0.3.1-beta] — 2026-07-24
+
+Beta release preparation (SAVE-220). No new product features in this tag — audit, documentation, and version/packaging metadata only.
+
+### Added
+
+- **SAVE-220** — Beta release preparation: release audit, build audit notes, README/ROADMAP refresh, release notes, `docs/reports/BETA_READY.md`
+- Release notes for `0.3.1-beta` (`docs/RELEASE_NOTES_v0.3.1-beta.md`, `release/notes/0.3.1-beta.md`)
+- `docs/ROADMAP.md` marking SAVE-208 … SAVE-220 completed
+
+### Changed
+
+- Application version unified to `0.3.1-beta` (`src/version.py`, manifests, installer script, About, window title)
+- Linux AppImage packaging passes `VERSION` from `PROJECT_VERSION` to appimagetool
+
+### Included track (already shipped on branch)
+
+- **SAVE-208** — Vessel Database Manager page
+- **SAVE-209** — Automatic vessel database synchronization
+- **SAVE-210** — Backup & Restore Manager
+- **SAVE-211** — Application Settings Manager
+- **SAVE-212** — Plugin Framework and Installed Plugins page
+- **SAVE-213** — Vessel Details Panel 2.0
+- **SAVE-214** — Vessel Timeline & Playback
+- **SAVE-215** — Professional Alerts Engine
+- **SAVE-216** — Analytics Dashboard
+- **SAVE-217** — Intelligent Camera & AIS Link
+- **SAVE-218** — Stabilization & Code Quality
+- **SAVE-219** — Session Recording & Replay
+
+### Known issues
+
+- Windows `ProjectX-Setup.exe` requires a native Windows build before publish
+- Rebuild Linux `.deb` / AppImage so package metadata matches `0.3.1-beta`
+- Future AIS providers (MarineTraffic, AISHub) not activatable
+- See `docs/reports/BETA_READY.md`
+
+---
+
 ## [0.3.1-alpha.1] — 2026-07-23
 
 First Public Test release (SAVE-205 finalization). Stabilization track SAVE-200…SAVE-205. No new product features in this tag beyond release engineering.

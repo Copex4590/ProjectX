@@ -226,8 +226,8 @@ build_appimage() {
     require_command mksquashfs
     ensure_appimagetool
     local output="${RELEASE_DIR}/${APPIMAGE_NAME}"
-    echo "Building AppImage: ${APPIMAGE_NAME}"
-    ARCH=x86_64 "$APPIMAGETOOL" "$APPDIR" "$output"
+    echo "Building AppImage: ${APPIMAGE_NAME} (VERSION=${VERSION})"
+    VERSION="${VERSION}" ARCH=x86_64 "$APPIMAGETOOL" "$APPDIR" "$output"
     chmod +x "$output"
     cp -f "$output" "${WEB_DOWNLOAD_DIR}/${APPIMAGE_NAME}"
     echo "[OK] AppImage: $output"

@@ -1,6 +1,6 @@
 # Windows release downloads
 
-**Version:** 0.3.1-alpha.1
+**Version:** 0.3.1-beta
 
 Upload Windows release files here using the exact filenames from `website/releases.json`:
 

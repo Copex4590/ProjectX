@@ -124,8 +124,8 @@ No HTML editing required — download links load from `website/releases.json`.
 1. Tag the repository:
 
 ```bash
-git tag -a v0.3.1-alpha.1 -m "Project X 0.3.1-alpha.1 First Public Test"
-git push origin v0.3.1-alpha.1
+git tag -a v0.3.1-beta -m "Project X 0.3.1-beta"
+git push origin v0.3.1-beta
 ```
 
 2. Create a GitHub Release from the tag.
@@ -145,7 +145,7 @@ git push origin v0.3.1-alpha.1
 | `ProjectX-Setup.exe` | Windows installer |
 | `SHA256SUMS` | Checksum for the installer |
 
-5. Paste release notes from `release/notes/0.3.1-alpha.1.md` or `docs/RELEASE_NOTES_0.3.1_ALPHA.1.md`.
+5. Paste release notes from `release/notes/0.3.1-beta.md` or `docs/RELEASE_NOTES_v0.3.1-beta.md`.
 
 Do **not** attach `installer/linux/` or any source-tree installer scripts to public releases.
 
@@ -166,9 +166,9 @@ Do **not** attach `installer/linux/` or any source-tree installer scripts to pub
 
 | Field | Value (First Public Test) |
 |-------|----------------|
-| Application | `0.3.1-alpha.1` (`src/version.py`) |
-| Manifest | `0.3.1-alpha.1` |
-| Website `latest` | `0.3.1-alpha.1` |
+| Application | `0.3.1-beta` (`src/version.py`) |
+| Manifest | `0.3.1-beta` |
+| Website `latest` | `0.3.1-beta` |
 | Windows package | `ProjectX-Setup.exe` |
 | Linux primary | `ProjectX.deb` |
 | Linux portable | `ProjectX.AppImage` |
