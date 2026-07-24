@@ -29,6 +29,7 @@ from gui.mapcontroller import MapController
 from gui.map_core import MAP_PAGE_INDEX, PickMode
 from gui.eventbridge import EventBridge
 from gui.notifications import AisConnectionMonitor, notification_manager
+from gui.notifications.connection_notice import ConnectionNoticeService
 from gui.providers import refresh_open_provider_windows
 from cameras import camera_manager
 from debug.obs_freeze_trace import trace_slot
@@ -253,6 +254,20 @@ class MainWindow(QMainWindow):
             ),
             connection,
         )
+        self.event_bridge.internet_status.connect(
+            trace_slot(
+                "MainWindow->DashboardPage.refresh_ais(internet)",
+                self.dashboard_page.refresh_ais,
+            ),
+            connection,
+        )
+        self.event_bridge.internet_status.connect(
+            trace_slot(
+                "MainWindow->refresh_open_provider_windows(internet)",
+                refresh_open_provider_windows,
+            ),
+            connection,
+        )
         self.event_bridge.providers_changed.connect(
             trace_slot(
                 "MainWindow->refresh_open_provider_windows",
@@ -337,6 +352,13 @@ class MainWindow(QMainWindow):
             ),
             connection,
         )
+        camera_manager.changed.connect(
+            trace_slot(
+                "MainWindow->ConnectionPanel.refresh_all",
+                self.connection_panel.refresh_all,
+            ),
+            connection,
+        )
 
     def _should_show_first_run_wizard(self) -> bool:
 
@@ -401,7 +423,8 @@ class MainWindow(QMainWindow):
 
         root.addWidget(self.sidebar)
         root.addWidget(self.pages, 1)
-        self.connection_panel = ConnectionPanel()
+        self._connection_notices = ConnectionNoticeService(self)
+        self.connection_panel = ConnectionPanel(self._connection_notices)
         root.addWidget(self.connection_panel)
 
         self.setStatusBar(StatusPanel())

@@ -230,6 +230,15 @@ def sidebar_stylesheet() -> str:
             border-right: 1px solid {ThemeColors.Border};
         }}
 
+        QScrollArea#sidebarNavScroll {{
+            background: transparent;
+            border: none;
+        }}
+
+        QScrollArea#sidebarNavScroll > QWidget > QWidget#sidebarNavHost {{
+            background: transparent;
+        }}
+
         QPushButton {{
             color: {TEXT_PRIMARY};
             background: transparent;

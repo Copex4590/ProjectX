@@ -1,5 +1,14 @@
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QLabel, QPushButton, QFrame, QVBoxLayout, QButtonGroup
+from PySide6.QtCore import Qt, QSize, Signal
+from PySide6.QtWidgets import (
+    QButtonGroup,
+    QFrame,
+    QLabel,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from branding.assets import logo_pixmap
 from gui.theme import sidebar_stylesheet
@@ -53,47 +62,73 @@ class Sidebar(QFrame):
         super().__init__()
 
         self.setFixedWidth(260)
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         self._active_page = 0
 
         self.setStyleSheet(sidebar_stylesheet())
 
-        self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(20, 20, 20, 20)
-        self._layout.setSpacing(8)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(20, 20, 20, 20)
+        root.setSpacing(8)
 
         self._logo_label = QLabel()
         self._logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._layout.addWidget(self._logo_label)
+        root.addWidget(self._logo_label)
 
         self._title_label = QLabel(PROJECT_NAME)
         self._title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._title_label.setStyleSheet(
             "color: white; font-size: 14pt; font-weight: bold; padding-bottom: 8px;"
         )
-        self._layout.addWidget(self._title_label)
+        root.addWidget(self._title_label)
+
+        nav_host = QWidget()
+        nav_host.setObjectName("sidebarNavHost")
+        nav_layout = QVBoxLayout(nav_host)
+        nav_layout.setContentsMargins(0, 0, 0, 0)
+        nav_layout.setSpacing(8)
 
         self._buttons: list[QPushButton] = []
         self._button_group = QButtonGroup(self)
         self._button_group.setExclusive(True)
 
-        for index, (label_key, page_index) in enumerate(self._PAGE_KEYS):
+        for _index, (_label_key, page_index) in enumerate(self._PAGE_KEYS):
             button = QPushButton()
             button.setCheckable(True)
             button.clicked.connect(
-                lambda checked=False, i=page_index:
-                self.pageSelected.emit(i)
+                lambda checked=False, i=page_index: self.pageSelected.emit(i)
             )
             self._button_group.addButton(button)
             self._buttons.append(button)
-            self._layout.addWidget(button)
+            nav_layout.addWidget(button)
 
-        self._layout.addStretch()
+        nav_layout.addStretch()
+
+        scroll = QScrollArea()
+        scroll.setObjectName("sidebarNavScroll")
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding,
+        )
+        scroll.setWidget(nav_host)
+        root.addWidget(scroll, 1)
 
         language_manager.language_changed.connect(
             lambda _code: self.refresh_translations()
         )
         self.refresh_translations()
         self.set_active_page(0)
+
+    def minimumSizeHint(self) -> QSize:
+        # Width stays fixed; height must not drive MainWindow minimum size.
+        return QSize(260, 0)
+
+    def sizeHint(self) -> QSize:
+        return QSize(260, 400)
 
     def set_active_page(self, page_index: int) -> None:
 

@@ -24,6 +24,7 @@ class EventBridge(QObject):
     ais_status = Signal(str)
     rtl_status = Signal(str)
     providers_changed = Signal()
+    internet_status = Signal(bool)
 
     def __init__(self):
 
@@ -38,6 +39,7 @@ class EventBridge(QObject):
         eventbus.subscribe("ais.status", self._on_ais_status)
         eventbus.subscribe("rtl.status", self._on_rtl_status)
         eventbus.subscribe("providers.changed", self._on_providers_changed)
+        eventbus.subscribe("internet.status", self._on_internet_status)
 
     def shutdown(self) -> None:
         """Detach from EventBus and stop coalesce timers before teardown."""
@@ -48,6 +50,7 @@ class EventBridge(QObject):
         eventbus.unsubscribe("ais.status", self._on_ais_status)
         eventbus.unsubscribe("rtl.status", self._on_rtl_status)
         eventbus.unsubscribe("providers.changed", self._on_providers_changed)
+        eventbus.unsubscribe("internet.status", self._on_internet_status)
 
     def _on_ship_updated(self, ship=None, **kwargs):
 
@@ -96,3 +99,8 @@ class EventBridge(QObject):
 
         with trace_block("EventBridge._on_providers_changed"):
             self.providers_changed.emit()
+
+    def _on_internet_status(self, online=True, **_kwargs):
+
+        with trace_block("EventBridge._on_internet_status"):
+            self.internet_status.emit(bool(online))

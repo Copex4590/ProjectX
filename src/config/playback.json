@@ -1,5 +1,5 @@
 {
-  "mode": "automatic",
+  "mode": "user_preferred",
   "preferred_backend": "mpv",
   "custom_executable": "",
   "custom_arguments": []

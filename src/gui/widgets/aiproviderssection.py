@@ -76,6 +76,7 @@ class _ProviderRow(QFrame):
         info.addWidget(self._name_label)
 
         self._status_label = QLabel()
+        self._status_label.setWordWrap(True)
         self._status_label.setStyleSheet(dashboard_caption_stylesheet())
         info.addWidget(self._status_label)
 

@@ -71,17 +71,29 @@ try {
     Write-Host "[OK] Build dependencies installed.`n"
 
     Write-Host "Running PyInstaller ..."
-    & $venvPython -m PyInstaller --noconfirm (Join-Path $Root "installer\projectx.spec")
+if (-not $env:PROJECTX_BUILD) {
+    $ver = & $venvPython -c "import sys; sys.path.insert(0, r'$Root\src'); from version import PROJECT_VERSION; print(PROJECT_VERSION)"
+    $day = Get-Date -Format "yyyyMMdd"
+    $env:PROJECTX_BUILD = "$ver-$day"
+}
+Set-Content -Path (Join-Path $Root "src\resources\build_stamp") -Value $env:PROJECTX_BUILD -NoNewline
+Write-Host "PROJECTX_BUILD=$($env:PROJECTX_BUILD)"
+& $venvPython -m PyInstaller --noconfirm (Join-Path $Root "installer\projectx.spec")
 
     $bundleRoot = Join-Path $Root "dist\projectx"
     $bundleRequired = @(
         (Join-Path $bundleRoot "projectx.exe"),
+        (Join-Path $bundleRoot "resources\build_stamp"),
         (Join-Path $bundleRoot "resources\translations\en.json"),
         (Join-Path $bundleRoot "resources\translations\hu.json"),
         (Join-Path $bundleRoot "resources\map\leaflet\leaflet.js"),
+        (Join-Path $bundleRoot "resources\map\map.html"),
+        (Join-Path $bundleRoot "resources\theme\colors.css"),
         (Join-Path $bundleRoot "resources\branding\projectx-logo.png"),
         (Join-Path $bundleRoot "projectx.ico"),
-        (Join-Path $bundleRoot "config\playback.json")
+        (Join-Path $bundleRoot "config\playback.json"),
+        (Join-Path $bundleRoot "config\camera_packs"),
+        (Join-Path $bundleRoot "config\cameras")
     )
     foreach ($path in $bundleRequired) {
         if (-not (Test-Path $path)) {

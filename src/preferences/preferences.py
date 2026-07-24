@@ -88,6 +88,18 @@ def _normalize_log_level(value: object) -> str:
     return DEFAULT_LOG_LEVEL
 
 
+def _normalize_connection_notice_suppressed(value: object) -> dict[str, bool]:
+
+    if not isinstance(value, dict):
+        return {}
+
+    return {
+        str(key): bool(flag)
+        for key, flag in value.items()
+        if str(key).strip()
+    }
+
+
 def _safe_float(value: object, default: float, *, minimum: float = 0.1) -> float:
 
     try:
@@ -139,6 +151,8 @@ class Preferences:
     rtl_setup_completed: bool = False
     ais_provider_coverage_notice_dismissed: bool = False
     observation_point_workflow_notice_dismissed: bool = False
+    # SAVE-235 — per connection-type popup suppression
+    connection_notice_suppressed: dict[str, bool] | None = None
 
     # SAVE-211 General
     theme: str = DEFAULT_THEME
@@ -203,6 +217,9 @@ class Preferences:
             ),
             "observation_point_workflow_notice_dismissed": (
                 self.observation_point_workflow_notice_dismissed
+            ),
+            "connection_notice_suppressed": dict(
+                self.connection_notice_suppressed or {}
             ),
             "theme": self.theme,
             "startup_page": self.startup_page,
@@ -319,6 +336,9 @@ class Preferences:
             ),
             observation_point_workflow_notice_dismissed=bool(
                 data.get("observation_point_workflow_notice_dismissed", False)
+            ),
+            connection_notice_suppressed=_normalize_connection_notice_suppressed(
+                data.get("connection_notice_suppressed")
             ),
             theme=_normalize_choice(
                 data.get("theme", DEFAULT_THEME),
@@ -450,6 +470,11 @@ class Preferences:
         migrated.setdefault("rtl_setup_completed", False)
         migrated.setdefault("ais_provider_coverage_notice_dismissed", False)
         migrated.setdefault("observation_point_workflow_notice_dismissed", False)
+        migrated["connection_notice_suppressed"] = (
+            _normalize_connection_notice_suppressed(
+                migrated.get("connection_notice_suppressed")
+            )
+        )
 
         # SAVE-211 defaults for existing preference files
         migrated["theme"] = _normalize_choice(

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+<Placemark><name>CAP MEJEAN</name><description>MMSI: 228296700&#10;Távolság: 5.59 km&#10;Irány: északra&#10;Forrás: AIS</description><Point><coordinates>-16.191465,28.487613333333336,0</coordinates></Point></Placemark>
+<Placemark><name>BAJAMAR EXPRESS</name><description>MMSI: 224131000&#10;Távolság: 0.15 km&#10;Irány: északra&#10;Forrás: AIS</description><Point><coordinates>-16.246095,28.469941666666667,0</coordinates></Point></Placemark>
+</Document></kml>

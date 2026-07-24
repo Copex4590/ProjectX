@@ -13,6 +13,7 @@ from ais.providers import (
     normalize_provider_type,
 )
 from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
+from connectivity.internet_state import is_internet_online
 from events import eventbus
 from i18n import tr
 from preferences import preferences_manager
@@ -195,7 +196,23 @@ def provider_display_status(provider_id: str) -> ProviderStatus:
         icon = "⚪" if provider == AISProviderType.LOCAL else "🟡"
         return ProviderStatus(icon, tr("Not configured"))
 
-    if provider_connection_status(provider_id) == "connected":
+    connection_status = provider_connection_status(provider_id)
+
+    # SAVE-236.5 — AISStream visuals match Connection Panel (Internet master).
+    if provider == AISProviderType.AISSTREAM:
+        if connection_status == "auth_error":
+            return ProviderStatus(
+                "🔴",
+                f"{tr('Authentication error')}\n"
+                f"{tr('AISStream authentication failed message')}",
+            )
+        if not is_internet_online():
+            return ProviderStatus("🔴", tr("Disconnected"))
+        if connection_status == "connected":
+            return ProviderStatus("🟢", tr("Connected"))
+        return ProviderStatus("🔴", tr("Connecting..."))
+
+    if connection_status == "connected":
         return ProviderStatus("🟢", tr("Connected"))
 
     return ProviderStatus("🔴", tr("Disconnected"))
@@ -285,6 +302,8 @@ def save_local_configuration(
         configured=bool(preferences.rtl_sdr_configured or preferences.ais_configured),
     )
     notify_providers_changed()
+    # SAVE-236.6 — live reload: drop current RTL socket and reconnect with new host/port.
+    eventbus.publish("rtl.config.changed")
 
 
 def remove_provider(provider_id: str) -> None:

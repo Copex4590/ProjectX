@@ -102,12 +102,15 @@ class HybridEngine(BaseEngine):
         self._ais_reconnect_backoff_s = AIS_RECONNECT_MIN_S
         self._ais_connect_lock = threading.Lock()
         self._state_lock = threading.RLock()
+        # SAVE-236.6 — set when RTL host/port is saved so the worker drops & reconnects.
+        self._rtl_reconnect_requested = False
         hybrid_file_writer.start()
 
     def on_start(self):
 
         hybrid_file_writer.start()
         self.sync_enabled_providers()
+        eventbus.subscribe("rtl.config.changed", self._on_rtl_config_changed)
 
         if self.ais_thread is None or not self.ais_thread.is_alive():
             self.ais_thread = threading.Thread(
@@ -180,6 +183,18 @@ class HybridEngine(BaseEngine):
 
         self._rtl_client = None
 
+    def request_rtl_reconnect(self) -> None:
+        """Drop the live RTL socket so rtl_worker reloads host/port (SAVE-236.6)."""
+
+        logger.info("RTL configuration changed — reconnecting with updated host/port")
+        self._rtl_reconnect_requested = True
+        self._disconnect_rtl_client()
+        eventbus.publish("rtl.status", status="offline")
+
+    def _on_rtl_config_changed(self, **_kwargs) -> None:
+
+        self.request_rtl_reconnect()
+
     def _purge_ais_runtime_state(self) -> None:
 
         removed = registry.purge_ais_only_ships()
@@ -250,6 +265,8 @@ class HybridEngine(BaseEngine):
             return self._rtl_active
 
     def on_stop(self):
+
+        eventbus.unsubscribe("rtl.config.changed", self._on_rtl_config_changed)
 
         with self._runtime_lock:
             self._aisstream_active = False
@@ -724,6 +741,40 @@ class HybridEngine(BaseEngine):
                             ),
                         }
 
+            except websocket.WebSocketBadStatusException as error:
+                if not self.running:
+                    break
+                status_code = getattr(error, "status_code", None)
+                # SAVE-236.5 — invalid API key: durable fault, no reconnect spam.
+                if status_code in (401, 403):
+                    logger.error(
+                        "AISStream authentication failed (HTTP %s)",
+                        status_code,
+                    )
+                    eventbus.publish("ais.status", status="auth_error")
+                    bad_key = api_key
+                    while self.running and self._aisstream_enabled():
+                        if self._aisstream_api_key() != bad_key:
+                            break
+                        time.sleep(1.0)
+                    continue
+
+                logger.exception("AISStream connection error")
+                eventbus.publish("ais.status", status="offline")
+                _, reconnect_enabled, reconnect_min, reconnect_max, _ = (
+                    _ais_connection_preferences()
+                )
+
+                if not reconnect_enabled:
+                    time.sleep(5)
+                    self._ais_reconnect_backoff_s = reconnect_min
+                else:
+                    delay = self._ais_reconnect_backoff_s
+                    time.sleep(delay)
+                    self._ais_reconnect_backoff_s = min(
+                        reconnect_max,
+                        max(reconnect_min, delay * 2.0),
+                    )
             except Exception:
                 if not self.running:
                     break
@@ -752,6 +803,17 @@ class HybridEngine(BaseEngine):
     # - rádiós pozíció
     # - ha rádióból jön ID5 / név, azt is eltesszük
     # --------------------------------------------------
+    def _rtl_endpoint(self) -> tuple[str, int]:
+        """User preferences are the single source of truth for host/port."""
+
+        preferences = preferences_manager.get()
+        host = str(preferences.ais_local_host or "").strip() or AIS_CATCHER_HOST
+        try:
+            port = int(preferences.ais_local_port or AIS_CATCHER_PORT)
+        except (TypeError, ValueError):
+            port = AIS_CATCHER_PORT
+        return host, port
+
     def rtl_worker(self):
 
         while self.running:
@@ -769,27 +831,30 @@ class HybridEngine(BaseEngine):
                 time.sleep(1)
                 continue
 
-            if not is_port_open(AIS_CATCHER_HOST, AIS_CATCHER_PORT):
+            host, port = self._rtl_endpoint()
+
+            if not is_port_open(host, port):
                 logger.warning(
                     "AIS-Catcher unavailable on %s:%s — RTL AIS provider disabled",
-                    AIS_CATCHER_HOST,
-                    AIS_CATCHER_PORT,
+                    host,
+                    port,
                 )
                 eventbus.publish("rtl.status", status="offline")
                 time.sleep(5)
                 continue
 
-            logger.info("Connecting to AIS-catcher")
+            logger.info("Connecting to AIS-catcher on %s:%s", host, port)
 
+            self._rtl_reconnect_requested = False
             self._rtl_client = AISRtlClient()
 
             try:
-                self._rtl_client.connect(AIS_CATCHER_HOST, AIS_CATCHER_PORT)
+                self._rtl_client.connect(host, port)
             except OSError as error:
                 logger.warning(
                     "RTL AIS connection failed on %s:%s: %s",
-                    AIS_CATCHER_HOST,
-                    AIS_CATCHER_PORT,
+                    host,
+                    port,
                     error,
                 )
                 self._rtl_client = None
@@ -797,7 +862,7 @@ class HybridEngine(BaseEngine):
                 time.sleep(5)
                 continue
 
-            logger.info("Connected to AIS-catcher")
+            logger.info("Connected to AIS-catcher on %s:%s", host, port)
             eventbus.publish("rtl.status", status="connected")
 
             decoder = AISNmeaDecoder()
@@ -805,8 +870,15 @@ class HybridEngine(BaseEngine):
             logger.debug("Waiting for RTL AIS data")
 
             while self.running and self._rtl_enabled():
+                if self._rtl_reconnect_requested:
+                    break
+
+                client = self._rtl_client
+                if client is None:
+                    break
+
                 try:
-                    line = self._rtl_client.receive()
+                    line = client.receive()
                 except OSError:
                     if not self.running:
                         break

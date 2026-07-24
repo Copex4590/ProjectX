@@ -1,3 +1,5 @@
+# Wine helper venv (SAVE-234 experiments; not for release)
+.venv-win/
 venv/
 .venv/
 __pycache__/
@@ -52,3 +54,4 @@ release/linux/*.deb
 website/downloads/linux/*.AppImage
 website/downloads/linux/*.deb
 .cache/
+.venv-win/

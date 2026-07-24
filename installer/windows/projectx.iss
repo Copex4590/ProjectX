@@ -50,6 +50,10 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 CloseApplications=force
 RestartIfNeededByRun=no
+; Same AppId + UsePreviousAppDir enables Inno upgrade of existing installs.
+UsePreviousAppDir=yes
+UsePreviousGroup=yes
+UsePreviousTasks=yes
 VersionInfoVersion={#MyAppVersionNumeric}
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} Setup
@@ -73,6 +77,9 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent; Tasks: launch
+
+; File associations: none — Project X does not register document types.
+; Uninstall is provided by Inno (Add/Remove Programs + Start Menu Uninstall).
 
 [Messages]
 SetupAppTitle=Project X Setup

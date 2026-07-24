@@ -40,7 +40,7 @@ echo.
 
 if exist "%TEST_DIR%" rmdir /S /Q "%TEST_DIR%" 2>nul
 
-echo [1/4] Silent install ...
+echo [1/5] Silent install ...
 "%INSTALLER%" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR="%TEST_DIR%" /TASKS=""
 if errorlevel 1 (
     echo [FAIL] Silent install returned an error.
@@ -53,7 +53,7 @@ if not exist "%TEST_EXE%" (
 )
 echo [OK] Silent install completed.
 
-echo [2/4] Application files present ...
+echo [2/5] Application files present ...
 if not exist "%TEST_DIR%\projectx.ico" (
     echo [WARN] projectx.ico not found in install directory.
 ) else (
@@ -75,20 +75,49 @@ if not exist "%TEST_DIR%\resources\branding\projectx-logo.png" (
     echo [FAIL] Bundled branding missing: projectx-logo.png
     exit /b 1
 )
+if not exist "%TEST_DIR%\resources\build_stamp" (
+    echo [FAIL] Bundled build_stamp missing
+    exit /b 1
+)
+echo [OK] build_stamp present
+if not exist "%TEST_DIR%\resources\theme\colors.css" (
+    echo [FAIL] Bundled theme missing: colors.css
+    exit /b 1
+)
+if not exist "%TEST_DIR%\resources\map\map.html" (
+    echo [FAIL] Bundled map.html missing
+    exit /b 1
+)
+if not exist "%TEST_DIR%\config\camera_packs" (
+    echo [FAIL] Bundled camera_packs missing
+    exit /b 1
+)
 if not exist "%TEST_DIR%\config\playback.json" (
     echo [FAIL] Bundled config missing: playback.json
     exit /b 1
 )
-echo [OK] Bundled resources present (translations, map, branding, config).
+echo [OK] Bundled resources present (stamp, translations, map, theme, branding, cameras, config).
 
-echo [3/4] Executable present ...
+echo [3/5] Executable present ...
 if not exist "%TEST_EXE%" (
     echo [FAIL] projectx.exe missing after install.
     exit /b 1
 )
 echo [OK] projectx.exe present. Launch manually to confirm First Run Wizard.
 
-echo [4/4] Silent uninstall ...
+echo [4/5] Upgrade install ...
+"%INSTALLER%" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR="%TEST_DIR%" /TASKS=""
+if errorlevel 1 (
+    echo [FAIL] Upgrade silent install returned an error.
+    exit /b 1
+)
+if not exist "%TEST_EXE%" (
+    echo [FAIL] projectx.exe missing after upgrade.
+    exit /b 1
+)
+echo [OK] Upgrade install completed.
+
+echo [5/5] Silent uninstall ...
 set "UNINSTALLER=%TEST_DIR%\unins000.exe"
 if not exist "%UNINSTALLER%" (
     echo [FAIL] Uninstaller not found: %UNINSTALLER%
@@ -124,6 +153,7 @@ echo Manual checks still recommended on a clean VM:
 echo   - Install to Program Files via interactive setup
 echo   - Confirm Start Menu shortcut
 echo   - Optional desktop shortcut task
+echo   - Launch-after-install task
 echo   - First Run Wizard on first launch
 echo.
 exit /b 0

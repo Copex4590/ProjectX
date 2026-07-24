@@ -35,9 +35,23 @@ def _map_severity(severity: str) -> NotificationSeverity:
 
 
 class DesktopBannerSink(AlertNotificationSink):
-    """Bridge alerts to the existing desktop notification banner."""
+    """Alert → top-of-screen banner bridge (SAVE-215).
+
+    SAVE-235 Alpha UX: desktop banners are intentionally disabled.
+    Arrival / Departure / other Professional Alerts still:
+      - persist via AlertManager
+      - publish ``alerts.fired`` for Alert Center / Analytics
+      - remain available as timeline events from ArrivalDepartureEngine
+    Only the NotificationBanner UI is suppressed here.
+    """
+
+    # Flip to True when Alpha UX should show Professional Alerts banners again.
+    ENABLED_FOR_ALPHA = False
 
     def on_alert(self, event: AlertEvent) -> None:
+
+        if not self.ENABLED_FOR_ALPHA:
+            return
 
         try:
             from preferences.application_settings import desktop_notifications_enabled
@@ -74,6 +88,8 @@ class NullNotificationSink(AlertNotificationSink):
 
 def install_default_notification_sinks(manager) -> None:
 
+    # Keep DesktopBannerSink registered so the sink pipeline stays intact;
+    # Alpha UX suppresses the banner UI inside DesktopBannerSink.on_alert.
     manager.register_notification_sink(DesktopBannerSink())
     # Reserved extension points:
     # manager.register_notification_sink(SoundNotificationSink())

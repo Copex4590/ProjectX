@@ -1,6 +1,6 @@
 # ============================================================================
 # Project X
-# AIS connection notification monitor
+# AIS connection monitor (vessel purge + SAVE-235 notices via panel)
 # ============================================================================
 
 from __future__ import annotations
@@ -10,13 +10,14 @@ from PySide6.QtCore import QObject, QTimer
 from ais.providers import AISProviderType, normalize_provider_type
 from ais.user_provider_service import get_enabled_provider_ids, is_provider_configured
 from engines.rtl.hybrid_engine import HybridEngine
-from gui.notifications.notification_manager import notification_manager
-from gui.notifications.severity import NotificationSeverity
-from i18n import tr
 
 
 class AisConnectionMonitor(QObject):
-    AIS_CONNECTION_KEY = "ais.connection"
+    """Tracks AISStream offline windows for vessel purge.
+
+    Connection popups are owned by ConnectionPanel / ConnectionNoticeService
+    (SAVE-235). This monitor no longer shows banner notifications.
+    """
 
     COUNTDOWN_SECONDS = 30
 
@@ -24,7 +25,6 @@ class AisConnectionMonitor(QObject):
         super().__init__(parent)
 
         self._hybrid_engine = hybrid_engine
-        self._notifications = notification_manager()
         self._last_status = "offline"
         self._awaiting_reconnect = False
         self._countdown_active = False
@@ -71,17 +71,7 @@ class AisConnectionMonitor(QObject):
         self._countdown_active = False
         self._countdown_remaining = self.COUNTDOWN_SECONDS
         self._vessels_purged = False
-
-        if self._awaiting_reconnect:
-            self._awaiting_reconnect = False
-            self._notifications.show(
-                tr("AIS connection restored."),
-                severity=NotificationSeverity.SUCCESS,
-                key=self.AIS_CONNECTION_KEY,
-                duration_ms=5000,
-                sticky=False,
-                animate=True,
-            )
+        self._awaiting_reconnect = False
 
     def _handle_connection_lost(self) -> None:
 
@@ -89,15 +79,6 @@ class AisConnectionMonitor(QObject):
         self._countdown_active = True
         self._countdown_remaining = self.COUNTDOWN_SECONDS
         self._vessels_purged = False
-
-        self._notifications.show(
-            self._lost_message(),
-            severity=NotificationSeverity.WARNING,
-            key=self.AIS_CONNECTION_KEY,
-            sticky=True,
-            animate=True,
-        )
-
         self._countdown_timer.start()
 
     def _on_countdown_tick(self) -> None:
@@ -109,11 +90,6 @@ class AisConnectionMonitor(QObject):
         self._countdown_remaining -= 1
 
         if self._countdown_remaining > 0:
-            self._notifications.update(
-                self.AIS_CONNECTION_KEY,
-                self._lost_message(),
-                severity=NotificationSeverity.WARNING,
-            )
             return
 
         self._countdown_timer.stop()
@@ -122,20 +98,3 @@ class AisConnectionMonitor(QObject):
         if not self._vessels_purged:
             self._hybrid_engine.purge_ais_only_vessels()
             self._vessels_purged = True
-
-        self._notifications.update(
-            self.AIS_CONNECTION_KEY,
-            tr("AIS connection lost."),
-            severity=NotificationSeverity.WARNING,
-        )
-
-    def _lost_message(self) -> str:
-
-        if self._countdown_remaining <= 0:
-            return tr("AIS connection lost.")
-
-        return (
-            f"{tr('AIS connection lost.')}\n"
-            f"{tr('If the AIS connection is not restored within 30 seconds, vessels belonging to this provider will automatically disappear from the map.')}\n"
-            f"{tr('Vessels will disappear in {seconds} seconds.').replace('{seconds}', str(self._countdown_remaining))}"
-        )

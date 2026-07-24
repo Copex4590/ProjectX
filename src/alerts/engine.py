@@ -14,7 +14,6 @@ from typing import Any
 from alerts.alert_event import EvaluationEvent
 from alerts.alert_manager import alert_manager
 from alerts.alert_rule import (
-    RULE_TYPE_AIS_LOST,
     RULE_TYPE_ANCHORED,
     RULE_TYPE_ARRIVAL,
     RULE_TYPE_CAMERA_OFFLINE,
@@ -62,7 +61,6 @@ class ProfessionalAlertsEngine:
         self._anchored_since: dict[int, datetime] = {}
         self._anchored_active: dict[int, bool] = {}
         self._camera_visible: dict[int, bool] = {}
-        self._ais_online = True
 
     def start(self) -> None:
 
@@ -75,7 +73,8 @@ class ProfessionalAlertsEngine:
             install_default_notification_sinks(self._manager)
 
             eventbus.subscribe("ship.updated", self._on_ship_updated)
-            eventbus.subscribe("ais.status", self._on_ais_status)
+            # SAVE-235: AIS connection loss/restore UX is owned exclusively by
+            # ConnectionNoticeService — do not bridge ais.status into alert banners.
             eventbus.subscribe(EVENT_SYNC_FAILED, self._on_sync_failed)
             eventbus.subscribe(EVENT_TIMELINE_ARRIVAL, self._on_timeline_arrival)
             eventbus.subscribe(EVENT_TIMELINE_DEPARTURE, self._on_timeline_departure)
@@ -94,7 +93,6 @@ class ProfessionalAlertsEngine:
         self._wake.set()
 
         eventbus.unsubscribe("ship.updated", self._on_ship_updated)
-        eventbus.unsubscribe("ais.status", self._on_ais_status)
         eventbus.unsubscribe(EVENT_SYNC_FAILED, self._on_sync_failed)
         eventbus.unsubscribe(EVENT_TIMELINE_ARRIVAL, self._on_timeline_arrival)
         eventbus.unsubscribe(EVENT_TIMELINE_DEPARTURE, self._on_timeline_departure)
@@ -134,13 +132,6 @@ class ProfessionalAlertsEngine:
 
         self._enqueue("ship", payload)
 
-    def _on_ais_status(self, *args, **kwargs) -> None:
-
-        status = kwargs.get("status")
-        if status is None and args:
-            status = args[0]
-        self._enqueue("ais_status", {"status": str(status or "").strip().lower()})
-
     def _on_sync_failed(self, *args, **kwargs) -> None:
 
         message = str(kwargs.get("error") or kwargs.get("message") or "Database sync failed")
@@ -169,8 +160,6 @@ class ProfessionalAlertsEngine:
                 try:
                     if kind == "ship":
                         self._process_ship(payload)
-                    elif kind == "ais_status":
-                        self._process_ais_status(payload)
                     elif kind == "db_sync_failed":
                         self._process_db_sync_failed(payload)
                     elif kind == "arrival":
@@ -402,21 +391,6 @@ class ProfessionalAlertsEngine:
                     "timestamp": timestamp,
                 },
             )
-
-    def _process_ais_status(self, payload: dict[str, Any]) -> None:
-
-        status = str(payload.get("status") or "").strip().lower()
-        online = status in {"connected", "online"}
-
-        if self._ais_online and not online and status in {"offline", "waiting", "error"}:
-            self._fire_simple(
-                RULE_TYPE_AIS_LOST,
-                0,
-                {"status": status, "timestamp": datetime.now()},
-            )
-
-        if status:
-            self._ais_online = online
 
     def _process_db_sync_failed(self, payload: dict[str, Any]) -> None:
 
