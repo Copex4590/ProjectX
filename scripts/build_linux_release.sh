@@ -40,6 +40,7 @@ Options:
 
 Environment:
   PROJECTX_PYTHON   Python for build (default: .venv/bin/python)
+  PROJECTX_BUILD    Build id stamped into About (default: VERSION-YYYYMMDD)
   SKIP_DEB=1        Skip .deb generation
 EOF
 }
@@ -80,6 +81,10 @@ PY
 )"
     APPIMAGE_NAME="ProjectX.AppImage"
     DEB_NAME="ProjectX.deb"
+    # Stamp packaged About dialog (defaults to "dev" without this).
+    if [[ -z "${PROJECTX_BUILD:-}" ]]; then
+        export PROJECTX_BUILD="${VERSION}-$(date -u +%Y%m%d)"
+    fi
 }
 
 ensure_build_python() {

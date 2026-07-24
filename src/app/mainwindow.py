@@ -42,7 +42,7 @@ from preferences.application_settings import (
     startup_page_index,
 )
 from plugins import plugin_manager
-from inspector.inspector import PROJECT_VERSION
+from version import PROJECT_VERSION
 from version import PROJECT_NAME
 from engines.rtl.hybrid_engine import HybridEngine
 from logbook import logbook_recorder

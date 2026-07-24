@@ -90,7 +90,7 @@ Installs to:
 | `/opt/projectx/` | Application bundle |
 | `/usr/bin/projectx` | Command-line launcher |
 | `/usr/share/applications/projectx.desktop` | Menu entry (**Project X**) |
-| `/usr/share/metainfo/projectx.appdata.xml` | Software Manager title and description |
+| `/usr/share/metainfo/io.github.copex4590.projectx.appdata.xml` | Software Manager title and description |
 | `/usr/share/icons/hicolor/*/apps/projectx.png` | Menu icons (16–512 px) |
 
 Uninstall:
