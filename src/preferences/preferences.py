@@ -98,6 +98,27 @@ def _safe_float(value: object, default: float, *, minimum: float = 0.1) -> float
     return max(minimum, resolved)
 
 
+def _parse_window_geometry(value: object) -> dict[str, int] | None:
+
+    if not isinstance(value, dict):
+        return None
+
+    try:
+        geometry = {
+            "x": int(value["x"]),
+            "y": int(value["y"]),
+            "width": int(value["width"]),
+            "height": int(value["height"]),
+        }
+    except (KeyError, TypeError, ValueError):
+        return None
+
+    if geometry["width"] <= 0 or geometry["height"] <= 0:
+        return None
+
+    return geometry
+
+
 @dataclass
 class Preferences:
 
@@ -124,6 +145,8 @@ class Preferences:
     startup_page: str = DEFAULT_STARTUP_PAGE
     startup_maximized: bool = False
     startup_restore_session: bool = True
+    # SAVE-221 — last normal MainWindow geometry (x, y, width, height)
+    window_geometry: dict[str, int] | None = None
 
     # SAVE-211 AIS
     ais_auto_connect: bool = True
@@ -181,6 +204,9 @@ class Preferences:
             "startup_page": self.startup_page,
             "startup_maximized": self.startup_maximized,
             "startup_restore_session": self.startup_restore_session,
+            "window_geometry": (
+                dict(self.window_geometry) if self.window_geometry else None
+            ),
             "ais_auto_connect": self.ais_auto_connect,
             "ais_reconnect_enabled": self.ais_reconnect_enabled,
             "ais_reconnect_min_s": self.ais_reconnect_min_s,
@@ -298,6 +324,7 @@ class Preferences:
             ),
             startup_maximized=bool(data.get("startup_maximized", False)),
             startup_restore_session=bool(data.get("startup_restore_session", True)),
+            window_geometry=_parse_window_geometry(data.get("window_geometry")),
             ais_auto_connect=bool(data.get("ais_auto_connect", True)),
             ais_reconnect_enabled=bool(data.get("ais_reconnect_enabled", True)),
             ais_reconnect_min_s=reconnect_min,
@@ -426,6 +453,9 @@ class Preferences:
         migrated["startup_maximized"] = bool(migrated.get("startup_maximized", False))
         migrated["startup_restore_session"] = bool(
             migrated.get("startup_restore_session", True)
+        )
+        migrated["window_geometry"] = _parse_window_geometry(
+            migrated.get("window_geometry")
         )
         migrated["ais_auto_connect"] = bool(migrated.get("ais_auto_connect", True))
         migrated["ais_reconnect_enabled"] = bool(

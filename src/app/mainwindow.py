@@ -11,6 +11,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.window_geometry import (
+    available_work_area,
+    default_startup_geometry,
+    ensure_visible_on_work_area,
+    parse_window_geometry,
+    window_geometry_to_dict,
+)
 from branding.assets import app_icon
 from gui.aboutdialog import AboutDialog
 from gui.sidebar import Sidebar
@@ -71,7 +78,6 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle(f"{PROJECT_NAME} {PROJECT_VERSION}")
         self.setWindowIcon(app_icon())
-        self.resize(1600, 900)
 
         self.hybrid_engine = HybridEngine()
         logbook_recorder.start()
@@ -476,12 +482,42 @@ class MainWindow(QMainWindow):
 
         preferences = preferences_manager.get()
 
+        self._apply_startup_geometry(preferences.window_geometry)
+
         if preferences.startup_maximized:
             self.showMaximized()
 
         page_index = startup_page_index(preferences)
         if 0 <= page_index < self.pages.count():
             self.pages.setCurrentIndex(page_index)
+
+    def _apply_startup_geometry(self, saved: dict[str, int] | None) -> None:
+
+        available = available_work_area(self)
+        if available is None:
+            return
+
+        restored = parse_window_geometry(saved)
+        if restored is None:
+            geometry = default_startup_geometry(available)
+        else:
+            geometry = ensure_visible_on_work_area(restored, available)
+
+        self.setGeometry(geometry)
+
+    def _persist_window_geometry(self) -> None:
+
+        try:
+            available = available_work_area(self)
+            geometry = self.normalGeometry()
+            if available is not None:
+                geometry = ensure_visible_on_work_area(geometry, available)
+
+            current = preferences_manager.get()
+            current.window_geometry = window_geometry_to_dict(geometry)
+            preferences_manager.save(current)
+        except Exception:
+            logger.exception("Failed to persist main window geometry")
 
     def _open_dashboard_configuration(self) -> None:
 
@@ -574,6 +610,8 @@ class MainWindow(QMainWindow):
             MapController.instance().cancel_pick_mode(restore_host=False)
 
         MapController.release_application_modality()
+
+        self._persist_window_geometry()
 
         logger.info("Stopping Hybrid Engine")
         try:
