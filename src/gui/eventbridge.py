@@ -33,6 +33,16 @@ class EventBridge(QObject):
         eventbus.subscribe("rtl.status", self._on_rtl_status)
         eventbus.subscribe("providers.changed", self._on_providers_changed)
 
+    def shutdown(self) -> None:
+        """Detach from EventBus and stop coalesce timers before teardown."""
+
+        self._ship_coalesce_timer.stop()
+        self._ship_emit_pending = False
+        eventbus.unsubscribe("ship.updated", self._on_ship_updated)
+        eventbus.unsubscribe("ais.status", self._on_ais_status)
+        eventbus.unsubscribe("rtl.status", self._on_rtl_status)
+        eventbus.unsubscribe("providers.changed", self._on_providers_changed)
+
     def _on_ship_updated(self, ship=None, **kwargs):
 
         with trace_block("EventBridge._on_ship_updated"):
