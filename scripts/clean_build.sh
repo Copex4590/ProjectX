@@ -11,6 +11,7 @@ cd "$ROOT"
 echo "Removing build artifacts under ${ROOT}..."
 
 rm -rf build/ dist/ .install-test/
+rm -f "$ROOT/src/resources/build_stamp"
 
 find "$ROOT/src" -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
 find "$ROOT/scripts" -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true

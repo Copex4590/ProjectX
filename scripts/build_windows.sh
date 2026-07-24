@@ -176,6 +176,20 @@ run_pyinstaller_windows() {
     echo "WSL alternative build using: $win_python"
     echo "Prefer native Windows: scripts\\build_windows.bat"
 
+    if [[ -z "${PROJECTX_BUILD:-}" ]]; then
+        PROJECTX_BUILD="$("$HOST_PYTHON" - <<'PY'
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path("src").resolve()))
+from version import PROJECT_VERSION
+print(f"{PROJECT_VERSION}-" + __import__("datetime").datetime.utcnow().strftime("%Y%m%d"))
+PY
+)"
+        export PROJECTX_BUILD
+    fi
+    printf '%s\n' "$PROJECTX_BUILD" > "$ROOT/src/resources/build_stamp"
+    echo "PROJECTX_BUILD=$PROJECTX_BUILD"
+
     "$win_python" -m pip install --upgrade pip
     "$win_python" -m pip install -r "$(to_windows_path "$ROOT/requirements.txt")" pyinstaller
 

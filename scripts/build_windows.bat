@@ -138,7 +138,19 @@ echo.
 exit /b 0
 
 :run_pyinstaller
+if not defined PROJECTX_BUILD (
+    for /f "usebackq delims=" %%V in (`"%VENV_PY%" -c "import sys; sys.path.insert(0, r'%ROOT%\src'); from version import PROJECT_VERSION; print(PROJECT_VERSION)"`) do set "PROJECT_VERSION=%%V"
+    for /f "usebackq delims=" %%D in (`powershell -NoProfile -Command "Get-Date -Format yyyyMMdd"`) do set "PROJECTX_BUILD=!PROJECT_VERSION!-%%D"
+)
+echo Writing build stamp: %PROJECTX_BUILD%
+> "%ROOT%\src\resources\build_stamp" echo %PROJECTX_BUILD%
+if errorlevel 1 (
+    echo [FAIL] Could not write src\resources\build_stamp
+    exit /b 1
+)
+
 echo Running PyInstaller ...
+echo PROJECTX_BUILD=%PROJECTX_BUILD%
 "%VENV_PY%" -m PyInstaller --noconfirm "%ROOT%\installer\projectx.spec"
 if errorlevel 1 (
     echo [FAIL] PyInstaller build failed.
@@ -152,6 +164,7 @@ set "BUNDLE=%ROOT%\dist\projectx"
 set "MISSING="
 
 if not exist "%BUNDLE%\projectx.exe" set "MISSING=!MISSING! projectx.exe"
+if not exist "%BUNDLE%\resources\build_stamp" set "MISSING=!MISSING! resources\build_stamp"
 if not exist "%BUNDLE%\resources\translations\en.json" set "MISSING=!MISSING! resources\translations\en.json"
 if not exist "%BUNDLE%\resources\translations\hu.json" set "MISSING=!MISSING! resources\translations\hu.json"
 if not exist "%BUNDLE%\resources\map\leaflet\leaflet.js" set "MISSING=!MISSING! resources\map\leaflet\leaflet.js"

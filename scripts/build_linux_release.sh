@@ -155,14 +155,33 @@ install_build_deps() {
     "$PYTHON" -m pip install -r "$ROOT/requirements.txt" pyinstaller
 }
 
+write_build_stamp() {
+    # Bake PROJECTX_BUILD into bundled resources (env alone is not visible at runtime).
+    local stamp_file="$ROOT/src/resources/build_stamp"
+    printf '%s\n' "$PROJECTX_BUILD" > "$stamp_file"
+    echo "[OK] Build stamp written: ${stamp_file#${ROOT}/} ($PROJECTX_BUILD)"
+}
+
 run_pyinstaller() {
+    write_build_stamp
     echo "Running PyInstaller..."
+    echo "PROJECTX_BUILD=$PROJECTX_BUILD"
     "$PYTHON" -m PyInstaller --noconfirm "$ROOT/installer/projectx.spec"
     if [[ ! -x "$ROOT/dist/projectx/projectx" ]]; then
         echo "[FAIL] PyInstaller output missing: dist/projectx/projectx" >&2
         exit 1
     fi
-    echo "[OK] PyInstaller bundle: dist/projectx/"
+    if [[ ! -f "$ROOT/dist/projectx/resources/build_stamp" ]]; then
+        echo "[FAIL] Bundled build_stamp missing under dist/projectx/resources/" >&2
+        exit 1
+    fi
+    local bundled
+    bundled="$(tr -d '[:space:]' < "$ROOT/dist/projectx/resources/build_stamp")"
+    if [[ "$bundled" != "$PROJECTX_BUILD" ]]; then
+        echo "[FAIL] Bundled build_stamp mismatch: got '$bundled' expected '$PROJECTX_BUILD'" >&2
+        exit 1
+    fi
+    echo "[OK] PyInstaller bundle: dist/projectx/ (build=$PROJECTX_BUILD)"
 }
 
 verify_bundle_contents() {
@@ -170,12 +189,17 @@ verify_bundle_contents() {
     echo "Verifying PyInstaller bundle contents..."
     local required=(
         "$bundle/projectx"
+        "$bundle/resources/build_stamp"
         "$bundle/resources/translations/en.json"
         "$bundle/resources/translations/hu.json"
         "$bundle/resources/map/leaflet/leaflet.js"
+        "$bundle/resources/map/map.html"
+        "$bundle/resources/theme/colors.css"
         "$bundle/resources/branding/projectx-logo.png"
         "$bundle/projectx.ico"
         "$bundle/config/playback.json"
+        "$bundle/config/camera_packs"
+        "$bundle/config/cameras"
     )
     local path
     for path in "${required[@]}"; do

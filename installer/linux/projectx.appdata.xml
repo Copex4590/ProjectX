@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>projectx.desktop</id>
+  <id>io.github.copex4590.projectx</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
   <name>Project X</name>
@@ -18,7 +18,9 @@
   </description>
   <launchable type="desktop-id">projectx.desktop</launchable>
   <url type="homepage">https://github.com/Copex4590/ProjectX</url>
-  <developer_name>Project X</developer_name>
+  <developer id="io.github.copex4590">
+    <name>Project X</name>
+  </developer>
   <categories>
     <category>Science</category>
     <category>Network</category>

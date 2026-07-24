@@ -42,13 +42,54 @@ for path in \
     squashfs-root/projectx.desktop \
     squashfs-root/projectx.png \
     squashfs-root/usr/lib/projectx/projectx \
+    squashfs-root/usr/lib/projectx/resources/build_stamp \
     squashfs-root/usr/lib/projectx/resources/translations/en.json \
     squashfs-root/usr/lib/projectx/resources/translations/hu.json \
     squashfs-root/usr/lib/projectx/resources/map/leaflet/leaflet.js \
+    squashfs-root/usr/lib/projectx/resources/map/map.html \
+    squashfs-root/usr/lib/projectx/resources/theme/colors.css \
     squashfs-root/usr/lib/projectx/resources/branding/projectx-logo.png \
-    squashfs-root/usr/lib/projectx/config/playback.json; do
+    squashfs-root/usr/lib/projectx/config/playback.json \
+    squashfs-root/usr/lib/projectx/config/camera_packs \
+    squashfs-root/usr/lib/projectx/config/cameras; do
     [[ -e "$path" ]] && ok "Present: $path" || fail "Missing: $path"
 done
+
+EXPECTED_VERSION="$(cd "$ROOT" && python3 - <<'PY'
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path("src").resolve()))
+from version import PROJECT_VERSION
+print(PROJECT_VERSION)
+PY
+)"
+
+BUILD_STAMP="$(tr -d '[:space:]' < squashfs-root/usr/lib/projectx/resources/build_stamp || true)"
+if [[ -n "$BUILD_STAMP" && "$BUILD_STAMP" != "dev" ]]; then
+    ok "PROJECTX_BUILD stamp present: $BUILD_STAMP"
+else
+    fail "PROJECTX_BUILD stamp missing or still 'dev' (got: ${BUILD_STAMP:-<empty>})"
+fi
+
+if [[ "$BUILD_STAMP" == "${EXPECTED_VERSION}-"* ]]; then
+    ok "Build stamp matches version prefix ${EXPECTED_VERSION}-*"
+else
+    fail "Build stamp does not start with ${EXPECTED_VERSION}- (got: $BUILD_STAMP)"
+fi
+
+if [[ -f squashfs-root/usr/share/metainfo/projectx.appdata.xml ]] \
+    || [[ -f squashfs-root/usr/share/metainfo/io.github.copex4590.projectx.appdata.xml ]]; then
+    ok "AppImage AppStream metadata present"
+else
+    fail "AppImage missing AppStream metadata under usr/share/metainfo"
+fi
+
+if grep -q '<project_license>MIT</project_license>' \
+    squashfs-root/usr/share/metainfo/*.appdata.xml 2>/dev/null; then
+    ok "AppImage AppStream license is MIT"
+else
+    fail "AppImage AppStream license is not MIT"
+fi
 
 [[ -x squashfs-root/AppRun ]] && ok "AppRun executable permission" || fail "AppRun not executable"
 [[ -x squashfs-root/usr/lib/projectx/projectx ]] && ok "Application executable permission" || fail "projectx not executable"
@@ -152,11 +193,40 @@ if [[ -f "$DEB" ]]; then
         fail "Package Description missing user-oriented summary"
     fi
 
+    PKG_VERSION="$(dpkg-deb -f "$DEB" Version)"
+    if [[ "$PKG_VERSION" == "$EXPECTED_VERSION" ]]; then
+        ok ".deb Version metadata: $PKG_VERSION"
+    else
+        fail ".deb Version is '$PKG_VERSION' (expected $EXPECTED_VERSION)"
+    fi
+
+    DEB_STAMP="$(tr -d '[:space:]' < "$DEB_EXTRACT/opt/projectx/resources/build_stamp" || true)"
+    if [[ -n "$DEB_STAMP" && "$DEB_STAMP" != "dev" ]]; then
+        ok ".deb PROJECTX_BUILD stamp: $DEB_STAMP"
+    else
+        fail ".deb build_stamp missing or 'dev' (got: ${DEB_STAMP:-<empty>})"
+    fi
+
+    if grep -q '<project_license>MIT</project_license>' \
+        "$DEB_EXTRACT/usr/share/metainfo/io.github.copex4590.projectx.appdata.xml"; then
+        ok "AppStream license is MIT"
+    else
+        fail "AppStream license is not MIT"
+    fi
+
     PKG_NAME="$(dpkg-deb -f "$DEB" Package)"
     if [[ "$PKG_NAME" == "projectx" ]]; then
         ok "Uninstall package name: projectx (sudo dpkg -r projectx)"
     else
         fail "Unexpected package name for uninstall: $PKG_NAME"
+    fi
+
+    # Spot-check uninstall script content shipped beside the .deb
+    UNINSTALL_SH="${RELEASE_DIR}/ProjectX-uninstall.sh"
+    if [[ -x "$UNINSTALL_SH" ]] && grep -qE 'dpkg --purge "\$PACKAGE_NAME"|dpkg --purge \$PACKAGE_NAME|dpkg -r projectx' "$UNINSTALL_SH"; then
+        ok "Standalone uninstall script references dpkg purge/remove for projectx"
+    else
+        fail "ProjectX-uninstall.sh missing or incomplete"
     fi
 
     rm -rf "$DEB_EXTRACT"

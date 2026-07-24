@@ -129,7 +129,20 @@ install_build_deps() {
 }
 
 run_pyinstaller() {
-    echo "Running PyInstaller for Linux..."
+    if [[ -z "${PROJECTX_BUILD:-}" ]]; then
+        local ver
+        ver="$("$PYTHON" - <<'PY'
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path("src").resolve()))
+from version import PROJECT_VERSION
+print(PROJECT_VERSION)
+PY
+)"
+        export PROJECTX_BUILD="${ver}-$(date -u +%Y%m%d)"
+    fi
+    printf '%s\n' "$PROJECTX_BUILD" > "$ROOT/src/resources/build_stamp"
+    echo "Running PyInstaller for Linux (PROJECTX_BUILD=$PROJECTX_BUILD)..."
     "$PYTHON" -m PyInstaller --noconfirm "$ROOT/installer/projectx.spec"
     echo "Linux bundle written to: $ROOT/dist/projectx/"
     "$PYTHON" "$ROOT/scripts/verify_bundle_no_data.py"

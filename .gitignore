@@ -39,6 +39,8 @@ build/
 dist/
 *.spec.bak
 .install-test/
+# Written by release build scripts; not for source commits
+src/resources/build_stamp
 
 # Windows release installer binary (build on Windows, upload for website publish)
 release/windows/*.exe
