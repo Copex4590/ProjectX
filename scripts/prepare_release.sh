@@ -28,6 +28,11 @@ echo "============================================================"
 echo "Project X — Prepare Public Release"
 echo "============================================================"
 
+echo "Cleaning release runtime artifacts..."
+"$PYTHON" "$ROOT/scripts/clean_release_runtime.py"
+echo "Verifying data/ tree contains no runtime artifacts..."
+"$PYTHON" "$ROOT/scripts/verify_data_tree_clean.py"
+
 mkdir -p \
     "$ROOT/release/windows" \
     "$ROOT/release/linux" \

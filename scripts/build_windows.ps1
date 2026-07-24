@@ -57,6 +57,11 @@ try {
     }
     Write-Host "[OK] Bundled assets present in repository.`n"
 
+    Write-Host "Cleaning release runtime artifacts ..."
+    & $venvPython (Join-Path $Root "scripts\clean_release_runtime.py")
+    if ($LASTEXITCODE -ne 0) { throw "Release runtime cleanup failed." }
+    Write-Host ""
+
     Write-Host "Verifying data/ tree contains no runtime artifacts ..."
     & $venvPython (Join-Path $Root "scripts\verify_data_tree_clean.py")
     if ($LASTEXITCODE -ne 0) { throw "data/ tree contains developer runtime artifacts." }

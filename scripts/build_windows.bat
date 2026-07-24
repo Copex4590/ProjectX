@@ -27,6 +27,9 @@ if errorlevel 1 goto :report_failure
 call :check_bundled_assets
 if errorlevel 1 goto :report_failure
 
+call :clean_release_runtime
+if errorlevel 1 goto :report_failure
+
 call :verify_data_tree
 if errorlevel 1 goto :report_failure
 
@@ -111,6 +114,13 @@ echo [FAIL] Missing bundled assets:!MISSING!
 echo        Pull the latest repository on Linux, commit bundled assets, then try again.
 echo        Leaflet fetch (Linux): scripts/fetch_leaflet.sh
 exit /b 1
+
+:clean_release_runtime
+echo Cleaning release runtime artifacts ...
+"%VENV_PY%" "%ROOT%\scripts\clean_release_runtime.py"
+if errorlevel 1 exit /b 1
+echo.
+exit /b 0
 
 :verify_data_tree
 echo Verifying data/ tree contains no runtime artifacts ...

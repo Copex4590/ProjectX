@@ -147,6 +147,11 @@ verify_data_tree() {
     "$PYTHON" "$ROOT/scripts/verify_data_tree_clean.py"
 }
 
+clean_release_runtime() {
+    echo "Cleaning release runtime artifacts..."
+    "$PYTHON" "$ROOT/scripts/clean_release_runtime.py"
+}
+
 clean_release_builds() {
     echo "Cleaning previous build artifacts..."
     bash "$ROOT/scripts/clean_build.sh"
@@ -493,6 +498,7 @@ read_version
 
 prepare_assets
 verify_runtime_resources
+clean_release_runtime
 verify_data_tree
 
 if [[ "$PREPARE_ONLY" == "1" ]]; then
