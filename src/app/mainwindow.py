@@ -31,6 +31,7 @@ from gui.applicationsettingsmanagerpage import ApplicationSettingsManagerPage
 from gui.installedpluginspage import InstalledPluginsPage
 from gui.vesseltimelinepage import VesselTimelinePage
 from gui.analyticsdashboardpage import AnalyticsDashboardPage
+from gui.sessionrecordingpage import SessionRecordingPage
 from gui.statisticspage import StatisticsPage
 from gui.alertcenterpage import AlertCenterPage
 from gui.rulespage import RulesPage
@@ -322,6 +323,7 @@ class MainWindow(QMainWindow):
         self.application_settings_page = ApplicationSettingsManagerPage()
         self.installed_plugins_page = InstalledPluginsPage()
         self.analytics_dashboard_page = AnalyticsDashboardPage()
+        self.session_recording_page = SessionRecordingPage()
 
         self.pages.addWidget(self.dashboard_page)        # 0
         self.pages.addWidget(self.map_page)              # 1
@@ -338,8 +340,21 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self.application_settings_page)  # 12
         self.pages.addWidget(self.installed_plugins_page)  # 13
         self.pages.addWidget(self.analytics_dashboard_page)  # 14
+        self.pages.addWidget(self.session_recording_page)  # 15
 
         self.system_health_page.attach_hybrid_engine(self.hybrid_engine)
+
+        try:
+            from session.bridge import SessionReplayBridge
+
+            self._session_replay_bridge = SessionReplayBridge(self)
+        except Exception:
+            logger.exception("Session replay bridge failed to initialize")
+            self._session_replay_bridge = None
+
+        self.session_recording_page.navigateToMapRequested.connect(
+            self.navigate_to_map
+        )
 
         self.sidebar = Sidebar()
         self.sidebar.pageSelected.connect(self._on_page_selected)
@@ -407,6 +422,7 @@ class MainWindow(QMainWindow):
             self.application_settings_page,
             self.installed_plugins_page,
             self.analytics_dashboard_page,
+            self.session_recording_page,
         ):
             refresh = getattr(page, "refresh_translations", None)
 
@@ -578,11 +594,42 @@ class MainWindow(QMainWindow):
             logger.exception("Failed while stopping background workers")
 
         try:
+            from session.player import session_player
+
+            if session_player.is_active:
+                session_player.stop()
+            if getattr(self, "_session_replay_bridge", None) is not None:
+                self._session_replay_bridge.shutdown()
+            self.alert_center_page.apply_session_replay_alerts(None)
+            self.map_page._map_controller.clear_playback()
+        except Exception:
+            logger.exception("Failed while stopping session replay")
+
+        try:
             from alerts import professional_alerts_engine
+            from alerts.gui_bridge import shutdown_alerts_gui_bridge
 
             professional_alerts_engine.stop()
+            shutdown_alerts_gui_bridge()
         except Exception:
             logger.exception("Failed while stopping Professional Alerts Engine")
+
+        try:
+            for page in (
+                getattr(self, "alert_center_page", None),
+                getattr(self, "analytics_dashboard_page", None),
+            ):
+                shutdown = getattr(page, "shutdown", None)
+                if callable(shutdown):
+                    shutdown()
+        except Exception:
+            logger.exception("Failed while shutting down live dashboard pages")
+
+        try:
+            ais_manager.stop()
+            rtl_manager.stop()
+        except Exception:
+            logger.exception("Failed while stopping AIS/RTL managers")
 
         try:
             plugin_manager.shutdown()

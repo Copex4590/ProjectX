@@ -5,11 +5,15 @@
 
 from __future__ import annotations
 
+import logging
+
 from PySide6.QtCore import QObject, Signal
 
 from alerts.alert_event import AlertEvent
 from alerts.alert_manager import EVENT_ALERT_FIRED, alert_manager
 from events import eventbus
+
+logger = logging.getLogger(__name__)
 
 
 class AlertsGuiBridge(QObject):
@@ -22,6 +26,10 @@ class AlertsGuiBridge(QObject):
 
         self.alert_fired.connect(self._deliver)
         eventbus.subscribe(EVENT_ALERT_FIRED, self._on_bus_alert)
+
+    def shutdown(self) -> None:
+
+        eventbus.unsubscribe(EVENT_ALERT_FIRED, self._on_bus_alert)
 
     def _on_bus_alert(self, *args, **kwargs) -> None:
 
@@ -41,7 +49,7 @@ class AlertsGuiBridge(QObject):
             try:
                 sink.on_alert(event)
             except Exception:
-                pass
+                logger.exception("Alert notification sink failed")
 
 
 _alerts_gui_bridge: AlertsGuiBridge | None = None
@@ -55,3 +63,12 @@ def install_alerts_gui_bridge(parent=None) -> AlertsGuiBridge:
         _alerts_gui_bridge = AlertsGuiBridge(parent)
 
     return _alerts_gui_bridge
+
+
+def shutdown_alerts_gui_bridge() -> None:
+
+    global _alerts_gui_bridge
+
+    if _alerts_gui_bridge is not None:
+        _alerts_gui_bridge.shutdown()
+        _alerts_gui_bridge = None

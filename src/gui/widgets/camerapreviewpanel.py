@@ -6,13 +6,7 @@ import logging
 from cameras import camera_manager
 from engines.camera import camera_selection_engine
 from gui.i18n_support import bind_language_refresh
-from gui.theme import (
-    BG_BASE,
-    BG_PANEL,
-    BORDER,
-    BORDER_STRONG,
-    TEXT_MUTED,
-)
+from gui.theme import ThemeColors
 from i18n import tr
 from models.ship import Ship
 from playback.live_camera_workflow import live_camera_workflow
@@ -64,13 +58,13 @@ class CameraPreviewPanel(QFrame):
 
         self.setStyleSheet(f"""
             QFrame#CameraPreviewPanel {{
-                background: {BG_PANEL};
-                border: 1px solid {BORDER_STRONG};
+                background: {ThemeColors.panel_elevated()};
+                border: 1px solid {ThemeColors.Primary700};
                 border-radius: 10px;
             }}
 
             QLabel {{
-                color: white;
+                color: {ThemeColors.TextPrimary};
             }}
 
             QLabel[role="title"] {{
@@ -79,7 +73,7 @@ class CameraPreviewPanel(QFrame):
             }}
 
             QLabel[role="caption"] {{
-                color: {TEXT_MUTED};
+                color: {ThemeColors.TextSecondary};
                 font-size: 9pt;
                 font-weight: 600;
             }}
@@ -90,20 +84,20 @@ class CameraPreviewPanel(QFrame):
             }}
 
             QLabel[role="empty"] {{
-                color: {TEXT_MUTED};
+                color: {ThemeColors.TextSecondary};
                 font-size: 12pt;
                 font-weight: 600;
             }}
 
             QLabel[role="error"] {{
-                color: #f0a8a8;
+                color: {ThemeColors.Danger};
                 font-size: 10pt;
                 font-weight: 500;
             }}
 
             QFrame#videoHost {{
-                background: {BG_BASE};
-                border: 1px solid {BORDER};
+                background: {ThemeColors.Panel};
+                border: 1px solid {ThemeColors.Border};
                 border-radius: 6px;
                 min-height: 180px;
             }}

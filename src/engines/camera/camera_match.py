@@ -7,6 +7,10 @@ from dataclasses import dataclass
 
 from models.camera import Camera
 
+WEIGHT_DISTANCE = 0.40
+WEIGHT_DIRECTION = 0.35
+WEIGHT_MARGIN = 0.25
+
 
 @dataclass(frozen=True)
 class CameraMatch:
@@ -47,9 +51,9 @@ def compute_confidence(
     margin_score = max(0.0, min(1.0, visibility_margin / radius))
 
     confidence = (
-        distance_score * 0.40
-        + direction_score * 0.35
-        + margin_score * 0.25
+        distance_score * WEIGHT_DISTANCE
+        + direction_score * WEIGHT_DIRECTION
+        + margin_score * WEIGHT_MARGIN
     )
 
     return round(min(1.0, max(0.0, confidence)), 4)

@@ -48,6 +48,15 @@ class AISManager:
         eventbus.subscribe("rtl.status", self._on_rtl_status)
         self._started = True
 
+    def stop(self) -> None:
+
+        if not self._started:
+            return
+
+        eventbus.unsubscribe("ais.status", self._on_ais_status)
+        eventbus.unsubscribe("rtl.status", self._on_rtl_status)
+        self._started = False
+
     def ais_connection_status(self) -> str:
 
         with self._lock:

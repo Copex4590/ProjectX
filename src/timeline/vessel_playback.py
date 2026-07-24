@@ -15,7 +15,7 @@ from PySide6.QtCore import QObject, QTimer, Signal
 
 from events import eventbus
 from models.ship import Ship
-from timeline import EVENT_POSITION_UPDATE
+from timeline.timeline_recorder import EVENT_POSITION_UPDATE
 from timeline.timeline_manager import timeline_manager
 from timeline.timeline_record import TimelineRecord
 

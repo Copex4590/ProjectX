@@ -45,7 +45,10 @@ class DesktopBannerSink(AlertNotificationSink):
             if not desktop_notifications_enabled():
                 return
         except Exception:
-            pass
+            logger.debug(
+                "Desktop notification preference check failed; showing alert",
+                exc_info=True,
+            )
 
         try:
             from gui.notifications.notification_manager import notification_manager

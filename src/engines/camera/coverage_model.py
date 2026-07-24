@@ -8,6 +8,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+from observation.geo_context import EARTH_RADIUS_KM
 from engines.camera.link_states import CameraLinkState
 from models.camera import Camera
 
@@ -49,7 +50,7 @@ def _destination_point(
 ) -> tuple[float, float]:
     """Forward geodesic approximation (spherical Earth)."""
 
-    radius = 6371.0
+    radius = EARTH_RADIUS_KM
     angular = distance_km / radius
     bearing = math.radians(bearing_deg)
     lat1 = math.radians(lat)

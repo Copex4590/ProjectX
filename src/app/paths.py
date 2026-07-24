@@ -100,6 +100,21 @@ def backups_dir() -> Path:
     return path
 
 
+def sessions_dir() -> Path:
+    """Session recording storage (…/ProjectX/sessions or user-data/sessions)."""
+
+    override = os.environ.get("PROJECTX_SESSIONS_DIR", "").strip()
+    if override:
+        path = Path(override)
+    elif is_frozen():
+        path = user_data_dir() / "sessions"
+    else:
+        path = bundle_dir().parent / "sessions"
+
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def plugins_dir() -> Path:
     """Directory containing installable plugin packages."""
 
@@ -137,4 +152,5 @@ def ensure_runtime_data_dirs() -> None:
         (data_dir / name).mkdir(parents=True, exist_ok=True)
 
     backups_dir()
+    sessions_dir()
     plugins_dir()

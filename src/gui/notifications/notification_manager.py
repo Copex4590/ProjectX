@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections import deque
 from dataclasses import dataclass, field
 from uuid import uuid4
@@ -13,6 +14,8 @@ from PySide6.QtCore import QObject, QTimer
 
 from gui.notifications.notification_banner import NotificationBanner
 from gui.notifications.severity import NotificationSeverity
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -66,7 +69,10 @@ class NotificationManager(QObject):
             if not desktop_notifications_enabled():
                 return key or ""
         except Exception:
-            pass
+            logger.debug(
+                "Desktop notification preference check failed; showing banner",
+                exc_info=True,
+            )
 
         item = NotificationItem(
             message=message,

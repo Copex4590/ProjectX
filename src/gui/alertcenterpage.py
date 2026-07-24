@@ -89,6 +89,7 @@ class AlertCenterPage(QWidget):
 
         self._manager = manager or alert_manager
         self._events: list[AlertEvent] = []
+        self._replay_events: list[AlertEvent] | None = None
         self._filters = AlertFilters()
         self._bridge = _GuiBridge()
         self._bridge.refresh_requested.connect(self.refresh)
@@ -106,6 +107,11 @@ class AlertCenterPage(QWidget):
         self._timer.start()
 
         eventbus.subscribe(EVENT_ALERT_FIRED, self._on_alert_fired)
+
+    def shutdown(self) -> None:
+
+        self._timer.stop()
+        eventbus.unsubscribe(EVENT_ALERT_FIRED, self._on_alert_fired)
 
     def _on_alert_fired(self, *args, **kwargs) -> None:
 
@@ -390,11 +396,22 @@ class AlertCenterPage(QWidget):
         self._populate_filter_combos()
         self._apply_filters()
 
+    def apply_session_replay_alerts(self, events: list[AlertEvent] | None) -> None:
+        """Show reconstructed alerts during session replay (does not touch alerts.db)."""
+
+        self._replay_events = None if events is None else list(events)
+        self.refresh()
+
     def refresh(self) -> list[AlertEvent]:
 
-        self._events = self._manager.events()
-        active = self._manager.active_events()
-        history = self._manager.history_events()
+        if self._replay_events is not None:
+            self._events = list(self._replay_events)
+            active = [event for event in self._events if not event.acknowledged]
+            history = [event for event in self._events if event.acknowledged]
+        else:
+            self._events = self._manager.events()
+            active = self._manager.active_events()
+            history = self._manager.history_events()
         critical = sum(1 for event in active if event.severity == "critical")
         enabled_rules = sum(1 for rule in self._manager.rules() if rule.enabled)
 

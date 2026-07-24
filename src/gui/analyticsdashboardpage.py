@@ -158,6 +158,16 @@ class AnalyticsDashboardPage(QWidget):
         eventbus.subscribe(EVENT_ALERT_FIRED, self._on_bus_event)
         eventbus.subscribe(EVENT_ALERT_CLEARED, self._on_bus_event)
 
+    def shutdown(self) -> None:
+
+        self._timer.stop()
+        eventbus.unsubscribe("ship.updated", self._on_bus_event)
+        eventbus.unsubscribe("ais.status", self._on_bus_event)
+        eventbus.unsubscribe("rtl.status", self._on_bus_event)
+        eventbus.unsubscribe("providers.changed", self._on_bus_event)
+        eventbus.unsubscribe(EVENT_ALERT_FIRED, self._on_bus_event)
+        eventbus.unsubscribe(EVENT_ALERT_CLEARED, self._on_bus_event)
+
     def _on_bus_event(self, *args, **kwargs) -> None:
 
         self._bridge.refresh_requested.emit()

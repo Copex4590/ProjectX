@@ -21,6 +21,8 @@ First Public Test release (SAVE-205 finalization). Stabilization track SAVE-200�
 - **SAVE-215** — Professional Alerts Engine (active/history, ack, clear, export, live detectors)
 - **SAVE-216** — Analytics Dashboard (live charts, interval filter, CSV/PNG/PDF export)
 - **SAVE-217** — Intelligent Camera & AIS Link (scoring, auto-switch, coverage zones, Camera Link panel)
+- **SAVE-218** — Stabilization & Code Quality (EventBus lifecycle, dead code removal, logging, ThemeColors)
+- **SAVE-219** — Session Recording & Replay (.pxsession, Session Manager, map/alerts/camera sync)
 
 ### Changed
 

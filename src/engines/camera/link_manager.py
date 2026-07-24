@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from threading import Lock
 
@@ -29,6 +30,11 @@ from engines.camera.scoring_engine import (
 )
 from events import eventbus
 from models.ship import Ship
+
+logger = logging.getLogger(__name__)
+
+# Prefer a new camera only when it is clearly better than the current link.
+AUTO_SWITCH_SCORE_DELTA = 0.08
 
 
 @dataclass
@@ -228,7 +234,7 @@ class IntelligentCameraLinkManager:
                         preferred=True,
                         busy=True,
                     )
-                elif preferred.score >= current.score + 0.08:
+                elif preferred.score >= current.score + AUTO_SWITCH_SCORE_DELTA:
                     active = self._scoring.score_camera(
                         preferred.camera,
                         ship.lat,
@@ -344,7 +350,11 @@ class IntelligentCameraLinkManager:
         try:
             ship.camera_visible = bool(visible)
         except Exception:
-            pass
+            logger.debug(
+                "Unable to update ship.camera_visible for MMSI %s",
+                getattr(ship, "mmsi", None),
+                exc_info=True,
+            )
 
 
 intelligent_camera_link_manager = IntelligentCameraLinkManager()

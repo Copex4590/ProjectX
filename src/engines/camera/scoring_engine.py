@@ -9,13 +9,18 @@ from dataclasses import dataclass
 
 from cameras.manager import CameraManager, camera_manager
 from engines.camera.camera_match import (
+    WEIGHT_DIRECTION as MATCH_WEIGHT_DIRECTION,
+    WEIGHT_DISTANCE as MATCH_WEIGHT_DISTANCE,
+    WEIGHT_MARGIN as MATCH_WEIGHT_MARGIN,
     CameraMatch,
-    bearing_difference_deg,
     build_camera_match,
 )
 from engines.camera.link_states import CameraLinkState
 from models.camera import Camera
 from models.ship import Ship
+
+# Drop near-zero candidates that are also outside FOV.
+CANDIDATE_SCORE_FLOOR = 0.05
 
 
 @dataclass(frozen=True)
@@ -73,9 +78,9 @@ def _camera_runtime_state(camera: Camera, *, preferred: bool, busy: bool) -> Cam
 class CameraScoringEngine:
     """Prioritize cameras by distance, FOV alignment, and visibility margin."""
 
-    WEIGHT_DISTANCE = 0.40
-    WEIGHT_DIRECTION = 0.35
-    WEIGHT_MARGIN = 0.25
+    WEIGHT_DISTANCE = MATCH_WEIGHT_DISTANCE
+    WEIGHT_DIRECTION = MATCH_WEIGHT_DIRECTION
+    WEIGHT_MARGIN = MATCH_WEIGHT_MARGIN
 
     def __init__(self, manager: CameraManager | None = None):
 
@@ -179,7 +184,7 @@ class CameraScoringEngine:
             scored = self.score_camera(camera, ship.lat, ship.lon)
             if not include_out_of_fov and not scored.in_fov:
                 continue
-            if scored.in_fov or scored.score > 0.05:
+            if scored.in_fov or scored.score > CANDIDATE_SCORE_FLOOR:
                 raw.append(scored)
 
         # Prefer in-FOV first, then score.

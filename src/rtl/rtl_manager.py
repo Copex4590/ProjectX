@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from threading import Lock
 
@@ -16,6 +17,12 @@ from rtl.aiscatcher_status import get_aiscatcher_status
 from rtl.device_detector import RTLDeviceInfo, detect_rtl_device
 from rtl.diagnostics import RTLDiagnosticsReport, run_rtl_diagnostics
 from rtl.reception_monitor import ReceptionTestResult, count_rtl_ships, run_reception_test
+
+logger = logging.getLogger(__name__)
+
+SIGNAL_QUALITY_GOOD_MESSAGES = 20
+SIGNAL_QUALITY_FAIR_MESSAGES = 5
+SIGNAL_QUALITY_WEAK_MESSAGES = 1
 
 
 @dataclass(frozen=True)
@@ -46,6 +53,15 @@ class RTLManager:
         eventbus.subscribe("rtl.status", self._on_rtl_status)
         eventbus.subscribe("ship.updated", self._on_ship_updated)
         self._started = True
+
+    def stop(self) -> None:
+
+        if not self._started:
+            return
+
+        eventbus.unsubscribe("rtl.status", self._on_rtl_status)
+        eventbus.unsubscribe("ship.updated", self._on_ship_updated)
+        self._started = False
 
     def rtl_connection_status(self) -> str:
 
@@ -188,11 +204,11 @@ class RTLManager:
                 f"@ {getattr(ship, 'lat', '')}, {getattr(ship, 'lon', '')}"
             ).strip()
 
-            if self._message_count >= 20:
+            if self._message_count >= SIGNAL_QUALITY_GOOD_MESSAGES:
                 self._signal_quality = "good"
-            elif self._message_count >= 5:
+            elif self._message_count >= SIGNAL_QUALITY_FAIR_MESSAGES:
                 self._signal_quality = "fair"
-            elif self._message_count >= 1:
+            elif self._message_count >= SIGNAL_QUALITY_WEAK_MESSAGES:
                 self._signal_quality = "weak"
 
 

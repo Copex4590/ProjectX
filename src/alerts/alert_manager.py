@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 import csv
-import math
 from datetime import datetime
 from pathlib import Path
 
@@ -30,6 +29,7 @@ from alerts.alert_rule import (
     AlertRule,
 )
 from events import eventbus
+from observation.geo_context import haversine_distance_km
 
 EVENT_ALERT_FIRED = "alerts.fired"
 EVENT_ALERT_ACKNOWLEDGED = "alerts.acknowledged"
@@ -83,18 +83,7 @@ def _distance_km(
     lon2: float,
 ) -> float:
 
-    radius_km = 6371.0
-    phi1 = math.radians(lat1)
-    phi2 = math.radians(lat2)
-    delta_phi = math.radians(lat2 - lat1)
-    delta_lambda = math.radians(lon2 - lon1)
-
-    a = (
-        math.sin(delta_phi / 2) ** 2
-        + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
-    )
-
-    return radius_km * (2 * math.atan2(math.sqrt(a), math.sqrt(1 - a)))
+    return haversine_distance_km(lat1, lon1, lat2, lon2)
 
 
 def _point_in_region(

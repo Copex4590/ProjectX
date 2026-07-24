@@ -1,4 +1,5 @@
 import json
+import logging
 from collections import Counter
 
 from PySide6.QtCore import Qt, QTimer, QUrl
@@ -7,7 +8,7 @@ from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 
 from database import registry
 from engines.camera import camera_selection_engine
-from engines.camera.link_manager import intelligent_camera_link_manager
+from engines.camera.link_manager import CameraLinkSnapshot, intelligent_camera_link_manager
 from engines.camera.link_states import CameraLinkMode
 from observation.geo_context import geo_context
 from debug.obs_freeze_trace import (
@@ -35,6 +36,9 @@ from timeline.vessel_playback import PlaybackMode, vessel_playback_engine
 from logbook import logbook_manager
 from vessels.flags.flag_manager import flag_manager
 from vessels.photo_manager import photo_manager
+
+
+logger = logging.getLogger(__name__)
 
 
 _MAP_SHIPS_INTERVAL_MS = 200  # SAVE-106: max 5 Hz marker updates
@@ -377,7 +381,7 @@ class MapPage(QWidget):
 
             _camera_manager.load()
         except Exception:
-            pass
+            logger.exception("Failed to load camera pack inventory for MapPage")
         self.apply_personalization()
         self._map_controller.refresh_observation_points()
 
@@ -429,7 +433,133 @@ class MapPage(QWidget):
                 page_current
                 and visible
                 and pick_mode == PickMode.NONE
+                and not self._session_replay_active()
             )
+
+    @staticmethod
+    def _session_replay_active() -> bool:
+
+        try:
+            from session.bridge import is_session_replaying
+
+            return is_session_replaying()
+        except Exception:
+            return False
+
+    def apply_session_replay_ships(
+        self,
+        ships: list,
+        *,
+        focus_mmsi: int | None = None,
+    ) -> None:
+        """Push replay vessel positions onto the map (live AIS updates paused)."""
+
+        import json
+
+        full = []
+        for ship in ships:
+            try:
+                full.append(_serialize_ship(ship))
+            except Exception:
+                full.append(
+                    {
+                        "mmsi": ship.mmsi,
+                        "name": ship.name,
+                        "lat": ship.lat,
+                        "lon": ship.lon,
+                        "heading": ship.heading or 0,
+                        "course": ship.course,
+                        "speed": ship.speed,
+                    }
+                )
+
+        payload = json.dumps({"mode": "full", "ships": full, "remove": []})
+        self.map.update_ships(payload)
+
+        if focus_mmsi is not None:
+            focus = next((s for s in ships if s.mmsi == int(focus_mmsi)), None)
+            if focus is not None:
+                self._map_controller.set_playback_active(int(focus_mmsi))
+                self._map_controller.set_playback_cursor(
+                    focus.lat,
+                    focus.lon,
+                    focus.heading or focus.course,
+                )
+
+        if self._selected_mmsi is not None:
+            self.vessel_details.set_mmsi(self._selected_mmsi)
+            self._bind_timeline_vessel(self._selected_mmsi)
+
+    def apply_session_replay_camera(self, snapshot: dict | None) -> None:
+        """Apply a recorded Camera Link snapshot without live evaluate()."""
+
+        if not snapshot:
+            self.map.clear_camera_link()
+            return
+
+        active = snapshot.get("active") or {}
+        mmsi = snapshot.get("mmsi")
+        ship = registry.get(int(mmsi)) if mmsi is not None else None
+
+        # Update panel explanation fields via a lightweight synthetic snapshot text.
+        from engines.camera.link_manager import CameraLinkSnapshot
+        from engines.camera.link_states import CameraLinkMode as LinkMode
+
+        mode_raw = str(snapshot.get("mode") or "Auto")
+        try:
+            mode = LinkMode(mode_raw)
+        except ValueError:
+            mode = LinkMode.AUTO
+
+        # Panel expects ScoredCamera objects; show textual summary when replaying.
+        synthetic = CameraLinkSnapshot(
+            mmsi=int(mmsi) if mmsi is not None else None,
+            mode=mode,
+            active=None,
+            alternatives=[],
+            explanation=str(snapshot.get("explanation") or ""),
+            coverage_visible=bool(snapshot.get("coverage_visible", False)),
+            switched=bool(snapshot.get("switched", False)),
+            reason=str(snapshot.get("reason") or "Session replay"),
+        )
+        # Enrich explanation with active camera meta for the panel body.
+        if active:
+            synthetic.explanation = (
+                f"{active.get('camera_name', 'Camera')} — "
+                f"{float(active.get('score') or 0.0) * 100:.1f}% "
+                f"[{active.get('state', '')}]\n"
+                f"{synthetic.explanation}"
+            ).strip()
+            # Fake active display via panel labels when match missing.
+            self.camera_link.apply_snapshot(synthetic)
+            self.camera_link._active_name.setText(str(active.get("camera_name") or "—"))
+            self.camera_link._active_meta.setText(
+                f"{active.get('state', '')} · "
+                f"{float(active.get('score') or 0.0) * 100:.1f}% · "
+                f"{float(active.get('distance_km') or 0.0):.2f} km"
+            )
+        else:
+            self.camera_link.apply_snapshot(synthetic)
+
+        ship_lat = ship.lat if ship is not None else None
+        ship_lon = ship.lon if ship is not None else None
+        if active and ship_lat is not None:
+            self.map.set_camera_link(
+                {
+                    "mmsi": mmsi,
+                    "ship_lat": ship_lat,
+                    "ship_lon": ship_lon,
+                    "camera_id": active.get("camera_id"),
+                    "camera_name": active.get("camera_name"),
+                    "camera_lat": active.get("camera_lat"),
+                    "camera_lon": active.get("camera_lon"),
+                    "state": active.get("state"),
+                    "score": active.get("score"),
+                    "mode": mode_raw,
+                }
+            )
+        else:
+            self.map.clear_camera_link()
 
     def _schedule_ships_full(self, label: str) -> None:
 
