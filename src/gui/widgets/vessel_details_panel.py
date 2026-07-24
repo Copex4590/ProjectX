@@ -395,6 +395,11 @@ class VesselDetailsPanel(QWidget):
         eventbus.subscribe("ship.updated", self._on_ship_updated_event)
         eventbus.subscribe(EVENT_SYNC_COMPLETED, self._on_sync_event)
 
+    def shutdown(self) -> None:
+
+        eventbus.unsubscribe("ship.updated", self._on_ship_updated_event)
+        eventbus.unsubscribe(EVENT_SYNC_COMPLETED, self._on_sync_event)
+
     def _on_ship_updated_event(self, *args, **kwargs) -> None:
 
         if self._mmsi is None:

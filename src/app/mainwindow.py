@@ -885,6 +885,15 @@ class MainWindow(QMainWindow):
         self._persist_window_geometry()
 
         logger.info("Stopping Hybrid Engine")
+
+        try:
+            bridge = getattr(self, "event_bridge", None)
+            shutdown = getattr(bridge, "shutdown", None)
+            if callable(shutdown):
+                shutdown()
+        except Exception:
+            logger.exception("Failed while shutting down EventBridge")
+
         try:
             from database.vessel_sync import vessel_sync
             from engines.timeline.arrival_departure_engine import (
@@ -929,15 +938,18 @@ class MainWindow(QMainWindow):
             logger.exception("Failed while stopping Professional Alerts Engine")
 
         try:
-            for page in (
-                getattr(self, "alert_center_page", None),
-                getattr(self, "analytics_dashboard_page", None),
+            for attr in (
+                "alert_center_page",
+                "analytics_dashboard_page",
+                "map_page",
+                "statistics_page",
             ):
+                page = getattr(self, attr, None)
                 shutdown = getattr(page, "shutdown", None)
                 if callable(shutdown):
                     shutdown()
         except Exception:
-            logger.exception("Failed while shutting down live dashboard pages")
+            logger.exception("Failed while shutting down live pages")
 
         try:
             ais_manager.stop()

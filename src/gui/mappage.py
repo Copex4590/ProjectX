@@ -401,6 +401,14 @@ class MapPage(QWidget):
             )
         )
 
+    def shutdown(self) -> None:
+
+        self._marker_timer.stop()
+        self._popup_timer.stop()
+        shutdown = getattr(self.vessel_details, "shutdown", None)
+        if callable(shutdown):
+            shutdown()
+
     def _map_page_is_current(self) -> bool:
 
         window = self.window()

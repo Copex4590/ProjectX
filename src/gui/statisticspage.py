@@ -215,6 +215,10 @@ class StatisticsPage(QWidget):
         self.refresh_translations()
         self.refresh()
 
+    def shutdown(self) -> None:
+
+        self._auto_refresh_timer.stop()
+
     def refresh_translations(self) -> None:
 
         self.title_label.setText(tr("Statistics Dashboard"))
