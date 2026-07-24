@@ -139,7 +139,11 @@ class Application:
 
         if self._first_run_pending:
             _log_startup_phase("first-run startup scheduled")
-            self.window.show()
+            self.window.apply_startup_window_management()
+            if self.window.startup_should_maximize():
+                self.window.showMaximized()
+            else:
+                self.window.show()
             QTimer.singleShot(0, self._begin_first_run)
             return self.qt.exec()
 
@@ -161,5 +165,10 @@ class Application:
 
         if self._splash is not None:
             self._splash.finish(self.window)
-        self.window.show()
+        # Re-detect current monitor immediately before first show.
+        self.window.apply_startup_window_management()
+        if self.window.startup_should_maximize():
+            self.window.showMaximized()
+        else:
+            self.window.show()
         _log_startup_phase("main window visible")

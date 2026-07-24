@@ -1,18 +1,19 @@
 # SAVE-222 — CHANGELOG (short)
 
-## Added
-- **Window Management** settings section (directly under General) with:
-  - Start maximized
-  - Restore last window size and position
-  - Automatically fit window to current monitor
-  - Always center window on startup
-  - Limit window size to current monitor work area
-- Preference keys with sensible defaults (restore/fit/limit ON, center OFF)
-- Visual verification: `docs/reports/SAVE-222_settings_ui.png`
+## Startup flow (mandatory)
+1. Detect current monitor (`QScreen` via cursor → widget → primary)
+2. Read `QScreen.availableGeometry()` every startup (including maximized)
+3. Read stored window geometry
+4. Validate against the detected work area
+5. Apply Window Management options
+6. Show / showMaximized
 
-## Changed
-- Startup geometry resolved only via `WindowGeometryManager`
-- Removed unused **Restore previous session layout** checkbox from Settings (preference key retained for compatibility)
+## Settings UI
+- **Window Management** section under General with all five behaviour checkboxes
+- Hint: monitor detection is automatic; options only control behaviour on that screen
+- Removed obsolete “Restore previous session layout” control
 
-## Binding
-- All five Window Management checkboxes load/save through Preferences
+## Files
+- `src/app/window_geometry.py` — WindowGeometryManager
+- `src/app/mainwindow.py` / `application.py` — apply before show
+- `src/gui/applicationsettingsmanagerpage.py` — Settings UI

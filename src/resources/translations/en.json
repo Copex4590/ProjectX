@@ -618,5 +618,6 @@
   "Restore last window size and position": "Restore last window size and position",
   "Automatically fit window to current monitor": "Automatically fit window to current monitor",
   "Always center window on startup": "Always center window on startup",
-  "Limit window size to current monitor work area": "Limit window size to current monitor work area"
+  "Limit window size to current monitor work area": "Limit window size to current monitor work area",
+  "The current monitor is detected automatically. These options only control window behaviour on that screen.": "The current monitor is detected automatically. These options only control window behaviour on that screen."
 }

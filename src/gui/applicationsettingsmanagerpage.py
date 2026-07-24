@@ -213,6 +213,15 @@ class ApplicationSettingsManagerPage(QWidget):
 
         self._window_card = self._add_section(layout, "Window Management")
         self._window_card.setObjectName("windowManagementSection")
+
+        self._window_hint = QLabel()
+        self._window_hint.setObjectName("windowManagementHint")
+        self._window_hint.setWordWrap(True)
+        self._window_hint.setStyleSheet(
+            f"color: {ThemeColors.TextSecondary}; font-size: 9pt;"
+        )
+        self._window_card.body.addWidget(self._window_hint)
+
         self._startup_maximized = self._add_checkbox(
             self._window_card,
             "Start maximized",
@@ -526,6 +535,12 @@ class ApplicationSettingsManagerPage(QWidget):
 
         self._title_label.setText(tr("Settings"))
         self._status_label.setText(tr("All settings are saved to preferences.json"))
+        self._window_hint.setText(
+            tr(
+                "The current monitor is detected automatically. "
+                "These options only control window behaviour on that screen."
+            )
+        )
 
         for section in self._sections:
             section.refresh_translations()

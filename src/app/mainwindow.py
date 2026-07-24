@@ -478,6 +478,21 @@ class MainWindow(QMainWindow):
     def _apply_startup_options(self) -> None:
 
         preferences = preferences_manager.get()
+        self.apply_startup_window_management(preferences=preferences)
+
+        page_index = startup_page_index(preferences)
+        if 0 <= page_index < self.pages.count():
+            self.pages.setCurrentIndex(page_index)
+
+    def apply_startup_window_management(self, preferences=None) -> None:
+        """
+        Detect the current monitor, validate geometry, apply Window Management.
+
+        Showing the window remains the Application controller's responsibility.
+        """
+
+        if preferences is None:
+            preferences = preferences_manager.get()
 
         plan = window_geometry_manager.plan_startup(
             WindowManagementSettings(
@@ -491,14 +506,15 @@ class MainWindow(QMainWindow):
             self,
         )
 
-        if plan.maximized:
-            self.showMaximized()
-        elif plan.geometry is not None:
+        # Always place a monitor-validated normal geometry first.
+        if plan.geometry is not None:
             self.setGeometry(plan.geometry)
 
-        page_index = startup_page_index(preferences)
-        if 0 <= page_index < self.pages.count():
-            self.pages.setCurrentIndex(page_index)
+        self._startup_plan_maximized = plan.maximized
+
+    def startup_should_maximize(self) -> bool:
+
+        return bool(getattr(self, "_startup_plan_maximized", False))
 
     def _persist_window_geometry(self) -> None:
 

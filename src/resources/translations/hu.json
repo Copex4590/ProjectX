@@ -618,5 +618,6 @@
   "Restore last window size and position": "Utolsó ablakméret és pozíció visszaállítása",
   "Automatically fit window to current monitor": "Ablak automatikus igazítása az aktuális monitorhoz",
   "Always center window on startup": "Ablak középre igazítása indításkor",
-  "Limit window size to current monitor work area": "Ablakméret korlátozása a monitor munkaasztalára"
+  "Limit window size to current monitor work area": "Ablakméret korlátozása a monitor munkaasztalára",
+  "The current monitor is detected automatically. These options only control window behaviour on that screen.": "Az aktuális monitort a program automatikusan felismeri. Ezek az opciók csak az ablak viselkedését szabályozzák azon a képernyőn."
 }
