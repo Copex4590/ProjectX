@@ -61,6 +61,12 @@ class PageRegistry:
         self._by_attr: dict[str, PageSpec] = {}
         self._loaded: dict[int, QWidget] = {}
         self._placeholders: dict[int, QWidget] = {}
+        self._initialized: set[int] = set()
+        # Diagnostics for stabilization / tests (create / initialize / activate).
+        self.create_counts: dict[str, int] = {}
+        self.initialize_counts: dict[str, int] = {}
+        self.activate_counts: dict[str, int] = {}
+        self.binder_counts: dict[str, int] = {}
 
     def register(self, spec: PageSpec) -> None:
         if spec.index in self._specs:
@@ -72,10 +78,7 @@ class PageRegistry:
         self._by_attr[spec.attr_name] = spec
 
         if spec.eager:
-            page = self._create(spec)
-            self._stack.addWidget(page)
-            self._loaded[spec.index] = page
-            setattr(self._host, spec.attr_name, page)
+            page = self._materialize(spec)
             return
 
         placeholder = _PagePlaceholder(spec.attr_name)
@@ -103,8 +106,11 @@ class PageRegistry:
         return [self._loaded[i] for i in sorted(self._loaded)]
 
     def ensure(self, index: int) -> QWidget:
+        """Return the real page, creating once; call activate() on every visit."""
+
         loaded = self._loaded.get(index)
         if loaded is not None:
+            self._activate(index, loaded)
             return loaded
 
         spec = self._specs.get(index)
@@ -121,30 +127,42 @@ class PageRegistry:
 
     def _create(self, spec: PageSpec) -> QWidget:
         logger.info("Lazy page create: %s (index=%s)", spec.attr_name, spec.index)
-        page = spec.factory()
+        self.create_counts[spec.attr_name] = self.create_counts.get(spec.attr_name, 0) + 1
+        return spec.factory()
 
-        # Optional hooks for pages that split construction from data load.
-        # Existing pages may still do heavy work in __init__; that is OK until
-        # per-page optimization passes land.
+    def _initialize(self, index: int, page: QWidget, attr_name: str) -> None:
+        if index in self._initialized:
+            return
+        self._initialized.add(index)
         initialize = getattr(page, "initialize", None)
         if callable(initialize):
             initialize()
+            self.initialize_counts[attr_name] = (
+                self.initialize_counts.get(attr_name, 0) + 1
+            )
 
+    def _activate(self, index: int, page: QWidget) -> None:
+        spec = self._specs[index]
         activate = getattr(page, "activate", None)
         if callable(activate):
             activate()
-
-        return page
+            self.activate_counts[spec.attr_name] = (
+                self.activate_counts.get(spec.attr_name, 0) + 1
+            )
 
     def _materialize(self, spec: PageSpec) -> QWidget:
         if spec.index in self._loaded:
-            return self._loaded[spec.index]
+            page = self._loaded[spec.index]
+            self._activate(spec.index, page)
+            return page
 
         page = self._create(spec)
         placeholder = self._placeholders.get(spec.index)
         stack_index = spec.index
 
-        if placeholder is not None:
+        if spec.eager:
+            self._stack.addWidget(page)
+        elif placeholder is not None:
             # Replace placeholder in-place to preserve indices.
             self._stack.insertWidget(stack_index, page)
             self._stack.removeWidget(placeholder)
@@ -156,8 +174,15 @@ class PageRegistry:
         self._loaded[spec.index] = page
         setattr(self._host, spec.attr_name, page)
 
+        self._initialize(spec.index, page, spec.attr_name)
+
         if spec.binder is not None:
             spec.binder(page)
+            self.binder_counts[spec.attr_name] = (
+                self.binder_counts.get(spec.attr_name, 0) + 1
+            )
+
+        self._activate(spec.index, page)
 
         logger.info("Lazy page ready: %s", spec.attr_name)
         return page
