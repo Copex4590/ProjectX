@@ -210,12 +210,9 @@ class ApplicationSettingsManagerPage(QWidget):
             SUPPORTED_STARTUP_PAGES,
             _STARTUP_LABELS,
         )
-        self._startup_restore = self._add_checkbox(
-            self._general_card,
-            "Restore previous session layout",
-        )
 
         self._window_card = self._add_section(layout, "Window Management")
+        self._window_card.setObjectName("windowManagementSection")
         self._startup_maximized = self._add_checkbox(
             self._window_card,
             "Start maximized",
@@ -236,6 +233,11 @@ class ApplicationSettingsManagerPage(QWidget):
             self._window_card,
             "Limit window size to current monitor work area",
         )
+        self._startup_maximized.setObjectName("windowStartMaximized")
+        self._window_restore_geometry.setObjectName("windowRestoreGeometry")
+        self._window_auto_fit.setObjectName("windowAutoFit")
+        self._window_always_center.setObjectName("windowAlwaysCenter")
+        self._window_limit_to_monitor.setObjectName("windowLimitToMonitor")
 
         self._ais_card = self._add_section(layout, "AIS")
         providers_label = QLabel()
@@ -429,6 +431,7 @@ class ApplicationSettingsManagerPage(QWidget):
         checkbox = QCheckBox()
         checkbox.setProperty("label_key", label_key)
         checkbox.setStyleSheet(self._checkbox_style())
+        checkbox.setMinimumHeight(28)
         card.body.addWidget(checkbox)
         return checkbox
 
@@ -529,7 +532,6 @@ class ApplicationSettingsManagerPage(QWidget):
 
         for widget in (
             self._startup_maximized,
-            self._startup_restore,
             self._window_restore_geometry,
             self._window_auto_fit,
             self._window_always_center,
@@ -605,7 +607,6 @@ class ApplicationSettingsManagerPage(QWidget):
             self._set_combo_value(self._theme_combo, preferences.theme)
             self._set_combo_value(self._startup_page_combo, preferences.startup_page)
             self._startup_maximized.setChecked(preferences.startup_maximized)
-            self._startup_restore.setChecked(preferences.startup_restore_session)
             self._window_restore_geometry.setChecked(
                 preferences.window_restore_geometry
             )
@@ -697,7 +698,6 @@ class ApplicationSettingsManagerPage(QWidget):
             theme=theme,
             startup_page=startup_page,
             startup_maximized=self._startup_maximized.isChecked(),
-            startup_restore_session=self._startup_restore.isChecked(),
             window_restore_geometry=self._window_restore_geometry.isChecked(),
             window_auto_fit=self._window_auto_fit.isChecked(),
             window_always_center=self._window_always_center.isChecked(),
