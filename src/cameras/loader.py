@@ -26,14 +26,38 @@ class CameraLoader:
 
     def load_into(self, registry: CameraRegistry) -> int:
 
+        cameras = self.load_cameras()
+        registry.replace_all(cameras)
+        return len(cameras)
+
+    def load_cameras(self) -> list[Camera]:
+        """Load catalog cameras from config/cameras without touching a registry."""
+
         index = self._load_index()
-        cameras = []
+        cameras: list[Camera] = []
 
         for country_entry in index.get("countries", []):
             cameras.extend(self._load_country_file(country_entry))
 
-        registry.replace_all(cameras)
-        return len(cameras)
+        return cameras
+
+    def parse_camera_entry(
+        self,
+        entry: dict,
+        *,
+        country_code: str,
+        source: str,
+        camera_source: str = "catalog",
+    ) -> Camera:
+        """Public parse helper for pack loaders (SAVE-231)."""
+
+        camera = self._parse_camera(
+            entry,
+            country_code=country_code,
+            source=source,
+        )
+        camera.source = camera_source
+        return camera
 
     def load_country(self, country_code: str) -> list[Camera]:
 
@@ -199,6 +223,7 @@ class CameraLoader:
             river=river,
             timezone=timezone,
             tags=tags,
+            source="catalog",
         )
 
     def _require_float(

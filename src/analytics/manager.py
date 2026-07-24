@@ -237,6 +237,7 @@ class AnalyticsManager:
 
     def _camera_stats(self) -> CameraAnalytics:
 
+        camera_manager.ensure_loaded()
         cameras = camera_manager.all()
         enabled = camera_manager.enabled()
         country_counter = Counter(

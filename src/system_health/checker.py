@@ -11,7 +11,7 @@ from app.paths import resource_path
 from ais import ais_manager
 from ais.providers import normalize_provider_type
 from ais.providers.provider import AISProviderType
-from camera import camera_manager
+from cameras import camera_manager
 from engines.ais.ais_catcher_launcher import is_port_open
 from engines.camera.diagnostics import camera_diagnostics_engine
 from i18n import language_manager

@@ -129,6 +129,131 @@ class CameraPackManager:
 
         return self._registry.count()
 
+    def load_enabled_cameras(self, loader=None) -> list:
+        """Load camera payloads from enabled pack region files (SAVE-231)."""
+
+        from cameras.loader import CameraLoader
+        from models.camera import SOURCE_PACK, Camera
+
+        camera_loader = loader or CameraLoader()
+        cameras: list[Camera] = []
+
+        if not self._packs_dir.is_dir():
+            return cameras
+
+        for pack in self.enabled_packs():
+            pack_dir = self._packs_dir / pack.id
+            if not pack_dir.is_dir():
+                # Pack id may differ from directory name — scan by manifest id.
+                pack_dir = self._find_pack_dir(pack.id)
+            if pack_dir is None or not pack_dir.is_dir():
+                continue
+
+            manifest_path = pack_dir / "manifest.json"
+            regions = self._manifest_regions(manifest_path)
+            if not regions:
+                # Fallback: every JSON except manifest/state
+                for path in sorted(pack_dir.glob("*.json")):
+                    if path.name in {"manifest.json", "state.json"}:
+                        continue
+                    cameras.extend(
+                        self._load_region_file(
+                            camera_loader,
+                            path,
+                            country=pack.country,
+                        )
+                    )
+                continue
+
+            for region in regions:
+                filename = str(region.get("file") or "").strip()
+                if not filename:
+                    continue
+                path = pack_dir / filename
+                if not path.is_file():
+                    continue
+                cameras.extend(
+                    self._load_region_file(
+                        camera_loader,
+                        path,
+                        country=pack.country,
+                    )
+                )
+
+        for camera in cameras:
+            camera.source = SOURCE_PACK
+
+        return cameras
+
+    def _find_pack_dir(self, pack_id: str) -> Path | None:
+
+        if not self._packs_dir.is_dir():
+            return None
+
+        for pack_dir in self._packs_dir.iterdir():
+            if not pack_dir.is_dir():
+                continue
+            manifest_path = pack_dir / "manifest.json"
+            if not manifest_path.is_file():
+                continue
+            try:
+                with manifest_path.open(encoding="utf-8") as handle:
+                    data = json.load(handle)
+            except (OSError, json.JSONDecodeError):
+                continue
+            if isinstance(data, dict) and str(data.get("id", "")).strip() == pack_id:
+                return pack_dir
+        return None
+
+    @staticmethod
+    def _manifest_regions(manifest_path: Path) -> list[dict]:
+
+        try:
+            with manifest_path.open(encoding="utf-8") as handle:
+                data = json.load(handle)
+        except (OSError, json.JSONDecodeError):
+            return []
+
+        if not isinstance(data, dict):
+            return []
+
+        regions = data.get("regions")
+        if not isinstance(regions, list):
+            return []
+
+        return [item for item in regions if isinstance(item, dict)]
+
+    def _load_region_file(self, loader, path: Path, *, country: str) -> list:
+
+        try:
+            with path.open(encoding="utf-8") as handle:
+                data = json.load(handle)
+        except (OSError, json.JSONDecodeError):
+            return []
+
+        if not isinstance(data, dict):
+            return []
+
+        file_country = str(data.get("country") or country or "").strip().upper()
+        cameras = []
+
+        for index, entry in enumerate(data.get("cameras", []), start=1):
+            if not isinstance(entry, dict):
+                continue
+            try:
+                cameras.append(
+                    loader.parse_camera_entry(
+                        entry,
+                        country_code=file_country,
+                        source=f"{path}:{index}",
+                        camera_source="pack",
+                    )
+                )
+            except Exception:
+                continue
+
+        return cameras
+
     def _scan_installed_packs(self) -> dict[str, CameraPack]:
 
         packs: dict[str, CameraPack] = {}

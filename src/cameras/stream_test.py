@@ -11,7 +11,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-from camera.camera import CAMERA_TYPES, _normalize_camera_type
+from models.camera import CAMERA_TYPES, normalize_camera_type as _normalize_camera_type
 
 
 @dataclass(frozen=True)

@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from camera import camera_manager
+from cameras import camera_manager
 from debug.obs_freeze_trace import (
     begin_delete_trace_session,
     trace_block,

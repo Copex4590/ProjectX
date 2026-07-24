@@ -24,14 +24,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from camera import (
+from cameras import (
     Camera,
+    FUTURE_CAMERA_TYPES,
     SUPPORTED_CAMERA_TYPES,
     camera_manager,
     test_stream,
     validate_stream_url,
 )
-from camera.camera import FUTURE_CAMERA_TYPES
 from gui.i18n_support import bind_language_refresh
 from gui.mapcontroller import MapController
 from gui.theme import DANGER, SUCCESS, TEXT_MUTED, wizard_shell_stylesheet

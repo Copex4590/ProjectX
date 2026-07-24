@@ -22,6 +22,10 @@ def register_default_providers(
 
     target = registry or provider_registry
 
+    # Idempotent: avoid duplicate providers when imported more than once.
+    for name in ("rtsp", "hls", "youtube", "snapshot"):
+        target.unregister_by_name(name)
+
     target.register(RTSPProvider(), priority=40)
     target.register(HLSProvider(), priority=30)
     target.register(YouTubeProvider(), priority=20)

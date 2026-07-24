@@ -105,7 +105,7 @@ def generate_diagnostic_report(
     lines.append("-" * 40)
 
     try:
-        from camera import camera_manager
+        from cameras import camera_manager
 
         lines.append(f"Cameras loaded: {len(camera_manager.all())}")
     except OSError:

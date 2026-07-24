@@ -30,7 +30,7 @@ from gui.map_core import MAP_PAGE_INDEX, PickMode
 from gui.eventbridge import EventBridge
 from gui.notifications import AisConnectionMonitor, notification_manager
 from gui.providers import refresh_open_provider_windows
-from camera import camera_manager
+from cameras import camera_manager
 from debug.obs_freeze_trace import trace_slot
 from gui.firstrunwizard import FirstRunWizard
 
