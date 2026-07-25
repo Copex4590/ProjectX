@@ -8,7 +8,7 @@ Commands:
   publish  — upload local installer + SHA256SUMS to the version release (idempotent)
   fetch    — ensure local installer exists (download if missing, verify SHA256)
 
-Version tag: ``v`` + ``release/manifest.json`` → ``version`` (e.g. ``v0.3.1-beta``).
+Version tag: ``v`` + ``release/manifest.json`` -> ``version`` (e.g. ``v0.3.1-beta``).
 
 Environment:
   PROJECTX_SKIP_WINDOWS_PUBLISH=1  — skip publish (local-only Windows builds)
@@ -325,7 +325,7 @@ def cmd_publish() -> int:
             "  Check repository permissions (contents: write) and retry."
         )
 
-    _info(f"Published {installer.name} + {SUMS_NAME} → {repo}@{tag}")
+    _info(f"Published {installer.name} + {SUMS_NAME} -> {repo}@{tag}")
     print(
         f"Download URL: https://github.com/{repo}/releases/download/{tag}/{installer.name}"
     )
@@ -421,7 +421,7 @@ def cmd_fetch() -> int:
         else:
             write_windows_sums(installer)
             _warn("No remote SHA256SUMS — wrote local checksum from downloaded file")
-        _info(f"Fetched installer via PROJECTX_WINDOWS_INSTALLER_URL → {installer}")
+        _info(f"Fetched installer via PROJECTX_WINDOWS_INSTALLER_URL -> {installer}")
         return 0
 
     gh = find_gh()
