@@ -39,5 +39,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Windows package
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # Stream the full bat log; a non-zero exit fails this step and the job.
         run: scripts\build_windows.bat
