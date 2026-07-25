@@ -1,0 +1,43 @@
+# ============================================================================
+# Project X — Windows installer auto-build (SAVE-240)
+# ============================================================================
+# Builds ProjectX-Setup.exe on the self-hosted Windows runner when
+# release/0.3.1-alpha.1 is updated. Failures stop the workflow; the full
+# build_windows.bat log is streamed to the Actions console.
+# ============================================================================
+
+name: Windows Build
+
+on:
+  push:
+    branches:
+      - release/0.3.1-alpha.1
+
+# Cancel an in-progress run on the same branch when a newer push arrives.
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    name: Build Windows installer
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
+
+    defaults:
+      run:
+        # cmd.exe matches scripts\build_windows.bat expectations.
+        shell: cmd
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Windows package
+        # Stream the full bat log; a non-zero exit fails this step and the job.
+        run: scripts\build_windows.bat
