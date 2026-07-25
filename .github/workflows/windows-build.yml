@@ -38,26 +38,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Diagnose Python environment
-        shell: cmd
-        run: |
-          echo ===== PATH =====
-          echo %PATH%
-          echo.
-          echo ===== WHERE PYTHON =====
-          where python
-          echo ERRORLEVEL=%ERRORLEVEL%
-          echo.
-          echo ===== WHERE PY =====
-          where py
-          echo ERRORLEVEL=%ERRORLEVEL%
-          echo.
-          python --version
-          echo ERRORLEVEL=%ERRORLEVEL%
-          echo.
-          py --version
-          echo ERRORLEVEL=%ERRORLEVEL%
-
       - name: Build Windows package
         # Stream the full bat log; a non-zero exit fails this step and the job.
         run: scripts\build_windows.bat
