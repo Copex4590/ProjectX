@@ -145,7 +145,10 @@ class RTLManager:
         if not preferences.rtl_auto_start_ais_catcher:
             return self.test_tcp_connection()
 
-        return ensure_ais_catcher_ready()
+        return ensure_ais_catcher_ready(
+            host=preferences.ais_local_host,
+            port=preferences.ais_local_port,
+        )
 
     def run_diagnostics(self) -> RTLDiagnosticsReport:
 

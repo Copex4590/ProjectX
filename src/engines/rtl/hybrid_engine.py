@@ -14,7 +14,7 @@ from config.aiscatcher import AIS_CATCHER_HOST, AIS_CATCHER_PORT
 from database import registry
 from debug.obs_freeze_trace import trace_block
 from engines.ais import AISNmeaDecoder, AISRtlClient
-from engines.ais.ais_catcher_launcher import is_port_open
+from engines.ais.ais_catcher_launcher import ensure_ais_catcher_ready, is_port_open
 from engines.ais.ais_protocol import AISProtocol, reference_observation_bounding_boxes
 from engines.ais.hybrid_ais_engine import hybrid_ais_engine
 from engines.base_engine import BaseEngine
@@ -45,6 +45,10 @@ REGISTRY_TTL_SECONDS = 1800
 AIS_RECONNECT_MIN_S = 1.0
 AIS_RECONNECT_MAX_S = 60.0
 AIS_CONNECTION_TIMEOUT_S = 10.0
+# Cold-boot / USB delay: space AIS-Catcher launch retries and warning logs.
+RTL_CATCHER_RETRY_MIN_S = 5.0
+RTL_CATCHER_RETRY_MAX_S = 60.0
+RTL_CATCHER_UNAVAILABLE_LOG_INTERVAL_S = 30.0
 
 
 def _ais_connection_preferences() -> tuple[bool, bool, float, float, float]:
@@ -104,6 +108,8 @@ class HybridEngine(BaseEngine):
         self._state_lock = threading.RLock()
         # SAVE-236.6 — set when RTL host/port is saved so the worker drops & reconnects.
         self._rtl_reconnect_requested = False
+        self._rtl_catcher_retry_s = RTL_CATCHER_RETRY_MIN_S
+        self._rtl_catcher_last_warning_at = 0.0
         hybrid_file_writer.start()
 
     def on_start(self):
@@ -112,6 +118,7 @@ class HybridEngine(BaseEngine):
         self.sync_enabled_providers()
         eventbus.subscribe("rtl.config.changed", self._on_rtl_config_changed)
 
+        # AISStream must never wait on AIS-Catcher / RTL readiness.
         if self.ais_thread is None or not self.ais_thread.is_alive():
             self.ais_thread = threading.Thread(
                 target=self.aisstream_worker,
@@ -814,12 +821,73 @@ class HybridEngine(BaseEngine):
             port = AIS_CATCHER_PORT
         return host, port
 
+    def _should_auto_start_ais_catcher(self) -> bool:
+        """RTL enabled + app auto-connect + preference auto-start AIS-Catcher."""
+
+        if not self._rtl_enabled():
+            return False
+
+        auto_connect, _, _, _, _ = _ais_connection_preferences()
+        if not auto_connect:
+            return False
+
+        return bool(preferences_manager.get().rtl_auto_start_ais_catcher)
+
+    def _log_catcher_unavailable(self, host: str, port: int, *, detail: str) -> None:
+        """Rate-limit identical AIS-Catcher unavailable warnings."""
+
+        now = time.monotonic()
+        if (now - self._rtl_catcher_last_warning_at) < RTL_CATCHER_UNAVAILABLE_LOG_INTERVAL_S:
+            return
+
+        self._rtl_catcher_last_warning_at = now
+        logger.warning(
+            "AIS-Catcher unavailable on %s:%s — RTL AIS provider offline (%s); "
+            "retry in %.0fs",
+            host,
+            port,
+            detail,
+            self._rtl_catcher_retry_s,
+        )
+
+    def _wait_for_ais_catcher(self, host: str, port: int) -> bool:
+        """Ensure AIS-Catcher is listening before the RTL TCP connect.
+
+        Idempotent when already running. Uses preferences host/port (same as
+        ``_rtl_endpoint``). On failure keeps RTL offline with exponential backoff
+        and throttled warnings (cold-boot USB delay friendly).
+        """
+
+        if is_port_open(host, port):
+            self._rtl_catcher_retry_s = RTL_CATCHER_RETRY_MIN_S
+            return True
+
+        if self._should_auto_start_ais_catcher():
+            ready = ensure_ais_catcher_ready(host=host, port=port)
+            if ready and is_port_open(host, port):
+                self._rtl_catcher_retry_s = RTL_CATCHER_RETRY_MIN_S
+                return True
+            detail = "auto-start failed or still warming up"
+        else:
+            detail = "auto-start disabled"
+
+        self._log_catcher_unavailable(host, port, detail=detail)
+        eventbus.publish("rtl.status", status="offline")
+        delay = self._rtl_catcher_retry_s
+        time.sleep(delay)
+        self._rtl_catcher_retry_s = min(
+            RTL_CATCHER_RETRY_MAX_S,
+            max(RTL_CATCHER_RETRY_MIN_S, delay * 2.0),
+        )
+        return False
+
     def rtl_worker(self):
 
         while self.running:
             if not self._rtl_enabled():
                 self._disconnect_rtl_client()
                 eventbus.publish("rtl.status", status="offline")
+                self._rtl_catcher_retry_s = RTL_CATCHER_RETRY_MIN_S
                 time.sleep(1)
                 continue
 
@@ -833,14 +901,7 @@ class HybridEngine(BaseEngine):
 
             host, port = self._rtl_endpoint()
 
-            if not is_port_open(host, port):
-                logger.warning(
-                    "AIS-Catcher unavailable on %s:%s — RTL AIS provider disabled",
-                    host,
-                    port,
-                )
-                eventbus.publish("rtl.status", status="offline")
-                time.sleep(5)
+            if not self._wait_for_ais_catcher(host, port):
                 continue
 
             logger.info("Connecting to AIS-catcher on %s:%s", host, port)
@@ -859,10 +920,15 @@ class HybridEngine(BaseEngine):
                 )
                 self._rtl_client = None
                 eventbus.publish("rtl.status", status="offline")
-                time.sleep(5)
+                time.sleep(self._rtl_catcher_retry_s)
+                self._rtl_catcher_retry_s = min(
+                    RTL_CATCHER_RETRY_MAX_S,
+                    max(RTL_CATCHER_RETRY_MIN_S, self._rtl_catcher_retry_s * 2.0),
+                )
                 continue
 
             logger.info("Connected to AIS-catcher on %s:%s", host, port)
+            self._rtl_catcher_retry_s = RTL_CATCHER_RETRY_MIN_S
             eventbus.publish("rtl.status", status="connected")
 
             decoder = AISNmeaDecoder()
