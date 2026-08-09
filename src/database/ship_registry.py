@@ -61,6 +61,10 @@ class ShipRegistry:
                 current.course = ship.course
                 current.heading = ship.heading
 
+                current.length = ship.length
+                current.width = ship.width
+                current.draught = ship.draught
+
                 current.destination = ship.destination
                 current.eta = ship.eta
 

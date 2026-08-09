@@ -7,6 +7,8 @@
   "ais_provider": "later",
   "ais_enabled_providers": [],
   "aisstream_api_key": "",
+  "vesselapi_api_key": "",
+  "vesselapi_enabled": false,
   "ais_local_host": "localhost",
   "ais_local_port": 10110,
   "ais_configured": false,

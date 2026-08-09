@@ -24,6 +24,10 @@ class Ship:
     course: float = 0.0
     heading: float = 0.0
 
+    length: float | None = None
+    width: float | None = None
+    draught: float | None = None
+
     destination: str = ""
     eta: str = ""
 

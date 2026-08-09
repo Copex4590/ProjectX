@@ -139,6 +139,10 @@ def _merge_observation(
         new_value = getattr(observation, field_name)
         old_value = getattr(merged, field_name)
 
+        # Do not erase enriched / previously known text with empty AIS updates.
+        if not new_value:
+            continue
+
         if new_value != old_value:
             setattr(merged, field_name, new_value)
             changed = True

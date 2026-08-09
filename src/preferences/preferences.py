@@ -141,6 +141,8 @@ class Preferences:
     ais_provider: str = DEFAULT_AIS_PROVIDER
     ais_enabled_providers: list[str] | None = None
     aisstream_api_key: str = ""
+    vesselapi_api_key: str = ""
+    vesselapi_enabled: bool = False
     ais_local_host: str = DEFAULT_AIS_LOCAL_HOST
     ais_local_port: int = DEFAULT_AIS_LOCAL_PORT
     ais_configured: bool = False
@@ -204,6 +206,8 @@ class Preferences:
             "ais_provider": self.ais_provider,
             "ais_enabled_providers": list(self.ais_enabled_providers or []),
             "aisstream_api_key": self.aisstream_api_key,
+            "vesselapi_api_key": self.vesselapi_api_key,
+            "vesselapi_enabled": self.vesselapi_enabled,
             "ais_local_host": self.ais_local_host,
             "ais_local_port": self.ais_local_port,
             "ais_configured": self.ais_configured,
@@ -319,6 +323,8 @@ class Preferences:
             ais_provider=ais_provider,
             ais_enabled_providers=ais_enabled_providers,
             aisstream_api_key=str(data.get("aisstream_api_key", "")).strip(),
+            vesselapi_api_key=str(data.get("vesselapi_api_key", "")).strip(),
+            vesselapi_enabled=bool(data.get("vesselapi_enabled", False)),
             ais_local_host=str(
                 data.get("ais_local_host", DEFAULT_AIS_LOCAL_HOST)
             ).strip() or DEFAULT_AIS_LOCAL_HOST,
@@ -448,6 +454,8 @@ class Preferences:
         migrated.setdefault("ais_provider", DEFAULT_AIS_PROVIDER)
         migrated.setdefault("ais_enabled_providers", None)
         migrated.setdefault("aisstream_api_key", "")
+        migrated.setdefault("vesselapi_api_key", "")
+        migrated.setdefault("vesselapi_enabled", False)
         migrated.setdefault("ais_local_host", DEFAULT_AIS_LOCAL_HOST)
 
         try:

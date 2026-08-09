@@ -87,6 +87,15 @@ class MainWindow(QMainWindow):
         ais_manager.start()
         rtl_manager.start()
 
+        # Phase A: VesselAPI online enrichment (OnlineVesselSyncProvider hook).
+        # No settings GUI yet — key loaded from Phase A key file when present.
+        try:
+            from database.vesselapi_provider import register_default_vesselapi_provider
+
+            register_default_vesselapi_provider()
+        except Exception:
+            logger.exception("Failed to register VesselAPI online provider")
+
         self._page_registry: PageRegistry | None = None
         self._map_controller_wired = False
         self._session_replay_bridge = None

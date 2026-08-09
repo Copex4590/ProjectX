@@ -102,6 +102,19 @@ class PreferencesManager:
         current.ais_configured = bool(configured)
         return self.save(Preferences.from_dict(current.to_dict()))
 
+    def set_vesselapi_configuration(
+        self,
+        *,
+        api_key: str = "",
+        enabled: bool = False,
+    ) -> Preferences:
+        """Persist VesselAPI credentials (never logged)."""
+
+        current = self.get()
+        current.vesselapi_api_key = str(api_key).strip()
+        current.vesselapi_enabled = bool(enabled)
+        return self.save(Preferences.from_dict(current.to_dict()))
+
     def set_ais_enabled_providers(
         self,
         providers: list[str],
@@ -191,7 +204,7 @@ class PreferencesManager:
         return self.save(Preferences.from_dict(payload))
 
     def reset_application_settings(self) -> Preferences:
-        """Reset SAVE-211 settings to defaults; keep AIS credentials and setup state."""
+        """Reset SAVE-211 settings to defaults; keep AIS/VesselAPI credentials."""
 
         current = self.get()
         defaults = Preferences.defaults()

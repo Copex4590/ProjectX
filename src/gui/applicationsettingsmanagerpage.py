@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QPushButton,
     QScrollArea,
@@ -29,6 +30,8 @@ from ais.user_provider_service import (
     set_enabled_providers,
 )
 from database.vessel_database_manager import vessel_database_manager
+from database.vesselapi_client import resolve_api_key, validate_api_key
+from database.vesselapi_provider import VesselAPIOnlineProvider
 from gui.i18n_support import bind_language_refresh
 from gui.theme import (
     ThemeColors,
@@ -104,6 +107,18 @@ _CLEANUP_LABELS = {
 }
 
 
+class _VesselAPITestWorker(QThread):
+    """Background VesselAPI key probe (AISStream Test Connection pattern)."""
+
+    def __init__(self, api_key: str, parent=None):
+        super().__init__(parent)
+        self._api_key = api_key
+        self.result = None
+
+    def run(self) -> None:
+        self.result = validate_api_key(self._api_key)
+
+
 class _SectionCard(QFrame):
 
     def __init__(self, title_key: str, parent=None):
@@ -145,6 +160,7 @@ class ApplicationSettingsManagerPage(QWidget):
         self._loading = False
         self._ais_provider_checks: dict[AISProviderType, QCheckBox] = {}
         self._labeled_widgets: list[tuple[QLabel | QCheckBox, str]] = []
+        self._vesselapi_test_worker: _VesselAPITestWorker | None = None
 
         self.setStyleSheet(f"background: {ThemeColors.Background};")
         self._build_ui()
@@ -346,6 +362,51 @@ class ApplicationSettingsManagerPage(QWidget):
             _CLEANUP_LABELS,
         )
 
+        # VesselAPI — same preference storage pattern as AISStream API key.
+        self._vesselapi_card = self._add_section(layout, "VesselAPI")
+        self._vesselapi_enabled = self._add_checkbox(
+            self._vesselapi_card,
+            "Enable",
+        )
+        api_key_row = QHBoxLayout()
+        self._vesselapi_api_key_label = QLabel()
+        self._vesselapi_api_key_label.setProperty("label_key", "API Key")
+        self._vesselapi_api_key_label.setStyleSheet(self._label_style())
+        api_key_row.addWidget(self._vesselapi_api_key_label)
+        self._vesselapi_api_key_input = QLineEdit()
+        self._vesselapi_api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self._vesselapi_api_key_input.setPlaceholderText("Paste here")
+        self._vesselapi_api_key_input.setStyleSheet(
+            f"""
+            QLineEdit {{
+                background: {ThemeColors.Panel};
+                color: {ThemeColors.TextPrimary};
+                border: 1px solid {ThemeColors.Border};
+                border-radius: 6px;
+                padding: 6px 10px;
+                min-width: 280px;
+            }}
+            """
+        )
+        api_key_row.addWidget(self._vesselapi_api_key_input, 1)
+        self._vesselapi_card.body.addLayout(api_key_row)
+
+        vesselapi_actions = QHBoxLayout()
+        self._vesselapi_test_button = QPushButton()
+        self._vesselapi_test_button.setStyleSheet(secondary_button_stylesheet())
+        vesselapi_actions.addWidget(self._vesselapi_test_button)
+        vesselapi_actions.addStretch(1)
+        self._vesselapi_card.body.addLayout(vesselapi_actions)
+
+        self._vesselapi_status_label = QLabel()
+        self._vesselapi_status_label.setStyleSheet(
+            f"color: {ThemeColors.TextSecondary}; font-size: 9pt;"
+        )
+        self._vesselapi_card.body.addWidget(self._vesselapi_status_label)
+        self._labeled_widgets.append(
+            (self._vesselapi_api_key_label, "API Key")
+        )
+
         self._notifications_card = self._add_section(layout, "Notifications")
         self._notify_desktop = self._add_checkbox(
             self._notifications_card,
@@ -538,6 +599,11 @@ class ApplicationSettingsManagerPage(QWidget):
         self._save_button.clicked.connect(self.save_settings)
         self._reload_button.clicked.connect(self.reload_from_preferences)
         self._reset_button.clicked.connect(self.reset_settings)
+        self._vesselapi_test_button.clicked.connect(self._on_vesselapi_test)
+        self._vesselapi_api_key_input.textChanged.connect(
+            self._refresh_vesselapi_status
+        )
+        self._vesselapi_enabled.toggled.connect(self._refresh_vesselapi_status)
 
     def refresh_translations(self) -> None:
 
@@ -563,6 +629,7 @@ class ApplicationSettingsManagerPage(QWidget):
             self._ais_reconnect,
             self._camera_auto_selection,
             self._db_auto_sync,
+            self._vesselapi_enabled,
             self._notify_desktop,
             self._notify_sounds,
             self._developer_mode,
@@ -579,6 +646,10 @@ class ApplicationSettingsManagerPage(QWidget):
         self._ais_future_label.setText(
             tr("MarineTraffic / AISHub — Coming Soon")
         )
+
+        self._vesselapi_api_key_input.setPlaceholderText(tr("Paste here"))
+        self._vesselapi_test_button.setText(tr("Test Connection"))
+        self._refresh_vesselapi_status()
 
         self._save_button.setText(tr("Save Settings"))
         self._reload_button.setText(tr("Reload"))
@@ -675,6 +746,10 @@ class ApplicationSettingsManagerPage(QWidget):
                 preferences.database_cleanup_policy,
             )
 
+            self._vesselapi_enabled.setChecked(preferences.vesselapi_enabled)
+            self._vesselapi_api_key_input.setText(preferences.vesselapi_api_key)
+            self._refresh_vesselapi_status()
+
             self._notify_desktop.setChecked(preferences.notifications_desktop)
             self._notify_sounds.setChecked(preferences.notifications_sounds)
             self._set_combo_value(self._log_level_combo, preferences.log_level)
@@ -757,6 +832,13 @@ class ApplicationSettingsManagerPage(QWidget):
             float(self._db_sync_interval.value())
         )
 
+        preferences_manager.set_vesselapi_configuration(
+            api_key=self._vesselapi_api_key_input.text().strip(),
+            enabled=self._vesselapi_enabled.isChecked(),
+        )
+        self._apply_vesselapi_provider_preferences()
+        self._refresh_vesselapi_status()
+
         try:
             playback = load_playback_preferences()
             playback.preferred_backend = camera_provider
@@ -777,6 +859,99 @@ class ApplicationSettingsManagerPage(QWidget):
             f"color: {ThemeColors.Success}; font-size: 9pt;"
         )
 
+    def _refresh_vesselapi_status(self, *_args) -> None:
+
+        typed = self._vesselapi_api_key_input.text().strip()
+        prefs_key = preferences_manager.get().vesselapi_api_key.strip()
+        resolved = bool(resolve_api_key())
+        enabled = self._vesselapi_enabled.isChecked()
+
+        if typed or prefs_key:
+            state = tr("Configured")
+        elif resolved:
+            state = tr("Configured (legacy key file)")
+        else:
+            state = tr("Not configured")
+
+        if enabled:
+            detail = tr("Enabled")
+        else:
+            detail = tr("Disabled")
+
+        self._vesselapi_status_label.setText(f"{state} — {detail}")
+        self._vesselapi_status_label.setStyleSheet(
+            f"color: {ThemeColors.TextSecondary}; font-size: 9pt;"
+        )
+
+    def _apply_vesselapi_provider_preferences(self) -> None:
+
+        provider = getattr(vessel_database_manager, "_online_provider", None)
+        if isinstance(provider, VesselAPIOnlineProvider):
+            provider.apply_preferences()
+
+    def _on_vesselapi_test(self) -> None:
+
+        if (
+            self._vesselapi_test_worker is not None
+            and self._vesselapi_test_worker.isRunning()
+        ):
+            return
+
+        api_key = self._vesselapi_api_key_input.text().strip()
+        if not api_key:
+            self._vesselapi_status_label.setText(tr("Please paste your API key."))
+            self._vesselapi_status_label.setStyleSheet(
+                f"color: {ThemeColors.Warning}; font-size: 9pt;"
+            )
+            return
+
+        self._vesselapi_test_button.setEnabled(False)
+        self._vesselapi_status_label.setText(tr("Testing VesselAPI connection..."))
+        self._vesselapi_status_label.setStyleSheet(
+            f"color: {ThemeColors.TextSecondary}; font-size: 9pt;"
+        )
+
+        self._vesselapi_test_worker = _VesselAPITestWorker(api_key, self)
+        self._vesselapi_test_worker.finished.connect(self._on_vesselapi_test_finished)
+        self._vesselapi_test_worker.start()
+
+    def _on_vesselapi_test_finished(self) -> None:
+
+        self._vesselapi_test_button.setEnabled(True)
+        result = (
+            self._vesselapi_test_worker.result
+            if self._vesselapi_test_worker is not None
+            else None
+        )
+
+        if result is not None and result.ok:
+            preferences_manager.set_vesselapi_configuration(
+                api_key=self._vesselapi_api_key_input.text().strip(),
+                enabled=True,
+            )
+            self._vesselapi_enabled.setChecked(True)
+            self._apply_vesselapi_provider_preferences()
+            self._vesselapi_status_label.setText(tr("Connection successful"))
+            self._vesselapi_status_label.setStyleSheet(
+                f"color: {ThemeColors.Success}; font-size: 9pt;"
+            )
+            return
+
+        error = getattr(result, "error", "") if result is not None else "unknown"
+        if error in {"http_401", "http_403"}:
+            message = tr("Invalid API key.")
+        elif error == "missing_api_key":
+            message = tr("Please paste your API key.")
+        elif error in {"timeout", "network_error", "os_error"}:
+            message = tr("VesselAPI unavailable.")
+        else:
+            message = tr("VesselAPI unavailable.")
+
+        self._vesselapi_status_label.setText(message)
+        self._vesselapi_status_label.setStyleSheet(
+            f"color: {ThemeColors.Danger}; font-size: 9pt;"
+        )
+
     def reset_settings(self) -> None:
 
         answer = QMessageBox.question(
@@ -784,7 +959,7 @@ class ApplicationSettingsManagerPage(QWidget):
             tr("Reset settings"),
             tr(
                 "Reset application settings to defaults?\n"
-                "AIS API keys and provider setup are kept."
+                "AIS and VesselAPI API keys and provider setup are kept."
             ),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
