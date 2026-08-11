@@ -905,10 +905,14 @@ class MainWindow(QMainWindow):
         self.activateWindow()
         self.show_page(MAP_PAGE_INDEX)
 
+        map_controller = MapController.instance()
+        if map_controller.is_undocked():
+            map_controller.raise_float_window()
+
         if focus_mmsi is not None:
             map_page = self._require_page("map_page")
             map_page.select_vessel(int(focus_mmsi))
-            MapController.instance().focus_ship(int(focus_mmsi))
+            map_controller.focus_ship(int(focus_mmsi))
 
     def focus_ship(self, mmsi):
 
@@ -930,8 +934,11 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
 
         if MapController._instance is not None:
-            if MapController.instance().pick_mode() != PickMode.NONE:
-                MapController.instance().cancel_pick_mode(restore_host=False)
+            controller = MapController.instance()
+            if controller.pick_mode() != PickMode.NONE:
+                controller.cancel_pick_mode(restore_host=False)
+            if controller.is_undocked():
+                controller.redock()
             MapController.release_application_modality()
 
         self._persist_window_geometry()

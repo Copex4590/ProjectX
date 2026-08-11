@@ -7,10 +7,11 @@ from PySide6.QtCore import QObject, Qt, QTimer, Signal
 from debug.obs_freeze_trace import trace_block, trace_enter, trace_exit, trace_event, trace_timer_callback
 from gui.map_core import MAP_PAGE_INDEX, PickMode
 from gui.observationreferencedialog import ObservationReferenceDialog
+from gui.widgets.mapfloatwindow import MapFloatWindow
 from gui.widgets.mapwidget import MapWidget
 from i18n import tr
 from observation import observation_manager
-from PySide6.QtWidgets import QApplication, QDialog, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QVBoxLayout, QWidget
 from shiboken6 import isValid
 
 
@@ -25,6 +26,7 @@ class MapController(QObject):
 
     navigation_requested = Signal(int)
     pick_mode_changed = Signal(object)
+    host_changed = Signal(bool)  # True when MapWidget is in the float window
 
     def __init__(self):
         super().__init__()
@@ -43,6 +45,9 @@ class MapController(QObject):
             self._on_location_selected,
             Qt.ConnectionType.QueuedConnection,
         )
+        self._dock_layout: QVBoxLayout | None = None
+        self._float_window: MapFloatWindow | None = None
+        self._undocked = False
 
     @classmethod
     def instance(cls) -> MapController:
@@ -65,9 +70,88 @@ class MapController(QObject):
 
         self._dialog_parent = parent
 
+    def set_dock_host(self, layout: QVBoxLayout | None) -> None:
+        """Register the MapPage layout slot used when the map is docked."""
+
+        self._dock_layout = layout
+
+    def is_undocked(self) -> bool:
+
+        return self._undocked
+
+    def undock(self) -> None:
+        """Reparent the single MapWidget into a standalone float window."""
+
+        with trace_block("MapController.undock"):
+            if self._undocked:
+                self.raise_float_window()
+                return
+
+            if self._dock_layout is None:
+                trace_event("MapController.undock skipped: no dock host")
+                return
+
+            float_window = self._ensure_float_window()
+            self._dock_layout.removeWidget(self._widget)
+            float_window.attach_map(self._widget)
+            self._undocked = True
+            float_window.show()
+            float_window.raise_()
+            float_window.activateWindow()
+            self._widget.raise_()
+            self.host_changed.emit(True)
+
+    def redock(self) -> None:
+        """Return the single MapWidget to the MapPage host and hide the float."""
+
+        with trace_block("MapController.redock"):
+            if not self._undocked:
+                return
+
+            float_window = self._float_window
+            if float_window is not None and float_window.has_map():
+                float_window.release_map()
+
+            if self._dock_layout is not None:
+                self._dock_layout.addWidget(self._widget, 1)
+
+            self._undocked = False
+
+            if float_window is not None:
+                float_window.hide()
+
+            self.host_changed.emit(False)
+
+    def raise_float_window(self) -> None:
+
+        if not self._undocked:
+            return
+
+        float_window = self._float_window
+        if float_window is None:
+            return
+
+        float_window.show()
+        float_window.raise_()
+        float_window.activateWindow()
+        self._widget.raise_()
+
+    def _ensure_float_window(self) -> MapFloatWindow:
+
+        if self._float_window is not None and isValid(self._float_window):
+            return self._float_window
+
+        parent = self._dialog_parent
+        float_window = MapFloatWindow(parent)
+        float_window.redockRequested.connect(self.redock)
+        self._float_window = float_window
+        return float_window
+
     def request_show_map(self) -> None:
 
         self.navigation_requested.emit(MAP_PAGE_INDEX)
+        if self._undocked:
+            self.raise_float_window()
 
     def set_show_parent_during_pick(self, enabled: bool) -> None:
 
@@ -154,11 +238,14 @@ class MapController(QObject):
         if self._pick_mode != PickMode.LOCATION:
             return
 
-        parent = self._dialog_parent
+        if self._undocked:
+            self.raise_float_window()
+        else:
+            parent = self._dialog_parent
 
-        if parent is not None:
-            parent.raise_()
-            parent.activateWindow()
+            if parent is not None:
+                parent.raise_()
+                parent.activateWindow()
 
         self._widget.raise_()
         self._widget.setFocus(Qt.FocusReason.OtherFocusReason)

@@ -7,6 +7,8 @@ from PySide6.QtGui import QKeyEvent, QHideEvent, QShowEvent
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
+    QLabel,
+    QPushButton,
     QScrollArea,
     QSizePolicy,
     QVBoxLayout,
@@ -30,6 +32,8 @@ from debug.obs_freeze_trace import (
 from gui.vesselcard import vessel_card_layout_manager
 from gui.mapcontroller import MapController
 from gui.map_core import PickMode
+from gui.i18n_support import bind_language_refresh
+from gui.theme import secondary_button_stylesheet
 from gui.widgets.camera_link_panel import CameraLinkPanel
 from gui.widgets.camerapreviewpanel import CameraPreviewPanel
 from gui.widgets.vessel_details_panel import VesselDetailsPanel
@@ -347,13 +351,49 @@ class MapPage(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
+        map_column = QWidget()
+        map_column.setObjectName("mapColumn")
+        map_column_layout = QVBoxLayout(map_column)
+        map_column_layout.setContentsMargins(0, 0, 0, 0)
+        map_column_layout.setSpacing(0)
+
+        map_toolbar = QWidget()
+        map_toolbar.setObjectName("mapToolbar")
+        map_toolbar_layout = QHBoxLayout(map_toolbar)
+        map_toolbar_layout.setContentsMargins(8, 6, 8, 6)
+        map_toolbar_layout.setSpacing(8)
+
+        self._detach_button = QPushButton()
+        self._detach_button.setObjectName("mapDetachButton")
+        self._detach_button.setStyleSheet(
+            secondary_button_stylesheet(padding="6px 12px")
+        )
+        self._detach_button.clicked.connect(self._on_detach_map)
+        map_toolbar_layout.addWidget(self._detach_button)
+        map_toolbar_layout.addStretch(1)
+        map_column_layout.addWidget(map_toolbar, 0)
+
         map_container = QWidget()
+        map_container.setObjectName("mapHost")
+        # Avoid any host chrome showing as a strip around the WebEngine map.
+        map_container.setStyleSheet(
+            "QWidget#mapHost { background: transparent; border: none; margin: 0; padding: 0; }"
+        )
         self._map_layout = QVBoxLayout(map_container)
         self._map_layout.setContentsMargins(0, 0, 0, 0)
+        self._map_layout.setSpacing(0)
+
+        self._map_placeholder = QLabel()
+        self._map_placeholder.setObjectName("mapUndockedPlaceholder")
+        self._map_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._map_placeholder.setWordWrap(True)
+        self._map_placeholder.setVisible(False)
+        self._map_layout.addWidget(self._map_placeholder, 1)
 
         self._map_controller = None
         self.map = None
-        layout.addWidget(map_container, 1)
+        map_column_layout.addWidget(map_container, 1)
+        layout.addWidget(map_column, 1)
 
         right_column = QWidget()
         right_column.setObjectName("mapRightColumn")
@@ -404,12 +444,24 @@ class MapPage(QWidget):
         self._marker_timer = QTimer(self)
         self._popup_timer = QTimer(self)
 
+        bind_language_refresh(self.refresh_translations)
+        self.refresh_translations()
+
+    def refresh_translations(self) -> None:
+
+        self._detach_button.setText(tr("Detach Map"))
+        self._map_placeholder.setText(
+            tr("Map is open in a separate window.")
+        )
+
     def initialize(self) -> None:
         """One-shot: WebEngine map surface, long-lived signals, camera inventory."""
 
         self._map_controller = MapController.instance()
         self.map = self._map_controller.widget()
-        self._map_layout.addWidget(self.map)
+        self._map_controller.set_dock_host(self._map_layout)
+        if not self._map_controller.is_undocked():
+            self._map_layout.addWidget(self.map, 1)
 
         language_manager.language_changed.connect(
             lambda _code: self.apply_personalization()
@@ -429,6 +481,7 @@ class MapPage(QWidget):
         self._map_controller.pick_mode_changed.connect(
             self._on_pick_mode_changed
         )
+        self._map_controller.host_changed.connect(self._on_map_host_changed)
         self._connect_timeline_playback()
         self.camera_link.refreshRequested.connect(self._on_camera_link_refresh)
         self.camera_link.coverageToggled.connect(self._on_camera_coverage_toggled)
@@ -475,6 +528,8 @@ class MapPage(QWidget):
 
         self._marker_timer.stop()
         self._popup_timer.stop()
+        if self._map_controller is not None and self._map_controller.is_undocked():
+            self._map_controller.redock()
         shutdown = getattr(self.vessel_details, "shutdown", None)
         if callable(shutdown):
             shutdown()
@@ -492,6 +547,27 @@ class MapPage(QWidget):
     def _map_updates_enabled(self) -> bool:
 
         with trace_block("MapPage._map_updates_enabled"):
+            undocked = (
+                self._map_controller is not None
+                and self._map_controller.is_undocked()
+            )
+            trace_event(
+                f"MapPage._map_updates_enabled.is_undocked result={undocked}"
+            )
+
+            # Detached map must keep live AIS markers/trails/card updates even
+            # when MapPage is hidden or the main window is minimized.
+            if undocked:
+                trace_enter("MapPage._map_updates_enabled.pick_mode")
+                pick_mode = self._map_controller.pick_mode()
+                trace_exit(
+                    f"MapPage._map_updates_enabled.pick_mode result={pick_mode}"
+                )
+                return (
+                    pick_mode == PickMode.NONE
+                    and not self._session_replay_active()
+                )
+
             trace_enter("MapPage._map_updates_enabled._map_page_is_current")
             page_current = self._map_page_is_current()
             trace_exit(
@@ -513,6 +589,34 @@ class MapPage(QWidget):
                 and pick_mode == PickMode.NONE
                 and not self._session_replay_active()
             )
+
+    def _on_detach_map(self) -> None:
+
+        if self._map_controller is None:
+            return
+        self._map_controller.undock()
+
+    def _on_map_host_changed(self, undocked: bool) -> None:
+
+        with trace_block(f"MapPage._on_map_host_changed undocked={undocked}"):
+            self._detach_button.setVisible(not undocked)
+            self._map_placeholder.setVisible(undocked)
+
+            if undocked:
+                self._start_ship_timers()
+                self._markers_dirty = True
+                self._schedule_ships_full(
+                    "MapPage._on_map_host_changed->undock"
+                )
+                return
+
+            if self._map_updates_enabled():
+                self._start_ship_timers()
+                self._schedule_ships_full(
+                    "MapPage._on_map_host_changed->redock"
+                )
+            else:
+                self._stop_ship_timers()
 
     @staticmethod
     def _session_replay_active() -> bool:
@@ -1168,6 +1272,15 @@ class MapPage(QWidget):
     def hideEvent(self, event: QHideEvent) -> None:
 
         with trace_block("MapPage.hideEvent"):
+            undocked = (
+                self._map_controller is not None
+                and self._map_controller.is_undocked()
+            )
+            if undocked:
+                # Keep ship timers alive while the map floats separately.
+                super().hideEvent(event)
+                return
+
             self._ship_refresh_generation += 1
             self._stop_ship_timers()
             super().hideEvent(event)
