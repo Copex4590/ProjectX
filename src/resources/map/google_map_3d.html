@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Project X — Google 3D Maps (experiment)</title>
+  <title>Project X — Google 3D Maps</title>
+  <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
   <style>
     html, body {
       width: 100%;
@@ -15,6 +16,8 @@
       font-family: system-ui, -apple-system, Segoe UI, sans-serif;
     }
     #map-root {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
     }
@@ -22,6 +25,62 @@
       width: 100%;
       height: 100%;
       display: block;
+    }
+    /* Full-screen 2D ship layer above Google 3D (background only). */
+    #ship-overlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    #trail-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #markers-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    /* SAVE-055 Adaptive Vessel Symbols (747fa52c) — exact CSS */
+    .ship-icon {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      margin-left: -12px;
+      margin-top: -12px;
+      background: transparent !important;
+      border: none !important;
+      will-change: transform;
+    }
+    .ship-body {
+      color: #1976d2;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-origin: center center;
+    }
+    .ship-body--moving {
+      font-size: 20px;
+      font-weight: bold;
+      line-height: 1;
+      /* No CSS transition: camera heading sync must stay frame-accurate. */
+    }
+    .ship-body--stationary {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
     }
     #status {
       position: absolute;
@@ -43,18 +102,221 @@
     #status[data-kind="error"] { border-color: #8a3a3a; color: #f0b0b0; }
     #status.hidden { display: none; }
   </style>
+  <!-- P0: separate interaction layer (does not alter ship-overlay visuals). -->
+  <style id="ship-hit-layer-style">
+    #ship-hit-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 6;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    #ship-hit-layer .ship-hit {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      margin-left: -12px;
+      margin-top: -12px;
+      pointer-events: auto;
+      cursor: pointer;
+      background: transparent;
+    }
+  </style>
+  <!-- Selection highlight (separate from locked #ship-overlay visuals). -->
+  <style id="ship-selection-layer-style">
+    #ship-selection-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    /* Sit just above #ship-overlay markers (z-index 5) via DOM order + own z-index. */
+    #ship-selection-layer {
+      z-index: 5;
+    }
+    #ship-hit-layer { z-index: 6; }
+    #vessel-card-layer { z-index: 7; }
+    #ship-selection-layer .ship-select-icon {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      margin-left: -12px;
+      margin-top: -12px;
+      background: transparent;
+      display: none;
+    }
+    #ship-selection-layer .ship-select-icon.visible {
+      display: block;
+    }
+    #ship-selection-layer .ship-select-body {
+      color: #e53935;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-origin: center center;
+    }
+    #ship-selection-layer .ship-select-body--moving {
+      font-size: 20px;
+      font-weight: bold;
+      line-height: 1;
+    }
+    #ship-selection-layer .ship-select-body--stationary {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+  </style>
+  <!-- Vessel Card overlay (separate from locked #ship-overlay visuals). -->
+  <style id="vessel-card-overlay-style">
+    #vessel-card-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 7;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    #vessel-card-layer .g3d-vessel-card-anchor {
+      position: absolute;
+      pointer-events: auto;
+      transform: translate(-50%, calc(-100% - 18px));
+      display: none;
+    }
+    #vessel-card-layer .g3d-vessel-card-anchor.visible {
+      display: block;
+    }
+    #vessel-card-layer .g3d-vessel-card-close {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      z-index: 2;
+      width: 26px;
+      height: 26px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 6px;
+      background: rgba(12, 16, 22, 0.88);
+      color: #e8eaed;
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    #vessel-card-layer .vessel-card {
+      --vc-bg: rgba(18, 22, 30, 0.94);
+      --vc-border: rgba(255, 255, 255, 0.08);
+      --vc-text: #eef2f7;
+      --vc-muted: #8b95a5;
+      --vc-label: #7a8494;
+      --vc-radius: 10px;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      color: var(--vc-text);
+      background: var(--vc-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--vc-border);
+      border-radius: var(--vc-radius);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.32);
+      overflow: hidden;
+      width: min(300px, calc(100vw - 48px));
+    }
+    #vessel-card-layer .vessel-card--compact { width: min(248px, calc(100vw - 48px)); }
+    #vessel-card-layer .vessel-card--standard { width: min(280px, calc(100vw - 48px)); }
+    #vessel-card-layer .vessel-card--detailed,
+    #vessel-card-layer .vessel-card--media { width: min(300px, calc(100vw - 48px)); }
+    #vessel-card-layer .vessel-card__scroll { display: flex; flex-direction: column; }
+    #vessel-card-layer .vessel-card__scroll--scrollable {
+      max-height: min(48vh, 360px);
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+    }
+    #vessel-card-layer .vessel-card__hero {
+      display: flex; gap: 8px; padding: 8px 10px 6px; align-items: flex-start;
+    }
+    #vessel-card-layer .vessel-card__identity { flex: 1; min-width: 0; }
+    #vessel-card-layer .vessel-card__photo {
+      position: relative; width: 68px; min-height: 50px; max-height: 58px;
+      flex-shrink: 0; border-radius: 4px; overflow: hidden;
+      background: rgba(255, 255, 255, 0.02);
+      display: flex; align-items: center; justify-content: center;
+    }
+    #vessel-card-layer .vessel-card__photo-image {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    #vessel-card-layer .vessel-card__photo-image--hidden { display: none !important; }
+    #vessel-card-layer .vessel-card__photo-placeholder {
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      gap: 3px; color: var(--vc-muted); font-size: 0.58rem; text-align: center; padding: 4px;
+    }
+    #vessel-card-layer .vessel-card__photo--placeholder .vessel-card__photo-placeholder,
+    #vessel-card-layer .vessel-card__photo--fallback .vessel-card__photo-placeholder {
+      display: flex;
+    }
+    #vessel-card-layer .vessel-card__photo-icon { width: 18px; height: 18px; opacity: 0.5; }
+    #vessel-card-layer .vessel-card__title-row { display: flex; align-items: flex-start; gap: 6px; }
+    #vessel-card-layer .vessel-card__flag {
+      width: 22px; height: 15px; object-fit: contain; flex-shrink: 0; border-radius: 2px;
+    }
+    #vessel-card-layer .vessel-card__flag--hidden { display: none !important; }
+    #vessel-card-layer .vessel-card__name {
+      margin: 0; font-size: 0.88rem; font-weight: 700; line-height: 1.2;
+      word-break: break-word; color: #f8fafc; flex: 1; min-width: 0;
+    }
+    #vessel-card-layer .vessel-card__type {
+      margin-top: 2px; font-size: 0.66rem; color: var(--vc-muted); line-height: 1.2;
+    }
+    #vessel-card-layer .vessel-card__divider {
+      height: 1px; background: rgba(255, 255, 255, 0.07); margin: 0;
+    }
+    #vessel-card-layer .vessel-card__row {
+      display: block; padding: 3px 10px; min-width: 0;
+    }
+    #vessel-card-layer .vessel-card__label {
+      display: block; font-size: 0.58rem; font-weight: 600; letter-spacing: 0.05em;
+      text-transform: uppercase; color: var(--vc-label); line-height: 1.25; margin-bottom: 1px;
+    }
+    #vessel-card-layer .vessel-card__value {
+      display: block; font-size: 0.74rem; font-weight: 500; color: var(--vc-text);
+      word-break: break-word; line-height: 1.3;
+    }
+    #vessel-card-layer .vessel-card__value--empty { color: #5f6b7a; font-weight: 400; }
+    #vessel-card-layer .vessel-card__value--on { color: #5eead4; font-weight: 600; }
+    #vessel-card-layer .vessel-card__value--off { color: #9aa4af; font-weight: 500; }
+    #vessel-card-layer .vessel-card__row--logbook { margin-top: 4px; }
+    #vessel-card-layer .vessel-card__logbook-btn {
+      width: 100%; border: 1px solid #1f4b7a; border-radius: 6px;
+      background: #163552; color: white; font-size: 12px; font-weight: 600;
+      padding: 8px 12px; cursor: pointer;
+    }
+  </style>
 </head>
 <body>
   <div id="status" data-kind="info">Waiting for Google Maps API key from Project X…</div>
   <div id="map-root"></div>
+  <div id="ship-overlay" aria-hidden="true">
+    <canvas id="trail-canvas"></canvas>
+    <div id="markers-layer"></div>
+  </div>
+  <div id="ship-selection-layer" aria-hidden="true"></div>
+  <div id="ship-hit-layer" aria-hidden="true"></div>
+  <div id="vessel-card-layer" aria-hidden="true"></div>
 
   <script>
     /**
-     * EXPERIMENT: Google 3D Maps via Maps JavaScript API (maps3d / Map3DElement).
-     * CURRENT production map remains Leaflet in map.html.
+     * EXPERIMENT: Google 3D Maps as background / world only.
+     * Ship layer = SAVE-055 Adaptive Vessel Symbols in a full-screen 2D overlay
+     * (HTML/CSS markers + canvas trails). Marker3D / Polyline3D are NOT used.
      *
-     * AIS: window.updateShips(payload) from MapPage/ShipRegistry → one Marker3DElement
-     * (position + label only; jump updates; no Interactive / SVG / track / camera follow).
+     * Source visuals: /tmp/ProjectX-SAVE055/src/resources/map/map.html (747fa52c)
      */
 
     const BUDAPEST = {
@@ -64,15 +326,26 @@
       heading: 25
     };
 
+    // --- SAVE-055 map.html (exact) ---
+    const MOVING_THRESHOLD_KN = 0.5;
+    const TRAIL_RED = "red";
+    const TRAIL_WEIGHT = 1;
+    const TRAIL_MAX_POINTS = 50;
+    const METERS_PER_DEG_LAT = 111320;
+
     let map3d = null;
     let mapsBootstrapped = false;
+    let trailCanvas = null;
+    let trailCtx = null;
+    let markersLayer = null;
+    let redrawScheduled = false;
 
-    // Single real AIS marker (Marker3DElement only). No Interactive / SVG / track.
-    let Marker3DElementCtor = null;
-    let aisMarker = null;
-    let aisMarkerMmsi = null;
+    /** @type {Object.<string, HTMLElement>} */
+    let ships = Object.create(null);
+    /** @type {Object.<string, Array<{lat:number,lng:number}>>} */
+    let trails = Object.create(null);
+    /** Latest ship records (Project X full/patch → SAVE-055 list sync). */
     let knownShips = Object.create(null);
-    let shipOrder = [];
 
     function setStatus(message, kind) {
       const el = document.getElementById("status");
@@ -104,22 +377,34 @@
       return Number.isFinite(lat) && Number.isFinite(lon);
     }
 
-    function shipLabel(ship) {
-      const mmsi = String(ship.mmsi);
-      const name = String(ship.name || "").trim();
-      if (name) return name + "\nMMSI: " + mmsi;
-      return "MMSI: " + mmsi;
+    function shipSpeedKn(ship) {
+      const speed = Number(ship && ship.speed);
+      return Number.isFinite(speed) ? speed : 0;
+    }
+
+    // SAVE-055: course first, then heading
+    function shipCourseDeg(ship) {
+      const course = Number(ship && ship.course);
+      if (Number.isFinite(course)) {
+        return ((course % 360) + 360) % 360;
+      }
+      const heading = Number(ship && ship.heading);
+      if (Number.isFinite(heading)) {
+        return ((heading % 360) + 360) % 360;
+      }
+      return 0;
+    }
+
+    function isShipMoving(ship) {
+      return shipSpeedKn(ship) >= MOVING_THRESHOLD_KN;
     }
 
     function mergeShipsPayload(payload) {
       if (Array.isArray(payload)) {
         knownShips = Object.create(null);
-        shipOrder = [];
         for (const ship of payload) {
           if (!isValidAisShip(ship)) continue;
-          const id = String(ship.mmsi);
-          knownShips[id] = ship;
-          shipOrder.push(id);
+          knownShips[String(ship.mmsi)] = ship;
         }
         return;
       }
@@ -128,97 +413,371 @@
 
       if (payload.mode === "full") {
         knownShips = Object.create(null);
-        shipOrder = [];
         for (const ship of payload.ships || []) {
           if (!isValidAisShip(ship)) continue;
-          const id = String(ship.mmsi);
-          knownShips[id] = ship;
-          shipOrder.push(id);
+          knownShips[String(ship.mmsi)] = ship;
         }
         return;
       }
 
       for (const ship of payload.upsert || []) {
         if (!isValidAisShip(ship)) continue;
-        const id = String(ship.mmsi);
-        if (!Object.prototype.hasOwnProperty.call(knownShips, id)) {
-          shipOrder.push(id);
-        }
-        knownShips[id] = ship;
+        knownShips[String(ship.mmsi)] = ship;
       }
 
       for (const mmsi of payload.remove || []) {
-        const id = String(mmsi);
-        delete knownShips[id];
+        delete knownShips[String(mmsi)];
       }
-      shipOrder = shipOrder.filter((id) =>
-        Object.prototype.hasOwnProperty.call(knownShips, id)
-      );
     }
 
-    function pickFirstAisShip() {
-      if (
-        aisMarkerMmsi != null &&
-        knownShips[aisMarkerMmsi] &&
-        isValidAisShip(knownShips[aisMarkerMmsi])
-      ) {
-        return knownShips[aisMarkerMmsi];
-      }
-      for (let i = 0; i < shipOrder.length; i++) {
-        const ship = knownShips[shipOrder[i]];
-        if (isValidAisShip(ship)) return ship;
-      }
-      return null;
+    // --- Map3D camera → screen projection (overlay placement only) ---
+
+    function readCamera() {
+      const c = map3d && map3d.center;
+      const lat = Number(c && c.lat);
+      const lng = Number(c && (c.lng != null ? c.lng : c.longitude));
+      const altitude = Number(c && c.altitude);
+      const range = Number(map3d && map3d.range);
+      const tilt = Number(map3d && map3d.tilt);
+      const heading = Number(map3d && map3d.heading);
+      const roll = Number(map3d && map3d.roll);
+      const fov = Number(map3d && map3d.fov);
+      return {
+        lat: Number.isFinite(lat) ? lat : BUDAPEST.center.lat,
+        lng: Number.isFinite(lng) ? lng : BUDAPEST.center.lng,
+        altitude: Number.isFinite(altitude) ? altitude : BUDAPEST.center.altitude,
+        range: Number.isFinite(range) && range > 0 ? range : BUDAPEST.range,
+        tilt: Number.isFinite(tilt) ? tilt : BUDAPEST.tilt,
+        heading: Number.isFinite(heading) ? heading : BUDAPEST.heading,
+        roll: Number.isFinite(roll) ? roll : 0,
+        fov: Number.isFinite(fov) && fov > 0 ? fov : 35
+      };
     }
 
-    async function ensureMarker3DElement() {
-      if (Marker3DElementCtor) return Marker3DElementCtor;
-      const maps3d = await google.maps.importLibrary("maps3d");
-      Marker3DElementCtor = maps3d.Marker3DElement;
-      if (!Marker3DElementCtor) {
-        throw new Error("Marker3DElement unavailable");
-      }
-      return Marker3DElementCtor;
+    function latLngToEnu(lat, lng, alt, origin) {
+      // Degrees → local ENU metres (METERS_PER_DEG_LAT is per degree, not radian).
+      const dLatDeg = lat - origin.lat;
+      const dLngDeg = lng - origin.lng;
+      const cosLat = Math.cos((origin.lat * Math.PI) / 180);
+      return {
+        x: dLngDeg * cosLat * METERS_PER_DEG_LAT, // East
+        y: dLatDeg * METERS_PER_DEG_LAT, // North
+        z: (Number.isFinite(alt) ? alt : origin.altitude) - origin.altitude // Up
+      };
     }
 
-    async function syncSingleAisMarker() {
-      if (!map3d) return;
+    function normalize(v) {
+      const len = Math.hypot(v.x, v.y, v.z) || 1;
+      return { x: v.x / len, y: v.y / len, z: v.z / len };
+    }
 
-      const ship = pickFirstAisShip();
-      if (!ship) {
-        if (aisMarker) {
-          try {
-            aisMarker.remove();
-          } catch (e) {}
-          aisMarker = null;
-          aisMarkerMmsi = null;
+    function cross(a, b) {
+      return {
+        x: a.y * b.z - a.z * b.y,
+        y: a.z * b.x - a.x * b.z,
+        z: a.x * b.y - a.y * b.x
+      };
+    }
+
+    function dot(a, b) {
+      return a.x * b.x + a.y * b.y + a.z * b.z;
+    }
+
+    /**
+     * Project lat/lng (on look-at altitude plane) → overlay CSS pixels.
+     * Uses Map3D center/range/tilt/heading/fov/roll — same camera the 3D map uses.
+     */
+    function projectLatLng(lat, lng, cam, width, height) {
+      const tilt = (cam.tilt * Math.PI) / 180;
+      const heading = (cam.heading * Math.PI) / 180;
+      const roll = (cam.roll * Math.PI) / 180;
+      const range = cam.range;
+
+      // Camera eye in ENU relative to look-at (tilt 0 = nadir / top-down).
+      const camPos = {
+        x: -Math.sin(heading) * Math.sin(tilt) * range,
+        y: -Math.cos(heading) * Math.sin(tilt) * range,
+        z: Math.cos(tilt) * range
+      };
+
+      const target = { x: 0, y: 0, z: 0 };
+      let forward = normalize({
+        x: target.x - camPos.x,
+        y: target.y - camPos.y,
+        z: target.z - camPos.z
+      });
+
+      // Screen-right when heading=0 (looking north): +East
+      let right = normalize({
+        x: Math.cos(heading),
+        y: -Math.sin(heading),
+        z: 0
+      });
+      let up = normalize(cross(right, forward));
+      // Re-orthogonalize right against forward/up
+      right = normalize(cross(forward, up));
+
+      if (roll !== 0) {
+        const cosR = Math.cos(roll);
+        const sinR = Math.sin(roll);
+        const rightR = {
+          x: right.x * cosR + up.x * sinR,
+          y: right.y * cosR + up.y * sinR,
+          z: right.z * cosR + up.z * sinR
+        };
+        const upR = {
+          x: up.x * cosR - right.x * sinR,
+          y: up.y * cosR - right.y * sinR,
+          z: up.z * cosR - right.z * sinR
+        };
+        right = normalize(rightR);
+        up = normalize(upR);
+      }
+
+      const p = latLngToEnu(lat, lng, cam.altitude, cam);
+      const vx = p.x - camPos.x;
+      const vy = p.y - camPos.y;
+      const vz = p.z - camPos.z;
+
+      const xCam = vx * right.x + vy * right.y + vz * right.z;
+      const yCam = vx * up.x + vy * up.y + vz * up.z;
+      const zCam = vx * forward.x + vy * forward.y + vz * forward.z;
+      if (!(zCam > 1e-3)) return null;
+
+      const aspect = width / Math.max(height, 1);
+      const fovY = (cam.fov * Math.PI) / 180;
+      const fScale = 1 / Math.tan(fovY / 2);
+      const ndcX = ((xCam / zCam) * fScale) / aspect;
+      const ndcY = (yCam / zCam) * fScale;
+
+      return {
+        x: (ndcX + 1) * 0.5 * width,
+        y: (1 - ndcY) * 0.5 * height
+      };
+    }
+
+    function resizeTrailCanvas() {
+      if (!trailCanvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      const w = trailCanvas.clientWidth || window.innerWidth;
+      const h = trailCanvas.clientHeight || window.innerHeight;
+      const pw = Math.max(1, Math.round(w * dpr));
+      const ph = Math.max(1, Math.round(h * dpr));
+      if (trailCanvas.width !== pw || trailCanvas.height !== ph) {
+        trailCanvas.width = pw;
+        trailCanvas.height = ph;
+      }
+      if (trailCtx) {
+        trailCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+    }
+
+    function scheduleOverlayRedraw() {
+      if (redrawScheduled) return;
+      redrawScheduled = true;
+      requestAnimationFrame(function () {
+        redrawScheduled = false;
+        redrawOverlay();
+      });
+    }
+
+    /**
+     * SAVE-055 uses CSS rotate(course) on a north-up Leaflet map (screen-up = N).
+     * On Map3D, screen-up follows camera heading — subtract heading so course 0° = N.
+     */
+    function markerScreenRotationDeg(ship) {
+      const course = shipCourseDeg(ship);
+      const heading = Number(map3d && map3d.heading);
+      const H = Number.isFinite(heading) ? heading : 0;
+      return course - H;
+    }
+
+    function updateMarkerAppearance(element, ship) {
+      let body = element.querySelector(".ship-body");
+      if (!body) {
+        body = document.createElement("div");
+        body.className = "ship-body";
+        element.appendChild(body);
+      }
+
+      if (isShipMoving(ship)) {
+        body.classList.add("ship-body--moving");
+        body.classList.remove("ship-body--stationary");
+        body.textContent = "▲";
+        body.style.transform =
+          "rotate(" + markerScreenRotationDeg(ship) + "deg)";
+        return;
+      }
+
+      body.classList.remove("ship-body--moving");
+      body.classList.add("ship-body--stationary");
+      body.textContent = "";
+      body.style.transform = "";
+    }
+
+    function ensureMarker(mmsi) {
+      if (ships[mmsi]) return ships[mmsi];
+      const el = document.createElement("div");
+      el.className = "ship-icon";
+      el.dataset.mmsi = mmsi;
+      el.innerHTML = "<div class='ship-body'></div>";
+      markersLayer.appendChild(el);
+      ships[mmsi] = el;
+      return el;
+    }
+
+    function removeMarker(mmsi) {
+      const el = ships[mmsi];
+      if (!el) return;
+      try {
+        el.remove();
+      } catch (e) {}
+      delete ships[mmsi];
+    }
+
+    /**
+     * SAVE-055 updateShips(list) port — data only; draw via 2D overlay.
+     */
+    function syncSave055Ships() {
+      if (!map3d || !markersLayer) return;
+
+      const list = Object.keys(knownShips).map(function (id) {
+        return knownShips[id];
+      });
+      const active = new Set();
+
+      for (let i = 0; i < list.length; i++) {
+        const ship = list[i];
+        if (!isValidAisShip(ship)) continue;
+
+        const mmsi = String(ship.mmsi);
+        active.add(mmsi);
+
+        const lat = shipLat(ship);
+        const lon = shipLon(ship);
+        const pos = { lat: lat, lng: lon };
+
+        const marker = ensureMarker(mmsi);
+        updateMarkerAppearance(marker, ship);
+
+        if (!trails[mmsi]) {
+          trails[mmsi] = [];
         }
-        return;
+        const line = trails[mmsi];
+        line.push(pos);
+        if (line.length > TRAIL_MAX_POINTS) {
+          line.shift();
+        }
       }
 
-      const lat = shipLat(ship);
-      const lon = shipLon(ship);
-      const label = shipLabel(ship);
-      const mmsi = String(ship.mmsi);
+      Object.keys(ships).forEach(function (mmsi) {
+        if (active.has(mmsi)) return;
+        removeMarker(mmsi);
+        delete trails[mmsi];
+      });
 
-      if (!aisMarker) {
-        const Marker3DElement = await ensureMarker3DElement();
-        // Only position + label — no Interactive, SVG, extrusion, or camera moves.
-        aisMarker = new Marker3DElement({
-          position: { lat: lat, lng: lon },
-          label: label
-        });
-        map3d.append(aisMarker);
-        aisMarkerMmsi = mmsi;
-        window.__projectxGoogle3dAisShip = { mmsi: mmsi, lat: lat, lon: lon };
-        return;
+      window.__projectxGoogle3dAisStats = {
+        count: active.size,
+        moving: list.filter(isShipMoving).length,
+        stationary: list.filter(function (s) {
+          return isValidAisShip(s) && !isShipMoving(s);
+        }).length,
+        trails: Object.keys(trails).length,
+        trailPoints: Object.keys(trails).reduce(function (n, id) {
+          return n + trails[id].length;
+        }, 0)
+      };
+
+      scheduleOverlayRedraw();
+    }
+
+    function redrawOverlay() {
+      if (!map3d || !trailCtx || !trailCanvas || !markersLayer) return;
+
+      resizeTrailCanvas();
+      const width = trailCanvas.clientWidth || window.innerWidth;
+      const height = trailCanvas.clientHeight || window.innerHeight;
+      const cam = readCamera();
+
+      trailCtx.clearRect(0, 0, width, height);
+      trailCtx.lineWidth = TRAIL_WEIGHT;
+      trailCtx.strokeStyle = TRAIL_RED;
+      trailCtx.lineJoin = "round";
+      trailCtx.lineCap = "round";
+
+      const mmsis = Object.keys(knownShips);
+      for (let i = 0; i < mmsis.length; i++) {
+        const mmsi = mmsis[i];
+        const ship = knownShips[mmsi];
+        if (!isValidAisShip(ship)) continue;
+
+        const marker = ships[mmsi];
+        if (!marker) continue;
+
+        const lat = shipLat(ship);
+        const lon = shipLon(ship);
+        const screen = projectLatLng(lat, lon, cam, width, height);
+        if (!screen) {
+          marker.style.display = "none";
+        } else {
+          marker.style.display = "";
+          marker.style.left = screen.x + "px";
+          marker.style.top = screen.y + "px";
+        }
+
+        // Heading can change while panning — keep course aligned to map north.
+        if (isShipMoving(ship)) {
+          const body = marker.querySelector(".ship-body");
+          if (body) {
+            body.style.transform =
+              "rotate(" + markerScreenRotationDeg(ship) + "deg)";
+          }
+        }
+
+        const line = trails[mmsi];
+        if (!line || line.length < 2) continue;
+
+        trailCtx.beginPath();
+        let started = false;
+        for (let j = 0; j < line.length; j++) {
+          const pt = projectLatLng(line[j].lat, line[j].lng, cam, width, height);
+          if (!pt) {
+            started = false;
+            continue;
+          }
+          if (!started) {
+            trailCtx.moveTo(pt.x, pt.y);
+            started = true;
+          } else {
+            trailCtx.lineTo(pt.x, pt.y);
+          }
+        }
+        if (started) trailCtx.stroke();
       }
 
-      // Jump to latest AIS fix — no interpolation / animation.
-      aisMarker.position = { lat: lat, lng: lon };
-      aisMarker.label = label;
-      aisMarkerMmsi = mmsi;
-      window.__projectxGoogle3dAisShip = { mmsi: mmsi, lat: lat, lon: lon };
+      // Hide markers that are no longer known (safety).
+      Object.keys(ships).forEach(function (mmsi) {
+        if (knownShips[mmsi]) return;
+        ships[mmsi].style.display = "none";
+      });
+    }
+
+    function bindCameraSync() {
+      if (!map3d) return;
+      const events = [
+        "gmp-centerchange",
+        "gmp-rangechange",
+        "gmp-tiltchange",
+        "gmp-headingchange",
+        "gmp-fovchange",
+        "gmp-rollchange",
+        "gmp-camerapositionchange",
+        "gmp-steadychange"
+      ];
+      for (let i = 0; i < events.length; i++) {
+        map3d.addEventListener(events[i], scheduleOverlayRedraw);
+      }
+      window.addEventListener("resize", scheduleOverlayRedraw);
     }
 
     // --- Leaflet API stubs so MapWidget JS calls stay harmless ---
@@ -226,9 +785,7 @@
     window.updateShips = function updateShips(payload) {
       try {
         mergeShipsPayload(payload);
-        syncSingleAisMarker().catch(function (err) {
-          console.warn("updateShips AIS Marker3D", err);
-        });
+        syncSave055Ships();
       } catch (err) {
         console.warn("updateShips", err);
       }
@@ -261,7 +818,20 @@
     window.updateObservationPoints = noop;
     window.clearObservationPoints = noop;
     window.setPickOverlay = noop;
-    window.focusShip = noop;
+    window.focusShip = function focusShip(mmsi) {
+      const id = String(mmsi);
+      const ship = knownShips[id];
+      if (!ship || !map3d) return;
+      try {
+        map3d.center = {
+          lat: shipLat(ship),
+          lng: shipLon(ship),
+          altitude: BUDAPEST.center.altitude
+        };
+      } catch (e) {
+        console.warn("focusShip", e);
+      }
+    };
     window.setCameraCoverageZones = noop;
     window.clearCameraCoverageZones = noop;
     window.setCameraLink = noop;
@@ -330,6 +900,14 @@
         const root = document.getElementById("map-root");
         root.replaceChildren();
 
+        ships = Object.create(null);
+        trails = Object.create(null);
+        markersLayer = document.getElementById("markers-layer");
+        if (markersLayer) markersLayer.replaceChildren();
+        trailCanvas = document.getElementById("trail-canvas");
+        trailCtx = trailCanvas ? trailCanvas.getContext("2d") : null;
+        resizeTrailCanvas();
+
         map3d = new Map3DElement({
           center: BUDAPEST.center,
           range: BUDAPEST.range,
@@ -339,19 +917,18 @@
         });
 
         // Do not hide Google attribution / default UI chrome.
+        // Do not change Budapest camera settings.
         root.append(map3d);
         window.__projectxGoogle3dMap = map3d;
+        bindCameraSync();
 
         // Apply any AIS payload that arrived before Map3DElement was ready.
-        syncSingleAisMarker().catch(function (err) {
-          console.warn("initial AIS Marker3D sync", err);
-        });
+        syncSave055Ships();
 
         setStatus(
-          "Google 3D Maps — Budapest (SATELLITE). Pan / zoom / rotate / tilt enabled.",
+          "Google 3D + SAVE-055 2D overlay. Pan / zoom / rotate / tilt enabled.",
           "ok"
         );
-        // Keep banner briefly; auth failures may arrive after element construction.
         setTimeout(() => {
           const el = document.getElementById("status");
           if (el && el.dataset.kind === "ok") setStatus("", "ok");
@@ -374,6 +951,388 @@
 
     // Called from MapWidget at runtime (key never stored in this HTML file).
     window.__projectxStartGoogle3d = startGoogle3dMap;
+  </script>
+  <!--
+    P0 ship hit-test / QWebChannel selection layer.
+    Reads marker screen positions from #markers-layer; does not modify
+    ship-overlay drawing, projection, trails, or SAVE-055 visuals.
+  -->
+  <script>
+    (function installShipHitLayer() {
+      const HIT_LAYER_ID = "ship-hit-layer";
+      const MARKERS_LAYER_ID = "markers-layer";
+      let bridge = null;
+      let pendingMmsi = null;
+      let rafId = 0;
+
+      function ensureHitLayer() {
+        let layer = document.getElementById(HIT_LAYER_ID);
+        if (!layer) {
+          layer = document.createElement("div");
+          layer.id = HIT_LAYER_ID;
+          layer.setAttribute("aria-hidden", "true");
+          document.body.appendChild(layer);
+        }
+        return layer;
+      }
+
+      function reportShip(mmsi) {
+        const id = Number(mmsi);
+        if (!Number.isFinite(id)) return;
+        if (typeof window.setSelectedShipHighlight === "function") {
+          window.setSelectedShipHighlight(id);
+        }
+        if (bridge && typeof bridge.selectShip === "function") {
+          bridge.selectShip(id);
+          pendingMmsi = null;
+          return;
+        }
+        pendingMmsi = id;
+      }
+
+      function onHitClick(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        const hit = event.currentTarget;
+        if (!hit) return;
+        reportShip(hit.dataset.mmsi);
+      }
+
+      function syncHitTargetsFromMarkers() {
+        const layer = ensureHitLayer();
+        const markersRoot = document.getElementById(MARKERS_LAYER_ID);
+        if (!markersRoot) {
+          rafId = requestAnimationFrame(syncHitTargetsFromMarkers);
+          return;
+        }
+
+        const icons = markersRoot.querySelectorAll(".ship-icon[data-mmsi]");
+        const existing = Object.create(null);
+        const currentHits = layer.querySelectorAll(".ship-hit");
+        for (let i = 0; i < currentHits.length; i++) {
+          existing[String(currentHits[i].dataset.mmsi || "")] = currentHits[i];
+        }
+
+        const seen = Object.create(null);
+        for (let i = 0; i < icons.length; i++) {
+          const icon = icons[i];
+          const mmsi = String(icon.dataset.mmsi || "");
+          if (!mmsi) continue;
+          seen[mmsi] = true;
+
+          let hit = existing[mmsi];
+          if (!hit) {
+            hit = document.createElement("div");
+            hit.className = "ship-hit";
+            hit.dataset.mmsi = mmsi;
+            hit.addEventListener("click", onHitClick);
+            layer.appendChild(hit);
+          }
+
+          hit.style.left = icon.style.left || "";
+          hit.style.top = icon.style.top || "";
+          hit.style.display = icon.style.display || "";
+        }
+
+        for (const mmsi in existing) {
+          if (!seen[mmsi]) {
+            existing[mmsi].remove();
+          }
+        }
+
+        rafId = requestAnimationFrame(syncHitTargetsFromMarkers);
+      }
+
+      function initBridge() {
+        if (bridge) return;
+        if (typeof qt === "undefined" || typeof QWebChannel === "undefined") {
+          setTimeout(initBridge, 100);
+          return;
+        }
+        new QWebChannel(qt.webChannelTransport, function (channel) {
+          bridge = channel.objects.bridge || null;
+          window.__projectxMapBridge = bridge;
+          if (pendingMmsi != null) {
+            reportShip(pendingMmsi);
+          }
+        });
+      }
+
+      ensureHitLayer();
+      initBridge();
+      if (!rafId) {
+        rafId = requestAnimationFrame(syncHitTargetsFromMarkers);
+      }
+    })();
+  </script>
+  <!--
+    Google 3D Vessel Card: 2D HTML overlay above the selected ship.
+    Follows marker screen positions from #markers-layer; does not modify
+    ship-overlay drawing, projection, trails, or SAVE-055 visuals.
+  -->
+  <script>
+    (function installVesselCardOverlay() {
+      const LAYER_ID = "vessel-card-layer";
+      const MARKERS_LAYER_ID = "markers-layer";
+      let selectedMmsi = null;
+      let cardHtml = "";
+      let anchor = null;
+      let rafId = 0;
+      let bridge = null;
+
+      function ensureLayer() {
+        let layer = document.getElementById(LAYER_ID);
+        if (!layer) {
+          layer = document.createElement("div");
+          layer.id = LAYER_ID;
+          layer.setAttribute("aria-hidden", "true");
+          document.body.appendChild(layer);
+        }
+        return layer;
+      }
+
+      function ensureAnchor() {
+        const layer = ensureLayer();
+        if (anchor && anchor.isConnected) return anchor;
+        anchor = document.createElement("div");
+        anchor.className = "g3d-vessel-card-anchor";
+        layer.appendChild(anchor);
+        return anchor;
+      }
+
+      function attachHandlers(root) {
+        if (!root) return;
+        const closeBtn = root.querySelector(".g3d-vessel-card-close");
+        if (closeBtn) {
+          closeBtn.onclick = function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            window.clearSelectedVesselCard();
+            if (bridge && typeof bridge.clearShipSelection === "function") {
+              bridge.clearShipSelection();
+            }
+          };
+        }
+        root.querySelectorAll(".vessel-card__logbook-btn").forEach(function (btn) {
+          btn.onclick = function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const mmsi = Number(btn.getAttribute("data-mmsi"));
+            if (!Number.isFinite(mmsi)) return;
+            if (bridge && typeof bridge.openLogbook === "function") {
+              bridge.openLogbook(mmsi);
+            }
+          };
+        });
+        // Keep map camera interactions from swallowing card scroll/clicks.
+        root.addEventListener("wheel", function (event) {
+          event.stopPropagation();
+        }, { passive: true });
+        root.addEventListener("pointerdown", function (event) {
+          event.stopPropagation();
+        });
+      }
+
+      function renderCard() {
+        const el = ensureAnchor();
+        if (!selectedMmsi || !cardHtml) {
+          el.classList.remove("visible");
+          el.innerHTML = "";
+          return;
+        }
+        el.innerHTML =
+          '<button type="button" class="g3d-vessel-card-close" aria-label="Close">×</button>' +
+          cardHtml;
+        el.classList.add("visible");
+        attachHandlers(el);
+      }
+
+      function syncCardPosition() {
+        const el = ensureAnchor();
+        if (!selectedMmsi || !cardHtml) {
+          el.classList.remove("visible");
+          rafId = requestAnimationFrame(syncCardPosition);
+          return;
+        }
+
+        const markersRoot = document.getElementById(MARKERS_LAYER_ID);
+        const icon = markersRoot
+          ? markersRoot.querySelector(
+              '.ship-icon[data-mmsi="' + String(selectedMmsi) + '"]'
+            )
+          : null;
+
+        if (!icon || icon.style.display === "none") {
+          el.classList.remove("visible");
+        } else {
+          if (!el.classList.contains("visible") || !el.innerHTML) {
+            renderCard();
+          }
+          el.style.left = icon.style.left || "";
+          el.style.top = icon.style.top || "";
+          el.classList.add("visible");
+        }
+        rafId = requestAnimationFrame(syncCardPosition);
+      }
+
+      window.setSelectedVesselCard = function setSelectedVesselCard(payload) {
+        try {
+          const data = payload || {};
+          const mmsi = data.mmsi;
+          const html = data.html || "";
+          if (mmsi == null || !html) {
+            window.clearSelectedVesselCard();
+            return;
+          }
+          selectedMmsi = String(mmsi);
+          cardHtml = String(html);
+          if (typeof window.setSelectedShipHighlight === "function") {
+            window.setSelectedShipHighlight(selectedMmsi);
+          }
+          renderCard();
+        } catch (err) {
+          console.warn("setSelectedVesselCard", err);
+        }
+      };
+
+      window.clearSelectedVesselCard = function clearSelectedVesselCard() {
+        selectedMmsi = null;
+        cardHtml = "";
+        if (anchor) {
+          anchor.classList.remove("visible");
+          anchor.innerHTML = "";
+        }
+        if (typeof window.setSelectedShipHighlight === "function") {
+          window.setSelectedShipHighlight(null);
+        }
+      };
+
+      function initBridge() {
+        if (bridge) return;
+        if (window.__projectxMapBridge) {
+          bridge = window.__projectxMapBridge;
+          return;
+        }
+        // Hit-layer owns QWebChannel init; wait for it (avoid dual channels).
+        setTimeout(initBridge, 100);
+      }
+
+      ensureLayer();
+      initBridge();
+      if (!rafId) {
+        rafId = requestAnimationFrame(syncCardPosition);
+      }
+    })();
+  </script>
+  <!--
+    Selected-ship red highlight. Separate layer — does not modify
+    #ship-overlay markers, trails, projection, size, or rotation logic.
+    Follows the selected MMSI marker screen position from #markers-layer.
+  -->
+  <script>
+    (function installShipSelectionLayer() {
+      const LAYER_ID = "ship-selection-layer";
+      const MARKERS_LAYER_ID = "markers-layer";
+      let selectedMmsi = null;
+      let iconEl = null;
+      let rafId = 0;
+
+      function ensureLayer() {
+        let layer = document.getElementById(LAYER_ID);
+        if (!layer) {
+          layer = document.createElement("div");
+          layer.id = LAYER_ID;
+          layer.setAttribute("aria-hidden", "true");
+          document.body.appendChild(layer);
+        }
+        return layer;
+      }
+
+      function ensureIcon() {
+        const layer = ensureLayer();
+        if (iconEl && iconEl.isConnected) return iconEl;
+        iconEl = document.createElement("div");
+        iconEl.className = "ship-select-icon";
+        iconEl.innerHTML = '<div class="ship-select-body"></div>';
+        layer.appendChild(iconEl);
+        return iconEl;
+      }
+
+      function updateAppearance(ship, sourceIcon) {
+        const el = ensureIcon();
+        const body = el.querySelector(".ship-select-body");
+        if (!body) return;
+        const moving =
+          typeof isShipMoving === "function"
+            ? isShipMoving(ship)
+            : Number(ship && ship.speed) >= 0.5;
+        body.className =
+          "ship-select-body " +
+          (moving ? "ship-select-body--moving" : "ship-select-body--stationary");
+        body.textContent = moving ? "▲" : "";
+        // Match the locked overlay's current screen rotation when present.
+        let rot = "";
+        if (sourceIcon) {
+          const srcBody = sourceIcon.querySelector(".ship-body");
+          if (srcBody && srcBody.style && srcBody.style.transform) {
+            rot = srcBody.style.transform;
+          }
+        }
+        if (!rot && moving && typeof markerScreenRotationDeg === "function") {
+          rot = "rotate(" + markerScreenRotationDeg(ship) + "deg)";
+        }
+        body.style.transform = rot || "";
+      }
+
+      function syncSelection() {
+        const el = ensureIcon();
+        if (selectedMmsi == null || selectedMmsi === "") {
+          el.classList.remove("visible");
+          rafId = requestAnimationFrame(syncSelection);
+          return;
+        }
+
+        const markersRoot = document.getElementById(MARKERS_LAYER_ID);
+        const source = markersRoot
+          ? markersRoot.querySelector(
+              '.ship-icon[data-mmsi="' + String(selectedMmsi) + '"]'
+            )
+          : null;
+        const ship =
+          typeof knownShips !== "undefined" ? knownShips[String(selectedMmsi)] : null;
+
+        if (!source || source.style.display === "none" || !ship) {
+          el.classList.remove("visible");
+        } else {
+          updateAppearance(ship, source);
+          el.style.left = source.style.left || "";
+          el.style.top = source.style.top || "";
+          el.dataset.mmsi = String(selectedMmsi);
+          el.classList.add("visible");
+        }
+        rafId = requestAnimationFrame(syncSelection);
+      }
+
+      window.setSelectedShipHighlight = function setSelectedShipHighlight(mmsi) {
+        if (mmsi == null || mmsi === "" || mmsi === 0) {
+          selectedMmsi = null;
+          window.__projectxSelectedMmsi = null;
+          if (iconEl) iconEl.classList.remove("visible");
+          return;
+        }
+        selectedMmsi = String(mmsi);
+        window.__projectxSelectedMmsi = selectedMmsi;
+      };
+
+      window.getSelectedShipHighlight = function getSelectedShipHighlight() {
+        return selectedMmsi;
+      };
+
+      ensureLayer();
+      if (!rafId) {
+        rafId = requestAnimationFrame(syncSelection);
+      }
+    })();
   </script>
 </body>
 </html>

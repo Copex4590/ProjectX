@@ -48,6 +48,8 @@ dist/
 .install-test/
 # Written by release build scripts; not for source commits
 src/resources/build_stamp
+# Google Maps API key injected at build/release time — NEVER commit
+src/resources/map/google_maps_api_key.bundled
 
 # Windows release installer binary (build on Windows, upload for website publish)
 release/windows/*.exe

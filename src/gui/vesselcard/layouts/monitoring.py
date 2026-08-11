@@ -199,6 +199,16 @@ def _navigation_rows(translations: dict[str, str], ship: dict) -> str:
     return "".join([
         _row(
             translations,
+            "Departure Port",
+            display_value(ship.get("departure_port")),
+        ),
+        _row(
+            translations,
+            "Route",
+            display_value(ship.get("route")),
+        ),
+        _row(
+            translations,
             "Destination",
             display_value(ship.get("destination")),
         ),

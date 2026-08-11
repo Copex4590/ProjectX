@@ -39,6 +39,8 @@
   "Heading": "Heading",
   "Text Heading": "Text Heading",
   "Destination": "Destination",
+  "Departure Port": "Departure Port",
+  "Route": "Route",
   "ETA": "ETA",
   "Last Seen": "Last Seen",
   "AIS Visible": "AIS Visible",

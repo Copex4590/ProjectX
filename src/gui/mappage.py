@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from database import registry
+from database.voyage_store import voyage_store
 from engines.camera import camera_selection_engine
 from engines.camera.link_manager import CameraLinkSnapshot, intelligent_camera_link_manager
 from engines.camera.link_states import CameraLinkMode
@@ -312,6 +313,17 @@ def _serialize_ship(ship) -> dict:
         payload["timeline_summary"] = _timeline_summary(ship.mmsi)
         payload["statistics_summary"] = _statistics_summary(ship.mmsi)
         payload["has_logbook"] = logbook_manager.has_logbook(ship)
+        try:
+            voyage_ui = voyage_store.ui_fields(ship.mmsi, ship=ship)
+            payload["departure_port"] = voyage_ui.departure_port
+            payload["route"] = voyage_ui.route
+            if voyage_ui.destination:
+                payload["destination"] = voyage_ui.destination
+            if voyage_ui.eta:
+                payload["eta"] = voyage_ui.eta
+        except Exception:
+            payload.setdefault("departure_port", "")
+            payload.setdefault("route", "")
         trace_enter(f"MapPage._serialize_ship.render mmsi={ship.mmsi}")
         payload["popup_html"] = vessel_card_layout_manager.render(payload)
         trace_exit(f"MapPage._serialize_ship.render mmsi={ship.mmsi}")
@@ -361,22 +373,22 @@ class MapPage(QWidget):
         self.camera_preview = CameraPreviewPanel()
         right_layout.addWidget(self.camera_preview, 0)
 
-        right_scroll = QScrollArea()
-        right_scroll.setObjectName("mapRightScroll")
-        right_scroll.setWidgetResizable(True)
-        right_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        right_scroll.setHorizontalScrollBarPolicy(
+        self._right_scroll = QScrollArea()
+        self._right_scroll.setObjectName("mapRightScroll")
+        self._right_scroll.setWidgetResizable(True)
+        self._right_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._right_scroll.setHorizontalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
-        right_scroll.setVerticalScrollBarPolicy(
+        self._right_scroll.setVerticalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAsNeeded
         )
-        right_scroll.setSizePolicy(
+        self._right_scroll.setSizePolicy(
             QSizePolicy.Policy.Preferred,
             QSizePolicy.Policy.Expanding,
         )
-        right_scroll.setWidget(right_column)
-        layout.addWidget(right_scroll)
+        self._right_scroll.setWidget(right_column)
+        layout.addWidget(self._right_scroll)
 
         self._selected_mmsi = None
         self._camera_link = intelligent_camera_link_manager
@@ -406,6 +418,14 @@ class MapPage(QWidget):
             lambda _ok: self._on_map_ready()
         )
         self.map.openLogbookRequested.connect(self._open_logbook)
+        self.map.shipSelected.connect(self.select_vessel)
+        clear_selection = getattr(self.map, "shipSelectionCleared", None)
+        if clear_selection is not None:
+            clear_selection.connect(self.clear_vessel_selection)
+        self.vessel_details.openLogbookRequested.connect(self._open_logbook)
+        self.vessel_details.focusTimelineRequested.connect(
+            self._focus_vessel_timeline
+        )
         self._map_controller.pick_mode_changed.connect(
             self._on_pick_mode_changed
         )
@@ -768,10 +788,73 @@ class MapPage(QWidget):
         self._bind_timeline_vessel(self._selected_mmsi)
         self._camera_link.select_vessel(self._selected_mmsi)
         self._refresh_camera_preview()
+        self._sync_google_vessel_card()
+
+    def clear_vessel_selection(self) -> None:
+
+        self._selected_mmsi = None
+        self.vessel_details.clear()
+        self._bind_timeline_vessel(None)
+        self._camera_link.select_vessel(None)
+        self.camera_link.apply_snapshot(self._camera_link.last_snapshot)
+        self.camera_preview.show_empty()
+        self._apply_camera_link_overlays()
+        clear_card = getattr(self.map, "clear_vessel_card_overlay", None)
+        if callable(clear_card):
+            clear_card()
+
+    def _sync_google_vessel_card(self) -> None:
+        """Push / clear the Google 3D HTML Vessel Card overlay for selection."""
+
+        set_card = getattr(self.map, "set_vessel_card_overlay", None)
+        clear_card = getattr(self.map, "clear_vessel_card_overlay", None)
+        if not callable(set_card) or not callable(clear_card):
+            return
+        if not getattr(self.map, "uses_google_3d", False):
+            return
+
+        if self._selected_mmsi is None:
+            clear_card()
+            return
+
+        ship = registry.get(self._selected_mmsi)
+        if ship is None or not (ship.lat or ship.lon):
+            clear_card()
+            return
+
+        try:
+            payload = _serialize_ship(ship)
+            html = str(payload.get("popup_html") or "")
+        except Exception:
+            logger.exception(
+                "Failed to render Google 3D vessel card for %s",
+                self._selected_mmsi,
+            )
+            clear_card()
+            return
+
+        if not html:
+            clear_card()
+            return
+
+        set_card(int(self._selected_mmsi), html)
 
     def _open_logbook(self, mmsi: int) -> None:
 
         logbook_manager.open_logbook(int(mmsi))
+
+    def _focus_vessel_timeline(self) -> None:
+        """Scroll the Map right column to the existing VesselTimelinePanel."""
+
+        if self._selected_mmsi is not None:
+            self.vessel_timeline.set_enabled_for_vessel(True)
+        self.vessel_timeline.show()
+        self.vessel_timeline.raise_()
+        try:
+            self._right_scroll.ensureWidgetVisible(self.vessel_timeline, 0, 24)
+        except Exception:
+            pass
+        self.vessel_timeline.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def _on_camera_link_refresh(self) -> None:
 
@@ -790,6 +873,9 @@ class MapPage(QWidget):
             self.vessel_details.clear()
             self._bind_timeline_vessel(None)
             self._apply_camera_link_overlays()
+            clear_card = getattr(self.map, "clear_vessel_card_overlay", None)
+            if callable(clear_card):
+                clear_card()
             return
 
         ship = registry.get(self._selected_mmsi)
@@ -1053,6 +1139,8 @@ class MapPage(QWidget):
                     trace_enter("MapPage._publish_ships._refresh_camera_preview")
                     self._refresh_camera_preview()
                     trace_exit("MapPage._publish_ships._refresh_camera_preview")
+                    if is_full:
+                        self._sync_google_vessel_card()
         finally:
             self._ships_update_busy = False
             pending = self._ships_update_pending

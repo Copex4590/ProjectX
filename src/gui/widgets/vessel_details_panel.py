@@ -711,37 +711,16 @@ class VesselDetailsPanel(QWidget):
         self._position.set_value(self._rot, "—")
         self._position.set_value(self._nav_status, "—")
 
-        voyage = None
         try:
-            voyage = voyage_store.get_state(self._mmsi)
+            voyage_ui = voyage_store.ui_fields(self._mmsi, ship=ship)
         except Exception:
-            logger.exception("Voyage state lookup failed for %s", self._mmsi)
+            logger.exception("Voyage UI lookup failed for %s", self._mmsi)
+            voyage_ui = None
 
-        destination = _coalesce(
-            getattr(ship, "destination", None) if ship else None,
-            getattr(voyage, "destination", None) if voyage else None,
-        )
-        eta = _coalesce(
-            getattr(ship, "eta", None) if ship else None,
-            getattr(voyage, "eta", None) if voyage else None,
-        )
-        # AIS has no departure port — only an explicit Ship/voyage source value.
-        departure = _coalesce(
-            getattr(ship, "departure_port", None) if ship else None,
-            getattr(voyage, "departure_port", None) if voyage else None,
-        )
-
-        route_text = "—"
-        try:
-            observed = voyage_store.get_observed_route(self._mmsi)
-            if observed.available:
-                route_text = observed.summary
-            elif observed.point_count == 1:
-                route_text = tr("Insufficient track data")
-            else:
-                route_text = "—"
-        except Exception:
-            logger.exception("Observed route lookup failed for %s", self._mmsi)
+        departure = getattr(voyage_ui, "departure_port", "") if voyage_ui else ""
+        route_text = getattr(voyage_ui, "route", "") if voyage_ui else ""
+        destination = getattr(voyage_ui, "destination", "") if voyage_ui else ""
+        eta = getattr(voyage_ui, "eta", "") if voyage_ui else ""
 
         draft = None
         if ship is not None:
@@ -751,8 +730,9 @@ class VesselDetailsPanel(QWidget):
         if draft is None and record is not None:
             draft = record.draft
 
+        # Human Voyage: no observed-track / raw GPS; empty → "—".
         self._voyage.set_value(self._departure, _dash(departure or None))
-        self._voyage.set_value(self._route, route_text)
+        self._voyage.set_value(self._route, _dash(route_text or None))
         self._voyage.set_value(self._destination, _dash(destination or None))
         self._voyage.set_value(self._eta, _dash(eta or None))
         self._voyage.set_value(

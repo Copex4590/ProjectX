@@ -5,6 +5,7 @@ import logging
 import os
 from pathlib import Path
 
+from app.google_maps_key import google_maps_key_source, resolve_google_maps_api_key
 from app.paths import resource_path
 from debug.obs_freeze_trace import trace_block, trace_enter, trace_exit, trace_event
 
@@ -17,37 +18,32 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 _LOG = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# CURRENT:     Leaflet  → src/resources/map/map.html
-# EXPERIMENT:  Google 3D Maps (Map3DElement / maps3d) → google_map_3d.html
+# SHIPPED DEFAULT: Google 3D Maps → src/resources/map/google_map_3d.html
+# FALLBACK:        Leaflet        → src/resources/map/map.html
 #
-# Enable experiment:
-#   export PROJECTX_USE_GOOGLE_3D_MAPS=1
-#   export PROJECTX_GOOGLE_MAPS_DEMO_KEY="…"
-# Or simply set PROJECTX_GOOGLE_MAPS_DEMO_KEY (auto-enables).
+# Google 3D is used when an API key is available (bundled release key and/or
+# dev env). Leaflet remains available as an explicit fallback:
+#   export PROJECTX_USE_GOOGLE_3D_MAPS=0
+#   # or omit the key in a pure-dev tree without a bundled key file
 #
-# Restore Leaflet:
-#   unset PROJECTX_GOOGLE_MAPS_DEMO_KEY
-#   unset PROJECTX_USE_GOOGLE_3D_MAPS
-#   # or force: export PROJECTX_USE_GOOGLE_3D_MAPS=0
+# Dev key override (never logged):
+#   export PROJECTX_GOOGLE_MAPS_API_KEY="…"
+#   # legacy alias: PROJECTX_GOOGLE_MAPS_DEMO_KEY
 # ---------------------------------------------------------------------------
 
 
-def _experimental_google_3d_enabled() -> bool:
+def _google_3d_enabled() -> bool:
     flag = os.environ.get("PROJECTX_USE_GOOGLE_3D_MAPS", "").strip().lower()
     if flag in {"0", "false", "no", "off"}:
         return False
     if flag in {"1", "true", "yes", "on"}:
         return True
-    return bool(os.environ.get("PROJECTX_GOOGLE_MAPS_DEMO_KEY", "").strip())
-
-
-def _google_maps_demo_key() -> str:
-    # Never log or persist this value.
-    return os.environ.get("PROJECTX_GOOGLE_MAPS_DEMO_KEY", "").strip()
+    # Default: Google 3D whenever a key can be resolved (bundled or env).
+    return bool(resolve_google_maps_api_key())
 
 
 def _map_html_path() -> Path:
-    if _experimental_google_3d_enabled():
+    if _google_3d_enabled():
         return resource_path("map", "google_map_3d.html")
     return resource_path("map", "map.html")
 
@@ -56,6 +52,8 @@ class _MapBridge(QObject):
 
     openLogbookRequested = Signal(int)
     locationSelected = Signal(float, float)
+    shipSelected = Signal(int)
+    shipSelectionCleared = Signal()
 
     @Slot(int)
     def openLogbook(self, mmsi: int):
@@ -67,11 +65,23 @@ class _MapBridge(QObject):
 
         self.locationSelected.emit(float(latitude), float(longitude))
 
+    @Slot(int)
+    def selectShip(self, mmsi: int):
+
+        self.shipSelected.emit(int(mmsi))
+
+    @Slot()
+    def clearShipSelection(self):
+
+        self.shipSelectionCleared.emit()
+
 
 class MapWidget(QWebEngineView):
 
     openLogbookRequested = Signal(int)
     locationSelected = Signal(float, float)
+    shipSelected = Signal(int)
+    shipSelectionCleared = Signal()
 
     def __init__(self):
         super().__init__()
@@ -95,20 +105,23 @@ class MapWidget(QWebEngineView):
         self._bridge = _MapBridge()
         self._bridge.openLogbookRequested.connect(self.openLogbookRequested)
         self._bridge.locationSelected.connect(self.locationSelected)
+        self._bridge.shipSelected.connect(self.shipSelected)
+        self._bridge.shipSelectionCleared.connect(self.shipSelectionCleared)
 
         channel = QWebChannel(self.page())
         channel.registerObject("bridge", self._bridge)
         self.page().setWebChannel(channel)
 
         html = _map_html_path()
-        self._google_3d_experiment = html.name == "google_map_3d.html"
-        if self._google_3d_experiment:
+        self._google_3d_map = html.name == "google_map_3d.html"
+        self._pending_vessel_card: dict | None = None
+        if self._google_3d_map:
             _LOG.info(
-                "MapWidget EXPERIMENT: Google 3D Maps "
-                "(google_map_3d.html; key via PROJECTX_GOOGLE_MAPS_DEMO_KEY)"
+                "MapWidget: Google 3D Maps (key source=%s)",
+                google_maps_key_source(),
             )
         else:
-            _LOG.info("MapWidget CURRENT: Leaflet map.html")
+            _LOG.info("MapWidget: Leaflet map.html (fallback)")
 
         self.load(QUrl.fromLocalFile(str(html)))
         self.loadFinished.connect(self._on_load_finished)
@@ -249,16 +262,21 @@ class MapWidget(QWebEngineView):
 
         self._page_ready = True
 
-        if self._google_3d_experiment:
-            # Pass API key at runtime only — never embed in tracked HTML.
-            key = _google_maps_demo_key()
+        if self._google_3d_map:
+            # Pass API key at runtime only — never embed in tracked HTML / logs.
+            key = resolve_google_maps_api_key()
             self._run_js(
                 "if (typeof window.__projectxStartGoogle3d === 'function') {"
                 f"  window.__projectxStartGoogle3d({json.dumps(key)});"
                 "}"
             )
-            # Same ship flush path as Leaflet — JS updateShips is a no-op until map3d ready.
+            # Same ship flush path as Leaflet — overlay applies when Map3D is ready.
             self._flush_pending_ships()
+            if self._pending_vessel_card is not None:
+                self._run_js(
+                    "setSelectedVesselCard("
+                    f"{json.dumps(self._pending_vessel_card)});"
+                )
             return
 
         if self._pick_enabled and self._pick_overlay_message:
@@ -331,6 +349,30 @@ class MapWidget(QWebEngineView):
     def focus_ship(self, mmsi: int):
 
         self._run_js(f"focusShip({int(mmsi)});")
+
+    @property
+    def uses_google_3d(self) -> bool:
+
+        return bool(self._google_3d_map)
+
+    def set_vessel_card_overlay(self, mmsi: int, html: str) -> None:
+        """Show / update the Google 3D 2D HTML Vessel Card above a ship."""
+
+        if not self._google_3d_map:
+            return
+
+        payload = {"mmsi": int(mmsi), "html": str(html or "")}
+        self._pending_vessel_card = payload
+        if not self._page_ready:
+            return
+        self._run_js(f"setSelectedVesselCard({json.dumps(payload)});")
+
+    def clear_vessel_card_overlay(self) -> None:
+
+        self._pending_vessel_card = None
+        if not self._google_3d_map or not self._page_ready:
+            return
+        self._run_js("clearSelectedVesselCard();")
 
     def set_playback_active(self, mmsi: int | None) -> None:
 

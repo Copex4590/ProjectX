@@ -39,6 +39,8 @@
   "Heading": "Irányszög",
   "Text Heading": "Szöveges irány",
   "Destination": "Célállomás",
+  "Departure Port": "Indulási kikötő",
+  "Route": "Útvonal",
   "ETA": "Érkezés",
   "Last Seen": "Utoljára látva",
   "AIS Visible": "AIS látható",

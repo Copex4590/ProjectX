@@ -5,13 +5,17 @@
 # Observed route points come from the existing timeline POSITION_UPDATE stream —
 # not invented ports, not a parallel AIS ingest path.
 #
+# User-facing Voyage (Utazás) never shows raw GPS / observed-track summaries.
+# Route is only explicit intermediate stops from a trusted source.
+#
 # Flow:
 #   HybridAisEngine → ShipRegistry.add → voyage_store.observe(ship)
-#   UI / Analytics ← voyage_store.get_state / get_observed_route
+#   UI / Analytics ← voyage_store.get_state / ui_fields / get_observed_route
 # ============================================================================
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 import time
@@ -21,9 +25,33 @@ from pathlib import Path
 from threading import Lock
 
 from app.paths import runtime_data_path
+from geo.port_catalog import port_catalog
 from models.ship import Ship
 from timeline.timeline_manager import timeline_manager
 from timeline.timeline_recorder import EVENT_POSITION_UPDATE
+
+# Departure/route sources that must never drive user-facing Voyage fields.
+_UNRELIABLE_SOURCES = frozenset(
+    {
+        "",
+        "inferred",
+        "guess",
+        "guessed",
+        "observed",
+        "track",
+        "observed track",
+        "ais-history",
+        "ais_history",
+        "gps",
+        "history",
+        # Live AIS feeds do not carry a trustworthy departure / itinerary.
+        "aisstream",
+        "ais",
+        "rtl",
+        "rtl-sdr",
+        "hybrid",
+    }
+)
 
 VOYAGE_DATABASE_FILE = Path(
     os.environ.get(
@@ -39,6 +67,8 @@ CREATE TABLE IF NOT EXISTS vessel_voyage_state (
     eta TEXT NOT NULL DEFAULT '',
     departure_port TEXT NOT NULL DEFAULT '',
     departure_source TEXT NOT NULL DEFAULT '',
+    route_stops TEXT NOT NULL DEFAULT '[]',
+    route_source TEXT NOT NULL DEFAULT '',
     source TEXT NOT NULL DEFAULT '',
     updated_at TEXT NOT NULL
 );
@@ -80,6 +110,39 @@ def _clean_text(value) -> str:
     return str(value).strip()
 
 
+def _source_reliable(source: str) -> bool:
+    return _clean_text(source).lower() not in _UNRELIABLE_SOURCES
+
+
+def _parse_route_stops(raw) -> tuple[str, ...]:
+    if raw is None:
+        return ()
+    if isinstance(raw, (list, tuple)):
+        items = raw
+    else:
+        text = _clean_text(raw)
+        if not text:
+            return ()
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            parts = [part.strip() for part in text.split(",") if part.strip()]
+            return tuple(parts)
+        if not isinstance(parsed, list):
+            return ()
+        items = parsed
+    out: list[str] = []
+    for item in items:
+        name = _clean_text(item)
+        if name and name not in out:
+            out.append(name)
+    return tuple(out)
+
+
+def _dumps_route_stops(stops: tuple[str, ...] | list[str]) -> str:
+    return json.dumps(list(stops), ensure_ascii=False)
+
+
 @dataclass(frozen=True)
 class VoyageState:
     mmsi: int
@@ -87,8 +150,20 @@ class VoyageState:
     eta: str = ""
     departure_port: str = ""
     departure_source: str = ""
+    route_stops: tuple[str, ...] = ()
+    route_source: str = ""
     source: str = ""
     updated_at: str = ""
+
+
+@dataclass(frozen=True)
+class VoyageUiFields:
+    """Human-facing Voyage fields — never raw track coordinates."""
+
+    departure_port: str = ""
+    route: str = ""
+    destination: str = ""
+    eta: str = ""
 
 
 @dataclass(frozen=True)
@@ -137,6 +212,20 @@ class VoyageStore:
         with self._lock:
             connection = self._conn()
             connection.executescript(_SCHEMA_SQL)
+            columns = {
+                str(row["name"])
+                for row in connection.execute("PRAGMA table_info(vessel_voyage_state)")
+            }
+            if "route_stops" not in columns:
+                connection.execute(
+                    "ALTER TABLE vessel_voyage_state "
+                    "ADD COLUMN route_stops TEXT NOT NULL DEFAULT '[]'"
+                )
+            if "route_source" not in columns:
+                connection.execute(
+                    "ALTER TABLE vessel_voyage_state "
+                    "ADD COLUMN route_source TEXT NOT NULL DEFAULT ''"
+                )
             connection.commit()
 
     def observe(self, ship: Ship) -> VoyageState | None:
@@ -167,6 +256,8 @@ class VoyageStore:
             prev_eta = _clean_text(row["eta"]) if row else ""
             prev_dep = _clean_text(row["departure_port"]) if row else ""
             prev_dep_src = _clean_text(row["departure_source"]) if row else ""
+            prev_route = _parse_route_stops(row["route_stops"]) if row else ()
+            prev_route_src = _clean_text(row["route_source"]) if row else ""
             prev_source = _clean_text(row["source"]) if row else ""
 
             new_dest = destination or prev_dest
@@ -178,19 +269,23 @@ class VoyageStore:
             else:
                 new_dep = prev_dep
                 new_dep_src = prev_dep_src
+            new_route = prev_route
+            new_route_src = prev_route_src
             new_source = source or prev_source
 
             connection.execute(
                 """
                 INSERT INTO vessel_voyage_state (
                     mmsi, destination, eta, departure_port, departure_source,
-                    source, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    route_stops, route_source, source, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(mmsi) DO UPDATE SET
                     destination = excluded.destination,
                     eta = excluded.eta,
                     departure_port = excluded.departure_port,
                     departure_source = excluded.departure_source,
+                    route_stops = excluded.route_stops,
+                    route_source = excluded.route_source,
                     source = excluded.source,
                     updated_at = excluded.updated_at
                 """,
@@ -200,6 +295,8 @@ class VoyageStore:
                     new_eta,
                     new_dep,
                     new_dep_src,
+                    _dumps_route_stops(new_route),
+                    new_route_src,
                     new_source,
                     now,
                 ),
@@ -225,12 +322,19 @@ class VoyageStore:
             ).fetchone()
         if row is None:
             return None
+        keys = set(row.keys())
         return VoyageState(
             mmsi=int(row["mmsi"]),
             destination=_clean_text(row["destination"]),
             eta=_clean_text(row["eta"]),
             departure_port=_clean_text(row["departure_port"]),
             departure_source=_clean_text(row["departure_source"]),
+            route_stops=_parse_route_stops(
+                row["route_stops"] if "route_stops" in keys else "[]"
+            ),
+            route_source=_clean_text(
+                row["route_source"] if "route_source" in keys else ""
+            ),
             source=_clean_text(row["source"]),
             updated_at=_clean_text(row["updated_at"]),
         )
@@ -247,11 +351,119 @@ class VoyageStore:
         normalized = _normalize_mmsi(mmsi)
         port = _clean_text(departure_port)
         src = _clean_text(source)
-        if normalized is None or not port or not src:
+        if normalized is None or not port or not _source_reliable(src):
             return None
 
         ship = Ship(mmsi=normalized, departure_port=port, source=src)
         return self.observe(ship)
+
+    def set_route_stops(
+        self,
+        mmsi: int | str,
+        stops: list[str] | tuple[str, ...],
+        *,
+        source: str,
+    ) -> VoyageState | None:
+        """Explicit intermediate ports only. GPS track is never a route."""
+
+        normalized = _normalize_mmsi(mmsi)
+        src = _clean_text(source)
+        cleaned = _parse_route_stops(stops)
+        if normalized is None or not cleaned or not _source_reliable(src):
+            return None
+
+        now = _now_iso()
+        with self._lock:
+            connection = self._conn()
+            row = connection.execute(
+                "SELECT * FROM vessel_voyage_state WHERE mmsi = ?",
+                (normalized,),
+            ).fetchone()
+            destination = _clean_text(row["destination"]) if row else ""
+            eta = _clean_text(row["eta"]) if row else ""
+            departure = _clean_text(row["departure_port"]) if row else ""
+            dep_src = _clean_text(row["departure_source"]) if row else ""
+            prev_source = _clean_text(row["source"]) if row else ""
+            connection.execute(
+                """
+                INSERT INTO vessel_voyage_state (
+                    mmsi, destination, eta, departure_port, departure_source,
+                    route_stops, route_source, source, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(mmsi) DO UPDATE SET
+                    route_stops = excluded.route_stops,
+                    route_source = excluded.route_source,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    normalized,
+                    destination,
+                    eta,
+                    departure,
+                    dep_src,
+                    _dumps_route_stops(cleaned),
+                    src,
+                    prev_source or src,
+                    now,
+                ),
+            )
+            connection.commit()
+        return self.get_state(normalized)
+
+    def label_place(
+        self,
+        lat: float,
+        lon: float,
+        *,
+        max_km: float = 3.0,
+    ) -> str:
+        """Resolve coordinates via the global port catalog when a hit exists."""
+
+        return port_catalog.label_near(lat, lon, max_km=max_km)
+
+    def ui_fields(
+        self,
+        mmsi: int | str,
+        *,
+        ship: Ship | None = None,
+    ) -> VoyageUiFields:
+        """Voyage values safe for the user-facing Vessel Card."""
+
+        state = self.get_state(mmsi)
+        destination = _clean_text(getattr(ship, "destination", "") if ship else "")
+        eta = _clean_text(getattr(ship, "eta", "") if ship else "")
+        if state is not None:
+            destination = destination or state.destination
+            eta = eta or state.eta
+
+        departure = ""
+        if ship is not None:
+            ship_dep = _clean_text(getattr(ship, "departure_port", ""))
+            ship_src = _clean_text(getattr(ship, "source", ""))
+            if ship_dep and _source_reliable(ship_src):
+                departure = ship_dep
+        if (
+            not departure
+            and state is not None
+            and state.departure_port
+            and _source_reliable(state.departure_source)
+        ):
+            departure = state.departure_port
+
+        route = ""
+        if (
+            state is not None
+            and state.route_stops
+            and _source_reliable(state.route_source)
+        ):
+            route = " → ".join(state.route_stops)
+
+        return VoyageUiFields(
+            departure_port=departure,
+            route=route,
+            destination=destination,
+            eta=eta,
+        )
 
     def build_observed_route(self, mmsi: int | str) -> ObservedRoute:
         """Derive MMSI route from timeline POSITION_UPDATE records."""
