@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project X — Google 3D Maps (experiment)</title>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #0b0e14;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+    }
+    #map-root {
+      width: 100%;
+      height: 100%;
+    }
+    #map-root gmp-map-3d {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #status {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      z-index: 10;
+      max-width: min(420px, calc(100% - 24px));
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(18, 21, 26, 0.92);
+      color: #e8eaed;
+      border: 1px solid #3a4556;
+      font-size: 13px;
+      line-height: 1.4;
+      pointer-events: none;
+    }
+    #status[data-kind="ok"] { border-color: #2f6f4e; color: #b6f0d0; }
+    #status[data-kind="warn"] { border-color: #8a6a2f; color: #f0e0b0; }
+    #status[data-kind="error"] { border-color: #8a3a3a; color: #f0b0b0; }
+    #status.hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div id="status" data-kind="info">Waiting for Google Maps API key from Project X…</div>
+  <div id="map-root"></div>
+
+  <script>
+    /**
+     * EXPERIMENT: Google 3D Maps via Maps JavaScript API (maps3d / Map3DElement).
+     * CURRENT production map remains Leaflet in map.html.
+     *
+     * AIS: window.updateShips(payload) from MapPage/ShipRegistry → one Marker3DElement
+     * (position + label only; jump updates; no Interactive / SVG / track / camera follow).
+     */
+
+    const BUDAPEST = {
+      center: { lat: 47.4979, lng: 19.0402, altitude: 120 },
+      range: 2200,
+      tilt: 62,
+      heading: 25
+    };
+
+    let map3d = null;
+    let mapsBootstrapped = false;
+
+    // Single real AIS marker (Marker3DElement only). No Interactive / SVG / track.
+    let Marker3DElementCtor = null;
+    let aisMarker = null;
+    let aisMarkerMmsi = null;
+    let knownShips = Object.create(null);
+    let shipOrder = [];
+
+    function setStatus(message, kind) {
+      const el = document.getElementById("status");
+      if (!el) return;
+      if (!message) {
+        el.classList.add("hidden");
+        return;
+      }
+      el.classList.remove("hidden");
+      el.textContent = message;
+      el.dataset.kind = kind || "info";
+    }
+
+    function shipLat(ship) {
+      return Number(ship && ship.lat);
+    }
+
+    function shipLon(ship) {
+      if (!ship) return NaN;
+      if (ship.lon != null && ship.lon !== "") return Number(ship.lon);
+      if (ship.lng != null && ship.lng !== "") return Number(ship.lng);
+      return NaN;
+    }
+
+    function isValidAisShip(ship) {
+      if (!ship || ship.mmsi == null || ship.mmsi === "") return false;
+      const lat = shipLat(ship);
+      const lon = shipLon(ship);
+      return Number.isFinite(lat) && Number.isFinite(lon);
+    }
+
+    function shipLabel(ship) {
+      const mmsi = String(ship.mmsi);
+      const name = String(ship.name || "").trim();
+      if (name) return name + "\nMMSI: " + mmsi;
+      return "MMSI: " + mmsi;
+    }
+
+    function mergeShipsPayload(payload) {
+      if (Array.isArray(payload)) {
+        knownShips = Object.create(null);
+        shipOrder = [];
+        for (const ship of payload) {
+          if (!isValidAisShip(ship)) continue;
+          const id = String(ship.mmsi);
+          knownShips[id] = ship;
+          shipOrder.push(id);
+        }
+        return;
+      }
+
+      if (!payload || typeof payload !== "object") return;
+
+      if (payload.mode === "full") {
+        knownShips = Object.create(null);
+        shipOrder = [];
+        for (const ship of payload.ships || []) {
+          if (!isValidAisShip(ship)) continue;
+          const id = String(ship.mmsi);
+          knownShips[id] = ship;
+          shipOrder.push(id);
+        }
+        return;
+      }
+
+      for (const ship of payload.upsert || []) {
+        if (!isValidAisShip(ship)) continue;
+        const id = String(ship.mmsi);
+        if (!Object.prototype.hasOwnProperty.call(knownShips, id)) {
+          shipOrder.push(id);
+        }
+        knownShips[id] = ship;
+      }
+
+      for (const mmsi of payload.remove || []) {
+        const id = String(mmsi);
+        delete knownShips[id];
+      }
+      shipOrder = shipOrder.filter((id) =>
+        Object.prototype.hasOwnProperty.call(knownShips, id)
+      );
+    }
+
+    function pickFirstAisShip() {
+      if (
+        aisMarkerMmsi != null &&
+        knownShips[aisMarkerMmsi] &&
+        isValidAisShip(knownShips[aisMarkerMmsi])
+      ) {
+        return knownShips[aisMarkerMmsi];
+      }
+      for (let i = 0; i < shipOrder.length; i++) {
+        const ship = knownShips[shipOrder[i]];
+        if (isValidAisShip(ship)) return ship;
+      }
+      return null;
+    }
+
+    async function ensureMarker3DElement() {
+      if (Marker3DElementCtor) return Marker3DElementCtor;
+      const maps3d = await google.maps.importLibrary("maps3d");
+      Marker3DElementCtor = maps3d.Marker3DElement;
+      if (!Marker3DElementCtor) {
+        throw new Error("Marker3DElement unavailable");
+      }
+      return Marker3DElementCtor;
+    }
+
+    async function syncSingleAisMarker() {
+      if (!map3d) return;
+
+      const ship = pickFirstAisShip();
+      if (!ship) {
+        if (aisMarker) {
+          try {
+            aisMarker.remove();
+          } catch (e) {}
+          aisMarker = null;
+          aisMarkerMmsi = null;
+        }
+        return;
+      }
+
+      const lat = shipLat(ship);
+      const lon = shipLon(ship);
+      const label = shipLabel(ship);
+      const mmsi = String(ship.mmsi);
+
+      if (!aisMarker) {
+        const Marker3DElement = await ensureMarker3DElement();
+        // Only position + label — no Interactive, SVG, extrusion, or camera moves.
+        aisMarker = new Marker3DElement({
+          position: { lat: lat, lng: lon },
+          label: label
+        });
+        map3d.append(aisMarker);
+        aisMarkerMmsi = mmsi;
+        window.__projectxGoogle3dAisShip = { mmsi: mmsi, lat: lat, lon: lon };
+        return;
+      }
+
+      // Jump to latest AIS fix — no interpolation / animation.
+      aisMarker.position = { lat: lat, lng: lon };
+      aisMarker.label = label;
+      aisMarkerMmsi = mmsi;
+      window.__projectxGoogle3dAisShip = { mmsi: mmsi, lat: lat, lon: lon };
+    }
+
+    // --- Leaflet API stubs so MapWidget JS calls stay harmless ---
+    function noop() {}
+    window.updateShips = function updateShips(payload) {
+      try {
+        mergeShipsPayload(payload);
+        syncSingleAisMarker().catch(function (err) {
+          console.warn("updateShips AIS Marker3D", err);
+        });
+      } catch (err) {
+        console.warn("updateShips", err);
+      }
+    };
+    window.enablePickMode = noop;
+    window.endLocationPick = noop;
+    window.resetMapToWorldView = function () {
+      if (!map3d) return;
+      try {
+        if (typeof map3d.stopCameraAnimation === "function") {
+          map3d.stopCameraAnimation();
+        }
+        map3d.flyCameraTo({
+          endCamera: {
+            center: { lat: 20, lng: 15, altitude: 0 },
+            range: 16000000,
+            tilt: 0,
+            heading: 0
+          },
+          durationMillis: 1500
+        });
+      } catch (e) {
+        console.warn("resetMapToWorldView", e);
+      }
+    };
+    window.refreshLocationPickView = noop;
+    window.beginLocationPick = noop;
+    window.setPickMarker = noop;
+    window.clearPickMarker = noop;
+    window.updateObservationPoints = noop;
+    window.clearObservationPoints = noop;
+    window.setPickOverlay = noop;
+    window.focusShip = noop;
+    window.setCameraCoverageZones = noop;
+    window.clearCameraCoverageZones = noop;
+    window.setCameraLink = noop;
+    window.clearCameraLink = noop;
+    window.clearPlayback = noop;
+    window.setPlaybackActive = noop;
+    window.setPlaybackTrail = noop;
+    window.setPlaybackCursor = noop;
+
+    function bootstrapMapsJavaScriptApi(apiKey) {
+      if (window.google && google.maps && google.maps.importLibrary) {
+        return Promise.resolve();
+      }
+
+      return new Promise((resolve, reject) => {
+        window.gm_authFailure = function () {
+          setStatus(
+            "Maps JavaScript API auth failed (key / billing / API not enabled).",
+            "error"
+          );
+        };
+
+        (g => {
+          var h, a, k, p = "The Google Maps JavaScript API", c = "google",
+            l = "importLibrary", q = "__ib__", m = document, b = window;
+          b = b[c] || (b[c] = {});
+          var d = b.maps || (b.maps = {}), r = new Set(), e = new URLSearchParams(),
+            u = () => h || (h = new Promise(async (f, n) => {
+              await (a = m.createElement("script"));
+              e.set("libraries", [...r] + "");
+              for (k in g) e.set(k.replace(/[A-Z]/g, t => "_" + t[0].toLowerCase()), g[k]);
+              e.set("callback", c + ".maps." + q);
+              a.src = `https://maps.${c}apis.com/maps/api/js?` + e;
+              d[q] = f;
+              a.onerror = () => h = n(Error(p + " could not load."));
+              a.nonce = m.querySelector("script[nonce]")?.nonce || "";
+              m.head.append(a);
+            }));
+          d[l] ? console.warn(p + " only loads once. Ignoring:", g)
+            : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n));
+        })({
+          key: apiKey,
+          v: "alpha"
+        });
+
+        mapsBootstrapped = true;
+        google.maps.importLibrary("maps3d").then(resolve).catch(reject);
+      });
+    }
+
+    async function startGoogle3dMap(apiKey) {
+      if (!apiKey || apiKey === "YOUR_GOOGLE_MAPS_API_KEY") {
+        setStatus(
+          "Google Maps API key required (PROJECTX_GOOGLE_MAPS_DEMO_KEY).",
+          "warn"
+        );
+        return;
+      }
+
+      setStatus("Loading Google 3D Maps (maps3d / Map3DElement)…", "info");
+
+      try {
+        await bootstrapMapsJavaScriptApi(apiKey);
+        const { Map3DElement, MapMode } = await google.maps.importLibrary("maps3d");
+
+        const root = document.getElementById("map-root");
+        root.replaceChildren();
+
+        map3d = new Map3DElement({
+          center: BUDAPEST.center,
+          range: BUDAPEST.range,
+          tilt: BUDAPEST.tilt,
+          heading: BUDAPEST.heading,
+          mode: MapMode && MapMode.SATELLITE ? MapMode.SATELLITE : "SATELLITE"
+        });
+
+        // Do not hide Google attribution / default UI chrome.
+        root.append(map3d);
+        window.__projectxGoogle3dMap = map3d;
+
+        // Apply any AIS payload that arrived before Map3DElement was ready.
+        syncSingleAisMarker().catch(function (err) {
+          console.warn("initial AIS Marker3D sync", err);
+        });
+
+        setStatus(
+          "Google 3D Maps — Budapest (SATELLITE). Pan / zoom / rotate / tilt enabled.",
+          "ok"
+        );
+        // Keep banner briefly; auth failures may arrive after element construction.
+        setTimeout(() => {
+          const el = document.getElementById("status");
+          if (el && el.dataset.kind === "ok") setStatus("", "ok");
+        }, 8000);
+      } catch (err) {
+        console.error(err);
+        const msg = String(err && err.message ? err.message : err);
+        if (/billing/i.test(msg)) {
+          setStatus("Billing required for Maps JavaScript API / 3D Maps.", "error");
+        } else if (/not enabled|ApiNotActivated|maps3d/i.test(msg)) {
+          setStatus(
+            "Enable Maps JavaScript API and 3D Maps (alpha) for this key.",
+            "error"
+          );
+        } else {
+          setStatus("Google 3D Maps failed: " + msg, "error");
+        }
+      }
+    }
+
+    // Called from MapWidget at runtime (key never stored in this HTML file).
+    window.__projectxStartGoogle3d = startGoogle3dMap;
+  </script>
+</body>
+</html>

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
+from pathlib import Path
 
 from app.paths import resource_path
 from debug.obs_freeze_trace import trace_block, trace_enter, trace_exit, trace_event
@@ -10,6 +13,43 @@ from PySide6.QtGui import QKeyEvent, QMouseEvent
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
+
+_LOG = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# CURRENT:     Leaflet  → src/resources/map/map.html
+# EXPERIMENT:  Google 3D Maps (Map3DElement / maps3d) → google_map_3d.html
+#
+# Enable experiment:
+#   export PROJECTX_USE_GOOGLE_3D_MAPS=1
+#   export PROJECTX_GOOGLE_MAPS_DEMO_KEY="…"
+# Or simply set PROJECTX_GOOGLE_MAPS_DEMO_KEY (auto-enables).
+#
+# Restore Leaflet:
+#   unset PROJECTX_GOOGLE_MAPS_DEMO_KEY
+#   unset PROJECTX_USE_GOOGLE_3D_MAPS
+#   # or force: export PROJECTX_USE_GOOGLE_3D_MAPS=0
+# ---------------------------------------------------------------------------
+
+
+def _experimental_google_3d_enabled() -> bool:
+    flag = os.environ.get("PROJECTX_USE_GOOGLE_3D_MAPS", "").strip().lower()
+    if flag in {"0", "false", "no", "off"}:
+        return False
+    if flag in {"1", "true", "yes", "on"}:
+        return True
+    return bool(os.environ.get("PROJECTX_GOOGLE_MAPS_DEMO_KEY", "").strip())
+
+
+def _google_maps_demo_key() -> str:
+    # Never log or persist this value.
+    return os.environ.get("PROJECTX_GOOGLE_MAPS_DEMO_KEY", "").strip()
+
+
+def _map_html_path() -> Path:
+    if _experimental_google_3d_enabled():
+        return resource_path("map", "google_map_3d.html")
+    return resource_path("map", "map.html")
 
 
 class _MapBridge(QObject):
@@ -60,7 +100,15 @@ class MapWidget(QWebEngineView):
         channel.registerObject("bridge", self._bridge)
         self.page().setWebChannel(channel)
 
-        html = resource_path("map", "map.html")
+        html = _map_html_path()
+        self._google_3d_experiment = html.name == "google_map_3d.html"
+        if self._google_3d_experiment:
+            _LOG.info(
+                "MapWidget EXPERIMENT: Google 3D Maps "
+                "(google_map_3d.html; key via PROJECTX_GOOGLE_MAPS_DEMO_KEY)"
+            )
+        else:
+            _LOG.info("MapWidget CURRENT: Leaflet map.html")
 
         self.load(QUrl.fromLocalFile(str(html)))
         self.loadFinished.connect(self._on_load_finished)
@@ -200,6 +248,18 @@ class MapWidget(QWebEngineView):
             return
 
         self._page_ready = True
+
+        if self._google_3d_experiment:
+            # Pass API key at runtime only — never embed in tracked HTML.
+            key = _google_maps_demo_key()
+            self._run_js(
+                "if (typeof window.__projectxStartGoogle3d === 'function') {"
+                f"  window.__projectxStartGoogle3d({json.dumps(key)});"
+                "}"
+            )
+            # Same ship flush path as Leaflet — JS updateShips is a no-op until map3d ready.
+            self._flush_pending_ships()
+            return
 
         if self._pick_enabled and self._pick_overlay_message:
             self._apply_location_pick()
