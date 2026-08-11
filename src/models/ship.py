@@ -30,6 +30,8 @@ class Ship:
 
     destination: str = ""
     eta: str = ""
+    # AIS does not provide origin/departure; filled only by an explicit source.
+    departure_port: str = ""
 
     source: str = ""
 

@@ -3,14 +3,18 @@
 # Ship Registry
 # ============================================================================
 
+import logging
 from threading import Lock
 
 from database.vessel_sync import vessel_sync
+from database.voyage_store import voyage_store
 from engines.timeline.arrival_departure_engine import arrival_departure_engine
 from logbook.duna_format import get_direction, get_heading
 from models.ship import Ship
 from observation.geo_context import geo_context
 from timeline.timeline_recorder import timeline_recorder
+
+_LOG = logging.getLogger(__name__)
 
 
 def _apply_observation_distance(ship: Ship) -> None:
@@ -67,6 +71,9 @@ class ShipRegistry:
 
                 current.destination = ship.destination
                 current.eta = ship.eta
+                # Preserve an explicit departure if the new AIS payload omits it.
+                if str(getattr(ship, "departure_port", "") or "").strip():
+                    current.departure_port = str(ship.departure_port).strip()
 
                 current.source = ship.source
                 current.last_seen = ship.last_seen
@@ -82,6 +89,12 @@ class ShipRegistry:
                 current.add_history()
 
             merged = self._ships.get(ship.mmsi)
+
+        # Persist destination/ETA/(optional) departure; refresh observed route.
+        try:
+            voyage_store.observe(merged)
+        except Exception:
+            _LOG.exception("voyage_store.observe failed for %s", merged.mmsi)
 
         vessel_sync.enqueue(merged)
         timeline_recorder.enqueue(merged)

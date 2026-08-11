@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QPushButton,
     QScrollArea,
     QSizePolicy,
     QVBoxLayout,
@@ -28,6 +30,7 @@ from database.vessel_database_manager import (
     EVENT_SYNC_COMPLETED,
     vessel_database_manager,
 )
+from database.voyage_store import voyage_store
 from engines.camera import camera_selection_engine
 from events import eventbus
 from gui.eventbridge import EventBridge
@@ -44,7 +47,10 @@ from gui.vesselcard.layouts.base import (
     is_empty,
 )
 from i18n import tr
+from logbook import logbook_manager
 from models.ship import Ship
+from observation.geo_context import geo_context
+from timeline.timeline_manager import timeline_manager
 from vessels.flags.flag_manager import flag_manager
 from vessels.photo_manager import photo_manager
 
@@ -120,6 +126,86 @@ def _provider_label(ship: Ship | None) -> str:
     if ship.ais_visible:
         return "AISStream"
     return ""
+
+
+_COMPASS_KEYS = (
+    "North",
+    "Northeast",
+    "East",
+    "Southeast",
+    "South",
+    "Southwest",
+    "West",
+    "Northwest",
+)
+
+
+def _bearing_to_compass(bearing_deg) -> str:
+    """SAVE-055 / HTML vessel-card compass labels (reference for Qt panel)."""
+
+    if is_empty(bearing_deg):
+        return ""
+
+    try:
+        bearing = float(bearing_deg) % 360.0
+    except (TypeError, ValueError):
+        return ""
+
+    index = int((bearing + 22.5) / 45.0) % 8
+    return tr(_COMPASS_KEYS[index])
+
+
+def _timeline_summary_text(mmsi: int) -> str:
+    """Same summary shape as MapPage HTML card timeline_summary."""
+
+    try:
+        records = timeline_manager.history(mmsi)
+    except Exception:
+        logger.exception("Timeline history lookup failed for %s", mmsi)
+        return "—"
+
+    if not records:
+        return "—"
+
+    counts = Counter(record.event_type for record in records)
+    latest = max(records, key=lambda record: record.timestamp)
+    parts = [
+        f"{count} {tr(event_type)}"
+        for event_type, count in sorted(counts.items())
+    ]
+    return (
+        f"{len(records)} {tr('events')} ({', '.join(parts)}); "
+        f"{tr('latest')} {tr(latest.event_type)} "
+        f"{latest.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
+    )
+
+
+def _action_button(label_key: str) -> QPushButton:
+
+    button = QPushButton()
+    button.setCursor(Qt.CursorShape.PointingHandCursor)
+    button.setProperty("label_key", label_key)
+    button.setStyleSheet(
+        f"""
+        QPushButton {{
+            background: {ThemeColors.panel_elevated()};
+            color: {ThemeColors.TextPrimary};
+            border: 1px solid {ThemeColors.Border};
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 10pt;
+            font-weight: 600;
+            text-align: left;
+        }}
+        QPushButton:hover {{
+            border-color: {ThemeColors.Primary500};
+        }}
+        QPushButton:disabled {{
+            color: {ThemeColors.TextSecondary};
+        }}
+        """
+    )
+    return button
 
 
 class _SectionCard(QFrame):
@@ -276,7 +362,14 @@ class _PlaceholderBox(QFrame):
 
 
 class VesselDetailsPanel(QWidget):
-    """Modern vessel data sheet updated from ShipRegistry selection."""
+    """Modern vessel data sheet updated from ShipRegistry selection.
+
+    Google 3D map clicks select a vessel into this Qt panel (no HTML popup).
+    Distance/bearing/timeline/logbook parity with the former Leaflet card lives here.
+    """
+
+    openLogbookRequested = Signal(int)
+    focusTimelineRequested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -351,11 +444,15 @@ class VesselDetailsPanel(QWidget):
         self._speed = self._position.add_field("Speed")
         self._course = self._position.add_field("Course")
         self._heading = self._position.add_field("Heading")
+        self._distance = self._position.add_field("Distance")
+        self._direction = self._position.add_field("Direction")
+        self._bearing = self._position.add_field("Bearing")
         self._rot = self._position.add_field("ROT")
         self._nav_status = self._position.add_field("Navigational Status")
 
         self._voyage = self._add_section(layout, "Voyage")
         self._departure = self._voyage.add_field("Departure Port")
+        self._route = self._voyage.add_field("Route")
         self._destination = self._voyage.add_field("Destination")
         self._eta = self._voyage.add_field("ETA")
         self._draught = self._voyage.add_field("Draught")
@@ -377,8 +474,24 @@ class VesselDetailsPanel(QWidget):
         self._camera = self._add_section(layout, "Camera")
         self._camera_name = self._camera.add_field("Nearest Camera")
         self._camera_distance = self._camera.add_field("Camera Distance")
-        self._camera_box = _PlaceholderBox("📷", "Camera preview placeholder")
+        self._camera_visibility = self._camera.add_field("Visibility")
+        self._camera_box = _PlaceholderBox(
+            "📷",
+            "Live preview is in the Camera Preview panel below",
+        )
         self._camera.body.addWidget(self._camera_box)
+
+        self._timeline = self._add_section(layout, "Timeline")
+        self._timeline_summary = self._timeline.add_field("Latest events")
+        self._open_timeline_btn = _action_button("Open timeline panel")
+        self._open_timeline_btn.clicked.connect(self.focusTimelineRequested.emit)
+        self._timeline.body.addWidget(self._open_timeline_btn)
+
+        self._actions = self._add_section(layout, "Actions")
+        self._logbook_status = self._actions.add_field("Logbook")
+        self._open_logbook_btn = _action_button("Open vessel logbook")
+        self._open_logbook_btn.clicked.connect(self._emit_open_logbook)
+        self._actions.body.addWidget(self._open_logbook_btn)
 
         self._database = self._add_section(layout, "Database")
         self._db_status = self._database.add_field("Local Database")
@@ -465,6 +578,10 @@ class VesselDetailsPanel(QWidget):
             section.refresh_translations()
         self._photo_box.refresh_translations()
         self._camera_box.refresh_translations()
+        for button in (self._open_timeline_btn, self._open_logbook_btn):
+            key = button.property("label_key")
+            if key:
+                button.setText(tr(str(key)))
         self.refresh()
 
     def clear(self) -> None:
@@ -478,6 +595,8 @@ class VesselDetailsPanel(QWidget):
         self._flag_image.clear()
         self._photo_box.show_placeholder()
         self._camera_box.show_placeholder()
+        self._open_timeline_btn.setEnabled(False)
+        self._open_logbook_btn.setEnabled(False)
 
     def set_mmsi(self, mmsi: int | None) -> None:
 
@@ -562,13 +681,68 @@ class VesselDetailsPanel(QWidget):
         self._position.set_value(self._speed, speed_text)
         self._position.set_value(self._course, course_text)
         self._position.set_value(self._heading, heading_text)
+
+        distance_text = "—"
+        direction_text = "—"
+        bearing_text = "—"
+        if ship is not None and (ship.lat or ship.lon):
+            observation = geo_context.ship_observation_fields(ship.lat, ship.lon)
+            distance_km = observation.get("distance_km")
+            if distance_km is None:
+                distance_km = getattr(ship, "distance_km", None)
+            bearing_deg = observation.get("reference_bearing_deg")
+            distance_text = format_distance(distance_km)
+            compass = _bearing_to_compass(bearing_deg)
+            direction_text = _dash(
+                _coalesce(
+                    getattr(ship, "direction", None),
+                    compass,
+                )
+                or None
+            )
+            if bearing_deg is not None:
+                bearing_text = format_angle(bearing_deg)
+                if compass:
+                    bearing_text = f"{bearing_text} ({compass})"
+
+        self._position.set_value(self._distance, distance_text)
+        self._position.set_value(self._direction, direction_text)
+        self._position.set_value(self._bearing, bearing_text)
         self._position.set_value(self._rot, "—")
         self._position.set_value(self._nav_status, "—")
 
+        voyage = None
+        try:
+            voyage = voyage_store.get_state(self._mmsi)
+        except Exception:
+            logger.exception("Voyage state lookup failed for %s", self._mmsi)
+
         destination = _coalesce(
             getattr(ship, "destination", None) if ship else None,
+            getattr(voyage, "destination", None) if voyage else None,
         )
-        eta = _coalesce(getattr(ship, "eta", None) if ship else None)
+        eta = _coalesce(
+            getattr(ship, "eta", None) if ship else None,
+            getattr(voyage, "eta", None) if voyage else None,
+        )
+        # AIS has no departure port — only an explicit Ship/voyage source value.
+        departure = _coalesce(
+            getattr(ship, "departure_port", None) if ship else None,
+            getattr(voyage, "departure_port", None) if voyage else None,
+        )
+
+        route_text = "—"
+        try:
+            observed = voyage_store.get_observed_route(self._mmsi)
+            if observed.available:
+                route_text = observed.summary
+            elif observed.point_count == 1:
+                route_text = tr("Insufficient track data")
+            else:
+                route_text = "—"
+        except Exception:
+            logger.exception("Observed route lookup failed for %s", self._mmsi)
+
         draft = None
         if ship is not None:
             draft = getattr(ship, "draft", None)
@@ -577,7 +751,8 @@ class VesselDetailsPanel(QWidget):
         if draft is None and record is not None:
             draft = record.draft
 
-        self._voyage.set_value(self._departure, "—")
+        self._voyage.set_value(self._departure, _dash(departure or None))
+        self._voyage.set_value(self._route, route_text)
         self._voyage.set_value(self._destination, _dash(destination or None))
         self._voyage.set_value(self._eta, _dash(eta or None))
         self._voyage.set_value(
@@ -624,15 +799,52 @@ class VesselDetailsPanel(QWidget):
 
         camera_name = ""
         camera_distance = "—"
+        camera_visibility = "—"
+        camera_visibility_color = None
         if ship is not None:
             match = camera_selection_engine.get_best_camera(ship)
             if match is not None:
                 camera_name = str(getattr(match.camera, "name", "") or "")
                 camera_distance = format_distance(match.distance_km)
+            if ship.camera_visible is True:
+                camera_visibility = tr("Visible")
+                camera_visibility_color = ThemeColors.Success
+            elif ship.camera_visible is False:
+                camera_visibility = tr("Not visible")
+                camera_visibility_color = ThemeColors.TextSecondary
         self._camera.set_value(self._camera_name, _dash(camera_name or None))
         self._camera.set_value(self._camera_distance, camera_distance)
-        # Preview remains a placeholder in the details sheet (live preview stays in CameraPreviewPanel).
+        self._camera.set_value(
+            self._camera_visibility,
+            camera_visibility,
+            color=camera_visibility_color,
+        )
+        # Live video stays in CameraPreviewPanel (MapPage); do not duplicate here.
         self._camera_box.show_placeholder()
+
+        self._timeline.set_value(
+            self._timeline_summary,
+            _timeline_summary_text(self._mmsi),
+        )
+        self._open_timeline_btn.setEnabled(True)
+
+        has_logbook = False
+        try:
+            if ship is not None:
+                has_logbook = bool(logbook_manager.has_logbook(ship))
+            else:
+                has_logbook = bool(
+                    logbook_manager.has_logbook_for_mmsi(self._mmsi)
+                )
+        except Exception:
+            logger.exception("Logbook lookup failed for %s", self._mmsi)
+            has_logbook = False
+        self._actions.set_value(
+            self._logbook_status,
+            tr("Available") if has_logbook else tr("Not available"),
+            color=ThemeColors.Success if has_logbook else ThemeColors.TextSecondary,
+        )
+        self._open_logbook_btn.setEnabled(has_logbook)
 
         if record is not None:
             db_status = tr("Found")
@@ -655,6 +867,12 @@ class VesselDetailsPanel(QWidget):
         self._database.set_value(self._db_status, db_status, color=db_color)
         self._database.set_value(self._db_last_sync, last_sync_text)
         self._database.set_value(self._db_record_id, record_id)
+
+    def _emit_open_logbook(self) -> None:
+
+        if self._mmsi is None:
+            return
+        self.openLogbookRequested.emit(int(self._mmsi))
 
     def _update_flag_image(self, flag_code: str) -> None:
 

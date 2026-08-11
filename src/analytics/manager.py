@@ -16,6 +16,7 @@ from alerts.alert_manager import alert_manager
 from alerts.alert_rule import ALERT_TYPE_LABELS
 from cameras.manager import camera_manager
 from database import registry
+from database.voyage_store import voyage_store
 from rtl.rtl_manager import rtl_manager
 from timeline.timeline_manager import timeline_manager
 from timeline.timeline_recorder import EVENT_POSITION_UPDATE
@@ -140,6 +141,14 @@ class AnalyticsManager:
             destination = str(ship.destination or "").strip()
             if destination:
                 route_counter[destination] += 1
+
+        # Include persisted voyage destinations (survive restart / offline ships).
+        try:
+            for label, count in voyage_store.destination_counts(limit=20):
+                if label:
+                    route_counter[label] = max(route_counter.get(label, 0), count)
+        except Exception:
+            pass
 
         if include_timeline:
             timeline = [

@@ -73,6 +73,7 @@ def _database_sources() -> list[tuple[str, Path]]:
     candidates = [
         ("data/vessels.db", data / "vessels.db"),
         ("data/timeline.db", data / "timeline.db"),
+        ("data/voyage.db", data / "voyage.db"),
         ("data/alerts.db", data / "alerts.db"),
         ("data/vessel_db_sync_state.json", data / "vessel_db_sync_state.json"),
     ]
