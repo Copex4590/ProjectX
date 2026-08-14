@@ -7,7 +7,9 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
     QMessageBox,
+    QPushButton,
     QSizePolicy,
+    QSplitter,
     QStackedWidget,
     QWidget,
 )
@@ -37,7 +39,14 @@ from gui.firstrunwizard import FirstRunWizard
 
 from i18n import language_manager, tr
 from observation import observation_manager
+from gui.theme import secondary_button_stylesheet, splitter_stylesheet
 from preferences import preferences_manager
+from preferences.preferences import (
+    DEFAULT_CONNECTION_PANEL_WIDTH,
+    DEFAULT_LEFT_PANEL_WIDTH,
+    MIN_SIDE_PANEL_WIDTH,
+    _safe_panel_width,
+)
 from preferences.application_settings import (
     apply_runtime_settings,
     startup_page_index,
@@ -118,6 +127,9 @@ class MainWindow(QMainWindow):
         self.session_recording_page = None
 
         self.build_ui()
+        # Map navigation must work before the Map page is first opened
+        # (Dashboard observation Create starts location pick immediately).
+        self._ensure_map_controller_wired()
 
         self._cancel_pick_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
         self._cancel_pick_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
@@ -421,6 +433,7 @@ class MainWindow(QMainWindow):
 
         self.sidebar = Sidebar()
         self.sidebar.pageSelected.connect(self._on_page_selected)
+        self.sidebar.hideRequested.connect(lambda: self.set_left_panel_hidden(True))
         self.pages.currentChanged.connect(self.sidebar.set_active_page)
 
         self.dashboard_page.personalization_changed.connect(
@@ -430,11 +443,74 @@ class MainWindow(QMainWindow):
             self._apply_personalization
         )
 
-        root.addWidget(self.sidebar)
-        root.addWidget(self.pages, 1)
         self._connection_notices = ConnectionNoticeService(self)
         self.connection_panel = ConnectionPanel(self._connection_notices)
-        root.addWidget(self.connection_panel)
+        self.connection_panel.hideRequested.connect(
+            lambda: self.set_connection_panel_hidden(True)
+        )
+
+        self._left_restore_button = QPushButton()
+        self._left_restore_button.setObjectName("leftPanelRestoreButton")
+        self._left_restore_button.setFixedWidth(22)
+        self._left_restore_button.setSizePolicy(
+            QSizePolicy.Policy.Fixed,
+            QSizePolicy.Policy.Expanding,
+        )
+        self._left_restore_button.setStyleSheet(
+            secondary_button_stylesheet(padding="4px 2px")
+        )
+        self._left_restore_button.clicked.connect(
+            lambda: self.set_left_panel_hidden(False)
+        )
+        self._left_restore_button.setVisible(False)
+
+        self._connection_restore_button = QPushButton()
+        self._connection_restore_button.setObjectName(
+            "connectionPanelRestoreButton"
+        )
+        self._connection_restore_button.setFixedWidth(22)
+        self._connection_restore_button.setSizePolicy(
+            QSizePolicy.Policy.Fixed,
+            QSizePolicy.Policy.Expanding,
+        )
+        self._connection_restore_button.setStyleSheet(
+            secondary_button_stylesheet(padding="4px 2px")
+        )
+        self._connection_restore_button.clicked.connect(
+            lambda: self.set_connection_panel_hidden(False)
+        )
+        self._connection_restore_button.setVisible(False)
+
+        # LEFT | pages (map+details) | CONNECTIONS — map area expands between panels.
+        self._main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._main_splitter.setObjectName("mainSideSplitter")
+        self._main_splitter.setChildrenCollapsible(False)
+        self._main_splitter.setHandleWidth(5)
+        self._main_splitter.setStyleSheet(splitter_stylesheet())
+        self._main_splitter.addWidget(self.sidebar)
+        self._main_splitter.addWidget(self.pages)
+        self._main_splitter.addWidget(self.connection_panel)
+        self._main_splitter.setStretchFactor(0, 0)
+        self._main_splitter.setStretchFactor(1, 1)
+        self._main_splitter.setStretchFactor(2, 0)
+        self._main_splitter.setCollapsible(0, False)
+        self._main_splitter.setCollapsible(1, False)
+        self._main_splitter.setCollapsible(2, False)
+        self._main_splitter.splitterMoved.connect(self._on_main_splitter_moved)
+
+        root.addWidget(self._left_restore_button, 0)
+        root.addWidget(self._main_splitter, 1)
+        root.addWidget(self._connection_restore_button, 0)
+
+        self._left_panel_width = DEFAULT_LEFT_PANEL_WIDTH
+        self._left_panel_hidden = False
+        self._connection_panel_width = DEFAULT_CONNECTION_PANEL_WIDTH
+        self._connection_panel_hidden = False
+        self._panel_prefs_timer = QTimer(self)
+        self._panel_prefs_timer.setSingleShot(True)
+        self._panel_prefs_timer.setInterval(400)
+        self._panel_prefs_timer.timeout.connect(self._persist_side_panel_state)
+        self._apply_side_panel_preferences()
 
         self.setStatusBar(StatusPanel())
 
@@ -667,15 +743,22 @@ class MainWindow(QMainWindow):
 
     # --- first-open binders (signals / host wiring once per page) ---
 
+    def _ensure_map_controller_wired(self) -> None:
+        """Bind MapController navigation eagerly (not only on first Map open)."""
+
+        if self._map_controller_wired:
+            return
+
+        MapController.instance().set_dialog_parent(self)
+        MapController.instance().navigation_requested.connect(
+            lambda _page_index: self.navigate_to_map(),
+            Qt.ConnectionType.QueuedConnection,
+        )
+        self._map_controller_wired = True
+
     def _bind_map_page(self, page) -> None:
 
-        if not self._map_controller_wired:
-            MapController.instance().set_dialog_parent(self)
-            MapController.instance().navigation_requested.connect(
-                lambda _page_index: self.navigate_to_map(),
-                Qt.ConnectionType.QueuedConnection,
-            )
-            self._map_controller_wired = True
+        self._ensure_map_controller_wired()
 
         details = getattr(page, "vessel_details", None)
         if details is not None and hasattr(details, "connect_event_bridge"):
@@ -717,9 +800,126 @@ class MainWindow(QMainWindow):
 
         self.show_page(index)
 
+    def _apply_side_panel_preferences(self) -> None:
+
+        prefs = preferences_manager.get()
+        self._left_panel_width = _safe_panel_width(
+            prefs.left_panel_width,
+            DEFAULT_LEFT_PANEL_WIDTH,
+        )
+        self._left_panel_hidden = bool(prefs.left_panel_hidden)
+        self._connection_panel_width = _safe_panel_width(
+            prefs.connection_panel_width,
+            DEFAULT_CONNECTION_PANEL_WIDTH,
+        )
+        self._connection_panel_hidden = bool(prefs.connection_panel_hidden)
+        self._apply_main_panel_layout(persist=False)
+
+    def set_left_panel_hidden(self, hidden: bool) -> None:
+
+        hidden = bool(hidden)
+        if hidden and not self._left_panel_hidden:
+            sizes = self._main_splitter.sizes()
+            if sizes and sizes[0] > 0:
+                self._left_panel_width = _safe_panel_width(
+                    sizes[0],
+                    self._left_panel_width,
+                )
+
+        self._left_panel_hidden = hidden
+        self._apply_main_panel_layout(persist=True)
+
+    def is_left_panel_hidden(self) -> bool:
+
+        return bool(self._left_panel_hidden)
+
+    def set_connection_panel_hidden(self, hidden: bool) -> None:
+
+        hidden = bool(hidden)
+        if hidden and not self._connection_panel_hidden:
+            sizes = self._main_splitter.sizes()
+            if len(sizes) >= 3 and sizes[2] > 0:
+                self._connection_panel_width = _safe_panel_width(
+                    sizes[2],
+                    self._connection_panel_width,
+                )
+
+        self._connection_panel_hidden = hidden
+        self._apply_main_panel_layout(persist=True)
+
+    def is_connection_panel_hidden(self) -> bool:
+
+        return bool(self._connection_panel_hidden)
+
+    def _apply_main_panel_layout(self, *, persist: bool) -> None:
+
+        total = max(self._main_splitter.width(), 1)
+        left_w = 0 if self._left_panel_hidden else _safe_panel_width(
+            self._left_panel_width,
+            DEFAULT_LEFT_PANEL_WIDTH,
+        )
+        conn_w = 0 if self._connection_panel_hidden else _safe_panel_width(
+            self._connection_panel_width,
+            DEFAULT_CONNECTION_PANEL_WIDTH,
+        )
+        center_w = max(total - left_w - conn_w, 1)
+
+        self.sidebar.setVisible(not self._left_panel_hidden)
+        self._left_restore_button.setVisible(self._left_panel_hidden)
+        self.connection_panel.setVisible(not self._connection_panel_hidden)
+        self._connection_restore_button.setVisible(self._connection_panel_hidden)
+
+        self._main_splitter.setSizes([left_w, center_w, conn_w])
+
+        self._left_restore_button.setText("›")
+        self._left_restore_button.setToolTip(tr("Show navigation"))
+        self._connection_restore_button.setText("‹")
+        self._connection_restore_button.setToolTip(tr("Show connections"))
+
+        if persist:
+            self._panel_prefs_timer.start()
+
+    def _on_main_splitter_moved(self, _pos: int = 0, _index: int = 0) -> None:
+
+        sizes = self._main_splitter.sizes()
+        if len(sizes) < 3:
+            return
+        changed = False
+        if not self._left_panel_hidden and sizes[0] >= MIN_SIDE_PANEL_WIDTH:
+            self._left_panel_width = sizes[0]
+            changed = True
+        if (
+            not self._connection_panel_hidden
+            and sizes[2] >= MIN_SIDE_PANEL_WIDTH
+        ):
+            self._connection_panel_width = sizes[2]
+            changed = True
+        if changed:
+            self._panel_prefs_timer.start()
+
+    def _persist_side_panel_state(self) -> None:
+
+        try:
+            preferences_manager.update_fields(
+                left_panel_width=_safe_panel_width(
+                    self._left_panel_width,
+                    DEFAULT_LEFT_PANEL_WIDTH,
+                ),
+                left_panel_hidden=bool(self._left_panel_hidden),
+                connection_panel_width=_safe_panel_width(
+                    self._connection_panel_width,
+                    DEFAULT_CONNECTION_PANEL_WIDTH,
+                ),
+                connection_panel_hidden=bool(self._connection_panel_hidden),
+            )
+        except Exception:
+            logger.exception("Failed to persist side panel layout")
+
     def _apply_personalization(self) -> None:
 
         self._call_loaded_page("map_page", "apply_personalization")
+        self._left_restore_button.setToolTip(tr("Show navigation"))
+        self._connection_restore_button.setToolTip(tr("Show connections"))
 
         pages = [self.dashboard_page]
         if self._page_registry is not None:

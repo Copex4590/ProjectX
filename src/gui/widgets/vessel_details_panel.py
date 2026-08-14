@@ -36,6 +36,7 @@ from events import eventbus
 from gui.eventbridge import EventBridge
 from gui.i18n_support import bind_language_refresh
 from gui.theme import ThemeColors, card_stylesheet
+from preferences.preferences import MIN_SIDE_PANEL_WIDTH
 from gui.vesselcard.layouts.base import (
     display_value,
     format_angle,
@@ -380,8 +381,7 @@ class VesselDetailsPanel(QWidget):
         self._bus = _GuiBridge(self)
         self._bus.refresh_requested.connect(self.refresh)
 
-        self.setMinimumWidth(320)
-        self.setMaximumWidth(420)
+        self.setMinimumWidth(MIN_SIDE_PANEL_WIDTH)
         self.setStyleSheet(f"background: {ThemeColors.Background};")
 
         outer = QVBoxLayout(self)

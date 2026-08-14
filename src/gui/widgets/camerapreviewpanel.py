@@ -53,7 +53,7 @@ class CameraPreviewPanel(QFrame):
         self._playback_key = None
         self._playback_backend = None
 
-        self.setMinimumWidth(300)
+        self.setMinimumWidth(0)
         self.setMaximumWidth(360)
 
         self.setStyleSheet(f"""

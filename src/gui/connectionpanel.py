@@ -7,10 +7,11 @@ from __future__ import annotations
 
 import socket
 
-from PySide6.QtCore import QSize, QTimer
+from PySide6.QtCore import QSize, QTimer, Signal
 from PySide6.QtWidgets import (
     QFrame,
     QLabel,
+    QPushButton,
     QSizePolicy,
     QVBoxLayout,
 )
@@ -31,9 +32,13 @@ from gui.notifications.connection_notice import (
     CONNECTION_RTL,
     ConnectionNoticeService,
 )
-from gui.theme import BG_BASE, BORDER
+from gui.theme import BG_BASE, BORDER, secondary_button_stylesheet
 from i18n import tr
 from preferences import preferences_manager
+from preferences.preferences import (
+    DEFAULT_CONNECTION_PANEL_WIDTH,
+    MIN_SIDE_PANEL_WIDTH,
+)
 
 # Panel states (SAVE-235)
 STATUS_NOT_CONFIGURED = "not_configured"  # ⚪
@@ -57,6 +62,8 @@ _STATUS_ICON = {
 
 
 class ConnectionPanel(QFrame):
+
+    hideRequested = Signal()
 
     _ROWS = (
         (CONNECTION_INTERNET, "Internet"),
@@ -84,8 +91,11 @@ class ConnectionPanel(QFrame):
         self._ais_live = "offline"
         self._rtl_live = "offline"
 
-        self.setFixedWidth(240)
-        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+        self.setMinimumWidth(MIN_SIDE_PANEL_WIDTH)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Expanding,
+        )
 
         self.setStyleSheet(
             f"""
@@ -121,6 +131,14 @@ class ConnectionPanel(QFrame):
 
         layout.addStretch()
 
+        self._hide_button = QPushButton()
+        self._hide_button.setObjectName("connectionHideButton")
+        self._hide_button.setStyleSheet(
+            secondary_button_stylesheet(padding="6px 10px")
+        )
+        self._hide_button.clicked.connect(self.hideRequested.emit)
+        layout.addWidget(self._hide_button, 0)
+
         self._internet_timer = QTimer(self)
         self._internet_timer.setInterval(5000)
         self._internet_timer.timeout.connect(self._poll_internet)
@@ -137,10 +155,10 @@ class ConnectionPanel(QFrame):
         QTimer.singleShot(500, self._poll_cameras)
 
     def minimumSizeHint(self) -> QSize:
-        return QSize(240, 0)
+        return QSize(MIN_SIDE_PANEL_WIDTH, 0)
 
     def sizeHint(self) -> QSize:
-        return QSize(240, 300)
+        return QSize(DEFAULT_CONNECTION_PANEL_WIDTH, 300)
 
     def set_notice_service(self, service: ConnectionNoticeService) -> None:
 
@@ -149,6 +167,7 @@ class ConnectionPanel(QFrame):
     def refresh_translations(self) -> None:
 
         self._title_label.setText(tr("Connections"))
+        self._hide_button.setText(tr("Hide panel"))
         self._render_labels()
 
     def refresh_all(self) -> None:

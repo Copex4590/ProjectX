@@ -150,6 +150,21 @@ def primary_button_stylesheet(*, padding: str = "8px 12px") -> str:
     """
 
 
+def splitter_stylesheet() -> str:
+    """Subtle horizontal splitter handles — visible, not flashy."""
+
+    return f"""
+        QSplitter::handle:horizontal {{
+            background: {BORDER};
+            width: 5px;
+            margin: 0px;
+        }}
+        QSplitter::handle:horizontal:hover {{
+            background: {BORDER_FOCUS};
+        }}
+    """
+
+
 def secondary_button_stylesheet(*, padding: str = "6px 12px") -> str:
 
     return f"""

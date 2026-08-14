@@ -66,6 +66,24 @@ DEFAULT_AIS_RECONNECT_MIN_S = 1.0
 DEFAULT_AIS_RECONNECT_MAX_S = 60.0
 DEFAULT_AIS_CONNECTION_TIMEOUT_S = 10.0
 
+# Map workspace side panels (Sidebar + Map details + Connections)
+DEFAULT_LEFT_PANEL_WIDTH = 260
+DEFAULT_RIGHT_PANEL_WIDTH = 360
+DEFAULT_CONNECTION_PANEL_WIDTH = 240
+# Near-collapse via splitter; panel content may clip inside the strip.
+MIN_SIDE_PANEL_WIDTH = 36
+MAX_SIDE_PANEL_WIDTH = 720
+
+
+def _safe_panel_width(value: object, default: int) -> int:
+
+    try:
+        width = int(value)
+    except (TypeError, ValueError):
+        return default
+
+    return max(MIN_SIDE_PANEL_WIDTH, min(MAX_SIDE_PANEL_WIDTH, width))
+
 
 def _normalize_choice(value: object, allowed: tuple[str, ...], default: str) -> str:
 
@@ -193,6 +211,14 @@ class Preferences:
     developer_mode: bool = False
     diagnostics_enabled: bool = False
 
+    # Side panels: left = Sidebar, right = Map details, connections = ConnectionPanel
+    left_panel_width: int = DEFAULT_LEFT_PANEL_WIDTH
+    left_panel_hidden: bool = False
+    right_panel_width: int = DEFAULT_RIGHT_PANEL_WIDTH
+    right_panel_hidden: bool = False
+    connection_panel_width: int = DEFAULT_CONNECTION_PANEL_WIDTH
+    connection_panel_hidden: bool = False
+
     version: int = SCHEMA_VERSION
 
     def to_dict(self) -> dict:
@@ -251,6 +277,12 @@ class Preferences:
             "log_level": self.log_level,
             "developer_mode": self.developer_mode,
             "diagnostics_enabled": self.diagnostics_enabled,
+            "left_panel_width": int(self.left_panel_width),
+            "left_panel_hidden": bool(self.left_panel_hidden),
+            "right_panel_width": int(self.right_panel_width),
+            "right_panel_hidden": bool(self.right_panel_hidden),
+            "connection_panel_width": int(self.connection_panel_width),
+            "connection_panel_hidden": bool(self.connection_panel_hidden),
         }
 
     @classmethod
@@ -412,6 +444,26 @@ class Preferences:
             log_level=_normalize_log_level(data.get("log_level", DEFAULT_LOG_LEVEL)),
             developer_mode=bool(data.get("developer_mode", False)),
             diagnostics_enabled=bool(data.get("diagnostics_enabled", False)),
+            left_panel_width=_safe_panel_width(
+                data.get("left_panel_width", DEFAULT_LEFT_PANEL_WIDTH),
+                DEFAULT_LEFT_PANEL_WIDTH,
+            ),
+            left_panel_hidden=bool(data.get("left_panel_hidden", False)),
+            right_panel_width=_safe_panel_width(
+                data.get("right_panel_width", DEFAULT_RIGHT_PANEL_WIDTH),
+                DEFAULT_RIGHT_PANEL_WIDTH,
+            ),
+            right_panel_hidden=bool(data.get("right_panel_hidden", False)),
+            connection_panel_width=_safe_panel_width(
+                data.get(
+                    "connection_panel_width",
+                    DEFAULT_CONNECTION_PANEL_WIDTH,
+                ),
+                DEFAULT_CONNECTION_PANEL_WIDTH,
+            ),
+            connection_panel_hidden=bool(
+                data.get("connection_panel_hidden", False)
+            ),
             version=int(data.get("version", SCHEMA_VERSION)),
         )
 

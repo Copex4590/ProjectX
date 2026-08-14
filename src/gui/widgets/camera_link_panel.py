@@ -53,7 +53,7 @@ class CameraLinkPanel(QFrame):
         self._alt_buttons: list[QPushButton] = []
 
         self.setObjectName("CameraLinkPanel")
-        self.setMinimumWidth(300)
+        self.setMinimumWidth(0)
         self.setMaximumWidth(360)
         self.setStyleSheet(
             f"""

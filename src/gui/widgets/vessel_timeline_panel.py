@@ -50,7 +50,7 @@ class VesselTimelinePanel(QWidget):
         self._mode = PlaybackMode.LIVE
         self._sample_count = 0
 
-        self.setMinimumWidth(320)
+        self.setMinimumWidth(0)
         self.setMaximumWidth(420)
         self.setStyleSheet(f"background: {ThemeColors.Background};")
 

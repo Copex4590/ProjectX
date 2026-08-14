@@ -11,14 +11,16 @@ from PySide6.QtWidgets import (
 )
 
 from branding.assets import logo_pixmap
-from gui.theme import sidebar_stylesheet
+from gui.theme import secondary_button_stylesheet, sidebar_stylesheet
 from i18n import language_manager, tr
+from preferences.preferences import MIN_SIDE_PANEL_WIDTH
 from version import PROJECT_NAME
 
 
 class Sidebar(QFrame):
 
     pageSelected = Signal(int)
+    hideRequested = Signal()
 
     _PAGE_KEYS = (
         ("Dashboard", 0),
@@ -61,8 +63,11 @@ class Sidebar(QFrame):
     def __init__(self):
         super().__init__()
 
-        self.setFixedWidth(260)
-        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+        self.setMinimumWidth(MIN_SIDE_PANEL_WIDTH)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Expanding,
+        )
         self._active_page = 0
 
         self.setStyleSheet(sidebar_stylesheet())
@@ -117,6 +122,14 @@ class Sidebar(QFrame):
         scroll.setWidget(nav_host)
         root.addWidget(scroll, 1)
 
+        self._hide_button = QPushButton()
+        self._hide_button.setObjectName("sidebarHideButton")
+        self._hide_button.setStyleSheet(
+            secondary_button_stylesheet(padding="6px 10px")
+        )
+        self._hide_button.clicked.connect(self.hideRequested.emit)
+        root.addWidget(self._hide_button, 0)
+
         language_manager.language_changed.connect(
             lambda _code: self.refresh_translations()
         )
@@ -124,8 +137,7 @@ class Sidebar(QFrame):
         self.set_active_page(0)
 
     def minimumSizeHint(self) -> QSize:
-        # Width stays fixed; height must not drive MainWindow minimum size.
-        return QSize(260, 0)
+        return QSize(MIN_SIDE_PANEL_WIDTH, 0)
 
     def sizeHint(self) -> QSize:
         return QSize(260, 400)
@@ -147,6 +159,7 @@ class Sidebar(QFrame):
             self._logo_label.setPixmap(pixmap)
 
         self._title_label.setText(PROJECT_NAME)
+        self._hide_button.setText(tr("Hide panel"))
 
         for index, (label_key, _page_index) in enumerate(self._PAGE_KEYS):
             icon = self._PAGE_ICONS[index]

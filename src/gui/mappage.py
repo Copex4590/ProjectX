@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QSplitter,
     QVBoxLayout,
     QWidget,
 )
@@ -33,7 +34,7 @@ from gui.vesselcard import vessel_card_layout_manager
 from gui.mapcontroller import MapController
 from gui.map_core import PickMode
 from gui.i18n_support import bind_language_refresh
-from gui.theme import secondary_button_stylesheet
+from gui.theme import secondary_button_stylesheet, splitter_stylesheet
 from gui.widgets.camera_link_panel import CameraLinkPanel
 from gui.widgets.camerapreviewpanel import CameraPreviewPanel
 from gui.widgets.vessel_details_panel import VesselDetailsPanel
@@ -42,6 +43,12 @@ from gui.widgets.vessel_timeline_panel import (
     sync_panel_from_engine,
 )
 from i18n import language_manager, tr
+from preferences import preferences_manager
+from preferences.preferences import (
+    DEFAULT_RIGHT_PANEL_WIDTH,
+    MIN_SIDE_PANEL_WIDTH,
+    _safe_panel_width,
+)
 from vessel_statistics.statistics_manager import statistics_manager
 from timeline.timeline_manager import timeline_manager
 from timeline.vessel_playback import PlaybackMode, vessel_playback_engine
@@ -51,6 +58,18 @@ from vessels.photo_manager import photo_manager
 
 
 logger = logging.getLogger(__name__)
+
+
+class _CollapsibleSideHost(QWidget):
+    """Host whose horizontal minimum is the near-collapse strip, not content."""
+
+    def minimumSizeHint(self) -> QSize:
+        hint = super().minimumSizeHint()
+        return QSize(MIN_SIDE_PANEL_WIDTH, hint.height())
+
+    def sizeHint(self) -> QSize:
+        hint = super().sizeHint()
+        return QSize(max(hint.width(), DEFAULT_RIGHT_PANEL_WIDTH), hint.height())
 
 
 _MAP_SHIPS_INTERVAL_MS = 200  # SAVE-106: max 5 Hz marker updates
@@ -351,6 +370,12 @@ class MapPage(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
+        self._map_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._map_splitter.setObjectName("mapSideSplitter")
+        self._map_splitter.setChildrenCollapsible(False)
+        self._map_splitter.setHandleWidth(5)
+        self._map_splitter.setStyleSheet(splitter_stylesheet())
+
         map_column = QWidget()
         map_column.setObjectName("mapColumn")
         map_column_layout = QVBoxLayout(map_column)
@@ -370,6 +395,40 @@ class MapPage(QWidget):
         )
         self._detach_button.clicked.connect(self._on_detach_map)
         map_toolbar_layout.addWidget(self._detach_button)
+
+        self._show_left_button = QPushButton()
+        self._show_left_button.setObjectName("mapShowLeftPanelButton")
+        self._show_left_button.setStyleSheet(
+            secondary_button_stylesheet(padding="6px 12px")
+        )
+        self._show_left_button.clicked.connect(self._on_show_left_panel)
+        self._show_left_button.setVisible(False)
+        map_toolbar_layout.addWidget(self._show_left_button)
+
+        self._show_right_button = QPushButton()
+        self._show_right_button.setObjectName("mapShowRightPanelButton")
+        self._show_right_button.setStyleSheet(
+            secondary_button_stylesheet(padding="6px 12px")
+        )
+        self._show_right_button.clicked.connect(
+            lambda: self.set_right_panel_hidden(False)
+        )
+        self._show_right_button.setVisible(False)
+        map_toolbar_layout.addWidget(self._show_right_button)
+
+        self._show_connection_button = QPushButton()
+        self._show_connection_button.setObjectName(
+            "mapShowConnectionPanelButton"
+        )
+        self._show_connection_button.setStyleSheet(
+            secondary_button_stylesheet(padding="6px 12px")
+        )
+        self._show_connection_button.clicked.connect(
+            self._on_show_connection_panel
+        )
+        self._show_connection_button.setVisible(False)
+        map_toolbar_layout.addWidget(self._show_connection_button)
+
         map_toolbar_layout.addStretch(1)
         map_column_layout.addWidget(map_toolbar, 0)
 
@@ -393,7 +452,6 @@ class MapPage(QWidget):
         self._map_controller = None
         self.map = None
         map_column_layout.addWidget(map_container, 1)
-        layout.addWidget(map_column, 1)
 
         right_column = QWidget()
         right_column.setObjectName("mapRightColumn")
@@ -427,8 +485,54 @@ class MapPage(QWidget):
             QSizePolicy.Policy.Preferred,
             QSizePolicy.Policy.Expanding,
         )
+        self._right_scroll.setMinimumWidth(MIN_SIDE_PANEL_WIDTH)
         self._right_scroll.setWidget(right_column)
-        layout.addWidget(self._right_scroll)
+
+        self._right_panel = _CollapsibleSideHost()
+        self._right_panel.setObjectName("mapRightPanel")
+        right_panel_layout = QVBoxLayout(self._right_panel)
+        right_panel_layout.setContentsMargins(0, 0, 0, 0)
+        right_panel_layout.setSpacing(0)
+
+        right_header = QWidget()
+        right_header.setObjectName("mapRightPanelHeader")
+        right_header_layout = QHBoxLayout(right_header)
+        right_header_layout.setContentsMargins(10, 6, 8, 6)
+        right_header_layout.setSpacing(8)
+        self._right_panel_title = QLabel()
+        self._right_panel_title.setStyleSheet("font-weight: 600;")
+        right_header_layout.addWidget(self._right_panel_title, 1)
+        self._right_hide_button = QPushButton()
+        self._right_hide_button.setObjectName("mapRightHideButton")
+        self._right_hide_button.setStyleSheet(
+            secondary_button_stylesheet(padding="4px 10px")
+        )
+        self._right_hide_button.clicked.connect(
+            lambda: self.set_right_panel_hidden(True)
+        )
+        right_header_layout.addWidget(self._right_hide_button, 0)
+        right_panel_layout.addWidget(right_header, 0)
+        right_panel_layout.addWidget(self._right_scroll, 1)
+
+        self._map_splitter.addWidget(map_column)
+        self._map_splitter.addWidget(self._right_panel)
+        self._map_splitter.setStretchFactor(0, 1)
+        self._map_splitter.setStretchFactor(1, 0)
+        self._map_splitter.setCollapsible(0, False)
+        self._map_splitter.setCollapsible(1, False)
+        self._map_splitter.splitterMoved.connect(self._on_map_splitter_moved)
+        layout.addWidget(self._map_splitter, 1)
+
+        self._right_panel_width = DEFAULT_RIGHT_PANEL_WIDTH
+        self._right_panel_hidden = False
+        self._panel_prefs_timer = QTimer(self)
+        self._panel_prefs_timer.setSingleShot(True)
+        self._panel_prefs_timer.setInterval(400)
+        self._panel_prefs_timer.timeout.connect(self._persist_right_panel_state)
+        self._left_restore_poll = QTimer(self)
+        self._left_restore_poll.setInterval(500)
+        self._left_restore_poll.timeout.connect(self._sync_left_restore_button)
+        self._left_restore_poll.start()
 
         self._selected_mmsi = None
         self._camera_link = intelligent_camera_link_manager
@@ -446,6 +550,10 @@ class MapPage(QWidget):
 
         bind_language_refresh(self.refresh_translations)
         self.refresh_translations()
+        self._apply_right_panel_preferences()
+
+        # Defer first size apply until the widget has a real width.
+        QTimer.singleShot(0, self._apply_right_panel_layout)
 
     def refresh_translations(self) -> None:
 
@@ -453,6 +561,118 @@ class MapPage(QWidget):
         self._map_placeholder.setText(
             tr("Map is open in a separate window.")
         )
+        self._show_left_button.setText(tr("Show navigation"))
+        self._show_right_button.setText(tr("Show details panel"))
+        self._show_connection_button.setText(tr("Show connections"))
+        self._right_hide_button.setText(tr("Hide panel"))
+        self._right_panel_title.setText(tr("Details"))
+        self._sync_chrome_restore_buttons()
+
+    def _apply_right_panel_preferences(self) -> None:
+
+        prefs = preferences_manager.get()
+        self._right_panel_width = _safe_panel_width(
+            prefs.right_panel_width,
+            DEFAULT_RIGHT_PANEL_WIDTH,
+        )
+        self._right_panel_hidden = bool(prefs.right_panel_hidden)
+
+    def set_right_panel_hidden(self, hidden: bool) -> None:
+
+        hidden = bool(hidden)
+        if hidden and not self._right_panel_hidden:
+            sizes = self._map_splitter.sizes()
+            if len(sizes) >= 2 and sizes[1] > 0:
+                self._right_panel_width = _safe_panel_width(
+                    sizes[1],
+                    self._right_panel_width,
+                )
+
+        self._right_panel_hidden = hidden
+        self._apply_right_panel_layout(persist=True)
+
+    def is_right_panel_hidden(self) -> bool:
+
+        return bool(self._right_panel_hidden)
+
+    def _apply_right_panel_layout(self, persist: bool = False) -> None:
+
+        total = max(self._map_splitter.width(), 1)
+        width = _safe_panel_width(
+            self._right_panel_width,
+            DEFAULT_RIGHT_PANEL_WIDTH,
+        )
+
+        if self._right_panel_hidden:
+            self._right_panel.setVisible(False)
+            self._show_right_button.setVisible(True)
+            self._map_splitter.setSizes([total, 0])
+        else:
+            self._right_panel.setVisible(True)
+            self._show_right_button.setVisible(False)
+            map_width = max(total - width, 1)
+            self._map_splitter.setSizes([map_width, width])
+
+        self._sync_chrome_restore_buttons()
+        if persist:
+            self._panel_prefs_timer.start()
+
+    def _on_map_splitter_moved(self, _pos: int = 0, _index: int = 0) -> None:
+
+        if self._right_panel_hidden:
+            return
+        sizes = self._map_splitter.sizes()
+        if len(sizes) < 2:
+            return
+        if sizes[1] >= MIN_SIDE_PANEL_WIDTH:
+            self._right_panel_width = sizes[1]
+            self._panel_prefs_timer.start()
+
+    def _persist_right_panel_state(self) -> None:
+
+        try:
+            preferences_manager.update_fields(
+                right_panel_width=_safe_panel_width(
+                    self._right_panel_width,
+                    DEFAULT_RIGHT_PANEL_WIDTH,
+                ),
+                right_panel_hidden=bool(self._right_panel_hidden),
+            )
+        except Exception:
+            logger.exception("Failed to persist right panel layout")
+
+    def _on_show_left_panel(self) -> None:
+
+        window = self.window()
+        setter = getattr(window, "set_left_panel_hidden", None)
+        if callable(setter):
+            setter(False)
+        self._sync_chrome_restore_buttons()
+
+    def _on_show_connection_panel(self) -> None:
+
+        window = self.window()
+        setter = getattr(window, "set_connection_panel_hidden", None)
+        if callable(setter):
+            setter(False)
+        self._sync_chrome_restore_buttons()
+
+    def _sync_left_restore_button(self) -> None:
+
+        self._sync_chrome_restore_buttons()
+
+    def _sync_chrome_restore_buttons(self) -> None:
+
+        window = self.window()
+        left_hidden = getattr(window, "is_left_panel_hidden", None)
+        conn_hidden = getattr(window, "is_connection_panel_hidden", None)
+        self._show_left_button.setVisible(
+            bool(left_hidden()) if callable(left_hidden) else False
+        )
+        self._show_connection_button.setVisible(
+            bool(conn_hidden()) if callable(conn_hidden) else False
+        )
+        self._show_right_button.setVisible(bool(self._right_panel_hidden))
 
     def initialize(self) -> None:
         """One-shot: WebEngine map surface, long-lived signals, camera inventory."""
@@ -528,6 +748,8 @@ class MapPage(QWidget):
 
         self._marker_timer.stop()
         self._popup_timer.stop()
+        self._panel_prefs_timer.stop()
+        self._left_restore_poll.stop()
         if self._map_controller is not None and self._map_controller.is_undocked():
             self._map_controller.redock()
         shutdown = getattr(self.vessel_details, "shutdown", None)
@@ -808,29 +1030,22 @@ class MapPage(QWidget):
 
     def apply_personalization(self, layout: str | None = None) -> None:
 
-        from preferences import preferences_manager
+        # layout retained for API compatibility with callers.
+        _ = layout
 
-        preferences = preferences_manager.get()
-        selected_layout = layout or preferences.vessel_card_layout
+        # Do not force large minimum widths — the MapPage splitter must be able
+        # to near-collapse the details column (~MIN_SIDE_PANEL_WIDTH).
+        for widget in (
+            self.camera_preview,
+            self.camera_link,
+            self.vessel_details,
+            self.vessel_timeline,
+        ):
+            widget.setMinimumWidth(0)
+            widget.setMaximumWidth(16777215)
 
-        if selected_layout == "media":
-            self.camera_preview.setMinimumWidth(400)
-            self.camera_preview.setMaximumWidth(480)
-            self.camera_link.setMinimumWidth(400)
-            self.camera_link.setMaximumWidth(480)
-            self.vessel_details.setMinimumWidth(400)
-            self.vessel_details.setMaximumWidth(480)
-            self.vessel_timeline.setMinimumWidth(400)
-            self.vessel_timeline.setMaximumWidth(480)
-        else:
-            self.camera_preview.setMinimumWidth(300)
-            self.camera_preview.setMaximumWidth(360)
-            self.camera_link.setMinimumWidth(300)
-            self.camera_link.setMaximumWidth(360)
-            self.vessel_details.setMinimumWidth(320)
-            self.vessel_details.setMaximumWidth(400)
-            self.vessel_timeline.setMinimumWidth(320)
-            self.vessel_timeline.setMaximumWidth(400)
+        self._right_scroll.setMinimumWidth(MIN_SIDE_PANEL_WIDTH)
+        self._right_panel.setMinimumWidth(MIN_SIDE_PANEL_WIDTH)
 
         if self._map_updates_enabled():
             self._schedule_ships_full(

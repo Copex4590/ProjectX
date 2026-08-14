@@ -42,6 +42,17 @@ class PreferencesManager:
 
         return deepcopy(payload)
 
+    def update_fields(self, **fields) -> Preferences:
+        """Atomically merge selected preference fields (avoids clobber races)."""
+
+        with self._lock:
+            data = self._preferences.to_dict()
+            data.update(fields)
+            payload = Preferences.from_dict(data)
+            self._preferences = payload
+            self._write(payload)
+            return deepcopy(payload)
+
     def set_language(self, language: str) -> Preferences:
 
         current = self.get()
