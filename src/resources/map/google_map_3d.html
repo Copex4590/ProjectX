@@ -101,6 +101,34 @@
     #status[data-kind="warn"] { border-color: #8a6a2f; color: #f0e0b0; }
     #status[data-kind="error"] { border-color: #8a3a3a; color: #f0b0b0; }
     #status.hidden { display: none; }
+
+    /* Location pick UX (separate from locked ship / selection layers). */
+    #location-pick-overlay {
+      position: absolute;
+      left: 50%;
+      top: 16px;
+      transform: translateX(-50%);
+      z-index: 12;
+      max-width: min(520px, calc(100% - 24px));
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: rgba(18, 21, 26, 0.94);
+      color: #e8eaed;
+      border: 1px solid #485da2;
+      font-size: 13px;
+      line-height: 1.4;
+      text-align: center;
+      pointer-events: none;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    }
+    #location-pick-overlay[hidden] {
+      display: none !important;
+    }
+    /* While picking a location, do not let ship/vessel UI steal map clicks. */
+    body.location-pick-active #ship-hit-layer .ship-hit,
+    body.location-pick-active #vessel-card-layer {
+      pointer-events: none !important;
+    }
   </style>
   <!-- P0: separate interaction layer (does not alter ship-overlay visuals). -->
   <style id="ship-hit-layer-style">
@@ -302,6 +330,7 @@
 <body>
   <div id="status" data-kind="info">Waiting for Google Maps API key from Project X…</div>
   <div id="map-root"></div>
+  <div id="location-pick-overlay" hidden></div>
   <div id="ship-overlay" aria-hidden="true">
     <canvas id="trail-canvas"></canvas>
     <div id="markers-layer"></div>
@@ -780,7 +809,7 @@
       window.addEventListener("resize", scheduleOverlayRedraw);
     }
 
-    // --- Leaflet API stubs so MapWidget JS calls stay harmless ---
+    // --- Leaflet-compatible API surface for MapWidget ---
     function noop() {}
     window.updateShips = function updateShips(payload) {
       try {
@@ -790,8 +819,7 @@
         console.warn("updateShips", err);
       }
     };
-    window.enablePickMode = noop;
-    window.endLocationPick = noop;
+    // Location pick APIs are installed below (not noop) — do not stub them here.
     window.resetMapToWorldView = function () {
       if (!map3d) return;
       try {
@@ -811,13 +839,16 @@
         console.warn("resetMapToWorldView", e);
       }
     };
-    window.refreshLocationPickView = noop;
-    window.beginLocationPick = noop;
-    window.setPickMarker = noop;
-    window.clearPickMarker = noop;
-    window.updateObservationPoints = noop;
-    window.clearObservationPoints = noop;
-    window.setPickOverlay = noop;
+    // Observation point APIs are installed below (not noop).
+    window.setCameraCoverageZones = noop;
+    window.clearCameraCoverageZones = noop;
+    window.setCameraLink = noop;
+    window.clearCameraLink = noop;
+    window.clearPlayback = noop;
+    window.setPlaybackActive = noop;
+    window.setPlaybackTrail = noop;
+    window.setPlaybackCursor = noop;
+
     window.focusShip = function focusShip(mmsi) {
       const id = String(mmsi);
       const ship = knownShips[id];
@@ -832,14 +863,6 @@
         console.warn("focusShip", e);
       }
     };
-    window.setCameraCoverageZones = noop;
-    window.clearCameraCoverageZones = noop;
-    window.setCameraLink = noop;
-    window.clearCameraLink = noop;
-    window.clearPlayback = noop;
-    window.setPlaybackActive = noop;
-    window.setPlaybackTrail = noop;
-    window.setPlaybackCursor = noop;
 
     function bootstrapMapsJavaScriptApi(apiKey) {
       if (window.google && google.maps && google.maps.importLibrary) {
@@ -874,7 +897,9 @@
             : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n));
         })({
           key: apiKey,
-          v: "alpha"
+          // weekly: Map3D is on the production release channel.
+          // Loading v=alpha injects Google's white alpha-channel warning strip.
+          v: "weekly"
         });
 
         mapsBootstrapped = true;
@@ -895,7 +920,11 @@
 
       try {
         await bootstrapMapsJavaScriptApi(apiKey);
-        const { Map3DElement, MapMode } = await google.maps.importLibrary("maps3d");
+        const { Map3DElement, MapMode, Marker3DElement } =
+          await google.maps.importLibrary("maps3d");
+        if (Marker3DElement) {
+          window.__projectxMarker3DElement = Marker3DElement;
+        }
 
         const root = document.getElementById("map-root");
         root.replaceChildren();
@@ -913,14 +942,25 @@
           range: BUDAPEST.range,
           tilt: BUDAPEST.tilt,
           heading: BUDAPEST.heading,
-          mode: MapMode && MapMode.SATELLITE ? MapMode.SATELLITE : "SATELLITE"
+          mode: MapMode && MapMode.SATELLITE ? MapMode.SATELLITE : "SATELLITE",
+          // Official Maps 3D API: hide the default white exploration-control bar.
+          // Gestures / keyboard navigation remain available; not a CSS overlay hack.
+          defaultUIHidden: true
         });
 
-        // Do not hide Google attribution / default UI chrome.
         // Do not change Budapest camera settings.
         root.append(map3d);
         window.__projectxGoogle3dMap = map3d;
         bindCameraSync();
+        if (typeof window.__projectxBindLocationPick === "function") {
+          window.__projectxBindLocationPick();
+        }
+        if (typeof window.__projectxResetObservationPointMarkers === "function") {
+          window.__projectxResetObservationPointMarkers();
+        }
+        if (typeof window.__projectxFlushObservationPoints === "function") {
+          window.__projectxFlushObservationPoints();
+        }
 
         // Apply any AIS payload that arrived before Map3DElement was ready.
         syncSave055Ships();
@@ -940,7 +980,7 @@
           setStatus("Billing required for Maps JavaScript API / 3D Maps.", "error");
         } else if (/not enabled|ApiNotActivated|maps3d/i.test(msg)) {
           setStatus(
-            "Enable Maps JavaScript API and 3D Maps (alpha) for this key.",
+            "Enable Maps JavaScript API and 3D Maps (maps3d) for this key.",
             "error"
           );
         } else {
@@ -951,6 +991,477 @@
 
     // Called from MapWidget at runtime (key never stored in this HTML file).
     window.__projectxStartGoogle3d = startGoogle3dMap;
+  </script>
+  <!--
+    Observation Point markers on Google 3D (active = green, inactive = red).
+    Uses Marker3DElement + PinElement — separate from location pick and #ship-overlay.
+  -->
+  <script>
+    (function installObservationPointMarkers() {
+      const observationMarkers = Object.create(null);
+      let pendingPoints = null;
+      let PinElementCtor = null;
+      let updateSeq = 0;
+
+      function getMap() {
+        return window.__projectxGoogle3dMap || null;
+      }
+
+      function getMarkerCtor() {
+        return window.__projectxMarker3DElement || null;
+      }
+
+      function isLocationPickUiActive() {
+        const el = document.getElementById("location-pick-overlay");
+        return !!(el && !el.hidden);
+      }
+
+      async function ensurePinElement() {
+        if (PinElementCtor) return PinElementCtor;
+        if (!(window.google && google.maps && google.maps.importLibrary)) {
+          return null;
+        }
+        const lib = await google.maps.importLibrary("marker");
+        PinElementCtor = lib.PinElement || null;
+        return PinElementCtor;
+      }
+
+      function makePin(active, PinElement) {
+        // Match Leaflet map.html: active green #43a047, inactive red #e53935.
+        return new PinElement({
+          background: active ? "#43a047" : "#e53935",
+          borderColor: "#ffffff",
+          glyphColor: "#ffffff",
+          scale: 1.05
+        });
+      }
+
+      function resetObservationPointMarkers() {
+        for (const pointId in observationMarkers) {
+          delete observationMarkers[pointId];
+        }
+      }
+
+      function focusReferenceIfSafe(list) {
+        if (isLocationPickUiActive()) return;
+        const map = getMap();
+        if (!map || !list.length) return;
+        let focus = null;
+        for (let i = 0; i < list.length; i++) {
+          if (list[i] && list[i].reference) {
+            focus = list[i];
+            break;
+          }
+        }
+        if (!focus) focus = list[0];
+        const lat = Number(focus.lat);
+        const lon = Number(focus.lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+        const radiusKm = Number(focus.coverage_radius_km);
+        const range = Number.isFinite(radiusKm) && radiusKm > 0
+          ? Math.max(radiusKm * 1000 * 2.2, 8000)
+          : 50000;
+        try {
+          // Prefer property assignment over flyCameraTo — fly can drop Marker3D children.
+          map.center = { lat: lat, lng: lon, altitude: 80 };
+          map.range = range;
+        } catch (err) {
+          console.warn("observation focus", err);
+        }
+      }
+
+      async function updateObservationPoints(points) {
+        const list = Array.isArray(points) ? points : [];
+        const seq = ++updateSeq;
+        const map = getMap();
+        const Marker3DElement = getMarkerCtor();
+        if (!map || !Marker3DElement) {
+          pendingPoints = list;
+          return;
+        }
+
+        pendingPoints = null;
+        let PinElement = null;
+        try {
+          PinElement = await ensurePinElement();
+        } catch (err) {
+          console.warn("observation PinElement", err);
+        }
+        if (seq !== updateSeq) return;
+
+        const seen = Object.create(null);
+        for (let i = 0; i < list.length; i++) {
+          const point = list[i] || {};
+          const pointId = String(point.id || "");
+          if (!pointId) continue;
+          const lat = Number(point.lat);
+          const lon = Number(point.lon);
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+
+          const isActive = !!point.active;
+          const name = String(point.name || "");
+          seen[pointId] = true;
+
+          let entry = observationMarkers[pointId];
+          if (!entry || !entry.marker) {
+            const marker = new Marker3DElement({
+              position: { lat: lat, lng: lon, altitude: 0 },
+              altitudeMode: "CLAMP_TO_GROUND",
+              drawsWhenOccluded: true,
+              label: name
+            });
+            if (PinElement) {
+              marker.append(makePin(isActive, PinElement));
+            }
+            map.append(marker);
+            observationMarkers[pointId] = {
+              marker: marker,
+              active: isActive,
+              name: name
+            };
+            continue;
+          }
+
+          try {
+            entry.marker.position = { lat: lat, lng: lon, altitude: 0 };
+            entry.marker.label = name;
+          } catch (err) {
+            console.warn("observation marker update", err);
+          }
+
+          if (PinElement && entry.active !== isActive) {
+            try {
+              while (entry.marker.firstChild) {
+                entry.marker.removeChild(entry.marker.firstChild);
+              }
+              entry.marker.append(makePin(isActive, PinElement));
+              entry.active = isActive;
+            } catch (err) {
+              console.warn("observation pin update", err);
+            }
+          }
+          entry.name = name;
+        }
+
+        for (const pointId in observationMarkers) {
+          if (seen[pointId]) continue;
+          try {
+            observationMarkers[pointId].marker.remove();
+          } catch (_err) {
+            /* ignore */
+          }
+          delete observationMarkers[pointId];
+        }
+
+        focusReferenceIfSafe(list);
+      }
+
+      function clearObservationPoints(_message) {
+        pendingPoints = [];
+        updateSeq += 1;
+        for (const pointId in observationMarkers) {
+          try {
+            observationMarkers[pointId].marker.remove();
+          } catch (_err) {
+            /* ignore */
+          }
+          delete observationMarkers[pointId];
+        }
+      }
+
+      function flushObservationPoints() {
+        if (pendingPoints == null) return;
+        const queued = pendingPoints;
+        pendingPoints = null;
+        Promise.resolve(updateObservationPoints(queued)).catch(function (err) {
+          console.warn("flushObservationPoints", err);
+        });
+      }
+
+      window.updateObservationPoints = function updateObservationPointsApi(points) {
+        Promise.resolve(updateObservationPoints(points)).catch(function (err) {
+          console.warn("updateObservationPoints", err);
+        });
+      };
+      window.clearObservationPoints = clearObservationPoints;
+      window.__projectxFlushObservationPoints = flushObservationPoints;
+      window.__projectxResetObservationPointMarkers = resetObservationPointMarkers;
+      window.__projectxObservationMarkerDebug = function observationMarkerDebug() {
+        const tracked = [];
+        for (const pointId in observationMarkers) {
+          const entry = observationMarkers[pointId];
+          tracked.push({
+            id: pointId,
+            active: !!(entry && entry.active),
+            name: entry && entry.name ? String(entry.name) : "",
+            connected: !!(entry && entry.marker && entry.marker.isConnected)
+          });
+        }
+        return {
+          trackedCount: tracked.length,
+          tracked: tracked,
+          pending: pendingPoints == null ? null : pendingPoints.length,
+          domMarkers: document.querySelectorAll("gmp-marker-3d").length,
+          domPins: document.querySelectorAll("gmp-pin").length
+        };
+      };
+    })();
+  </script>
+  <!--
+    Location pick for Observation Point create/edit.
+    Uses official Map3DElement gmp-click → LatLngAltitude.position.
+    Does NOT use #ship-overlay projection / markers / trails.
+  -->
+  <script>
+    (function installGoogle3dLocationPick() {
+      let pickEnabled = false;
+      let pickMarker = null;
+      let Marker3DElementCtor = null;
+      let boundMap = null;
+      let pendingPickLocation = null;
+      let bridgeFlushTimer = 0;
+
+      function overlayEl() {
+        return document.getElementById("location-pick-overlay");
+      }
+
+      function showPickOverlay(message) {
+        const el = overlayEl();
+        if (!el) return;
+        const text = String(message || "").trim();
+        if (!text) {
+          el.hidden = true;
+          el.textContent = "";
+          return;
+        }
+        el.textContent = text;
+        el.hidden = false;
+      }
+
+      function dismissPickOverlay() {
+        showPickOverlay("");
+      }
+
+      function setPickActive(active) {
+        pickEnabled = !!active;
+        document.body.classList.toggle("location-pick-active", pickEnabled);
+      }
+
+      function getBridge() {
+        return window.__projectxMapBridge || null;
+      }
+
+      function flushPendingPick() {
+        if (!pendingPickLocation) return;
+        const bridge = getBridge();
+        if (!bridge || typeof bridge.reportLocation !== "function") return;
+        const { lat, lon } = pendingPickLocation;
+        pendingPickLocation = null;
+        try {
+          bridge.reportLocation(lat, lon);
+        } catch (err) {
+          console.warn("reportLocation", err);
+        }
+      }
+
+      function reportPickLocation(lat, lon) {
+        const bridge = getBridge();
+        if (bridge && typeof bridge.reportLocation === "function") {
+          pendingPickLocation = null;
+          try {
+            bridge.reportLocation(lat, lon);
+          } catch (err) {
+            console.warn("reportLocation", err);
+          }
+          return;
+        }
+        pendingPickLocation = { lat: lat, lon: lon };
+        if (!bridgeFlushTimer) {
+          bridgeFlushTimer = window.setInterval(function () {
+            flushPendingPick();
+            if (!pendingPickLocation) {
+              window.clearInterval(bridgeFlushTimer);
+              bridgeFlushTimer = 0;
+            }
+          }, 100);
+        }
+      }
+
+      function readClickLatLng(event) {
+        const pos = event && event.position;
+        if (!pos) return null;
+        const lat =
+          typeof pos.lat === "function" ? Number(pos.lat()) : Number(pos.lat);
+        const lng =
+          typeof pos.lng === "function" ? Number(pos.lng()) : Number(pos.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        return { lat: lat, lng: lng };
+      }
+
+      async function ensureMarkerCtor() {
+        if (Marker3DElementCtor) return Marker3DElementCtor;
+        if (window.__projectxMarker3DElement) {
+          Marker3DElementCtor = window.__projectxMarker3DElement;
+          return Marker3DElementCtor;
+        }
+        if (!(window.google && google.maps && google.maps.importLibrary)) {
+          return null;
+        }
+        const lib = await google.maps.importLibrary("maps3d");
+        Marker3DElementCtor = lib.Marker3DElement || null;
+        if (Marker3DElementCtor) {
+          window.__projectxMarker3DElement = Marker3DElementCtor;
+        }
+        return Marker3DElementCtor;
+      }
+
+      function clearPickMarker() {
+        if (pickMarker) {
+          try {
+            pickMarker.remove();
+          } catch (_err) {
+            /* ignore */
+          }
+          pickMarker = null;
+        }
+      }
+
+      function placePickMarker(latitude, longitude, Marker3DElement) {
+        const map = window.__projectxGoogle3dMap;
+        if (!map || !Marker3DElement) return false;
+        clearPickMarker();
+        pickMarker = new Marker3DElement({
+          position: { lat: latitude, lng: longitude },
+          drawsWhenOccluded: true
+        });
+        map.append(pickMarker);
+        return true;
+      }
+
+      function setPickMarker(lat, lon) {
+        const latitude = Number(lat);
+        const longitude = Number(lon);
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+          return Promise.resolve(false);
+        }
+
+        const cached =
+          Marker3DElementCtor || window.__projectxMarker3DElement || null;
+        if (cached) {
+          try {
+            return Promise.resolve(
+              placePickMarker(latitude, longitude, cached)
+            );
+          } catch (err) {
+            console.warn("setPickMarker", err);
+            window.__projectxPickMarkerError = String(
+              err && err.message ? err.message : err
+            );
+            return Promise.resolve(false);
+          }
+        }
+
+        return ensureMarkerCtor()
+          .then(function (Ctor) {
+            if (!Ctor) {
+              window.__projectxPickMarkerError = "Marker3DElement unavailable";
+              return false;
+            }
+            return placePickMarker(latitude, longitude, Ctor);
+          })
+          .catch(function (err) {
+            console.warn("setPickMarker", err);
+            window.__projectxPickMarkerError = String(
+              err && err.message ? err.message : err
+            );
+            return false;
+          });
+      }
+
+      function onGmpClick(event) {
+        if (!pickEnabled) return;
+        const coords = readClickLatLng(event);
+        if (!coords) return;
+        try {
+          if (typeof event.preventDefault === "function") event.preventDefault();
+        } catch (_err) {
+          /* ignore */
+        }
+        dismissPickOverlay();
+        reportPickLocation(coords.lat, coords.lng);
+        // Place immediately and once more after the click stack settles.
+        function place() {
+          try {
+            setPickMarker(coords.lat, coords.lng);
+          } catch (err) {
+            console.warn("pick marker", err);
+          }
+        }
+        place();
+        window.setTimeout(place, 0);
+        window.setTimeout(place, 50);
+      }
+
+      function bindLocationPick() {
+        const map = window.__projectxGoogle3dMap;
+        if (!map) return;
+        if (boundMap === map) return;
+        if (boundMap) {
+          try {
+            boundMap.removeEventListener("gmp-click", onGmpClick);
+          } catch (_err) {
+            /* ignore */
+          }
+        }
+        map.addEventListener("gmp-click", onGmpClick);
+        boundMap = map;
+      }
+
+      window.__projectxBindLocationPick = bindLocationPick;
+
+      function enablePickMode(enabled) {
+        setPickActive(!!enabled);
+        bindLocationPick();
+        if (!pickEnabled) clearPickMarker();
+      }
+
+      function beginLocationPick(message) {
+        setPickActive(true);
+        clearPickMarker();
+        showPickOverlay(message || "");
+        bindLocationPick();
+        // Intentionally do NOT call resetMapToWorldView(): Map3D flyCameraTo
+        // can drop Marker3D children mid-animation, wiping the pick pin.
+      }
+
+      function refreshLocationPickView(message) {
+        setPickActive(true);
+        showPickOverlay(message || "");
+        bindLocationPick();
+      }
+
+      function endLocationPick() {
+        setPickActive(false);
+        pendingPickLocation = null;
+        // Keep the Marker3D pick pin visible until the next begin/clear so the
+        // chosen point remains on screen while the wizard returns (~750ms).
+        dismissPickOverlay();
+      }
+
+      function setPickOverlay(message) {
+        showPickOverlay(message || "");
+      }
+
+      window.enablePickMode = enablePickMode;
+      window.beginLocationPick = beginLocationPick;
+      window.refreshLocationPickView = refreshLocationPickView;
+      window.endLocationPick = endLocationPick;
+      window.setPickMarker = setPickMarker;
+      window.clearPickMarker = clearPickMarker;
+      window.setPickOverlay = setPickOverlay;
+
+      bindLocationPick();
+    })();
   </script>
   <!--
     P0 ship hit-test / QWebChannel selection layer.

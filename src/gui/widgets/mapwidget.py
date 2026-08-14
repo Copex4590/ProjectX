@@ -277,6 +277,15 @@ class MapWidget(QWebEngineView):
                     "setSelectedVesselCard("
                     f"{json.dumps(self._pending_vessel_card)});"
                 )
+            # Observation points: JS queues until Map3DElement exists, then flushes.
+            if self._pick_enabled and self._pick_overlay_message:
+                self._apply_location_pick()
+            if not self._pending_points:
+                self._apply_empty_state()
+            else:
+                self._apply_observation_points()
+            self._flush_pending_playback()
+            self._flush_pending_camera_overlays()
             return
 
         if self._pick_enabled and self._pick_overlay_message:
