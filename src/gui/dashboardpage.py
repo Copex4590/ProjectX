@@ -668,17 +668,52 @@ class DashboardPage(QWidget):
 
         return observation_manager.active()
 
-    def _open_observation_wizard(self) -> ObservationWizard | None:
+    def _discard_observation_wizard(self) -> None:
+        """Close any live/hidden observation wizard so Create/Edit can restart."""
 
-        if self._observation_wizard is not None:
-            from shiboken6 import isValid
+        wizard = self._observation_wizard
+        self._observation_wizard = None
 
-            if isValid(self._observation_wizard):
-                self._observation_wizard.raise_()
-                self._observation_wizard.activateWindow()
-                return None
+        if wizard is None:
+            return
 
-            self._observation_wizard = None
+        from shiboken6 import isValid
+
+        if not isValid(wizard):
+            return
+
+        try:
+            wizard.finished.disconnect(self._on_observation_wizard_finished)
+        except (RuntimeError, TypeError):
+            pass
+
+        try:
+            wizard.destroyed.disconnect(self._on_observation_wizard_destroyed)
+        except (RuntimeError, TypeError):
+            pass
+
+        # Cancel pick restart BEFORE clearing LOCATION mode: otherwise
+        # ObservationSetupWidget._on_pick_mode_changed would schedule a new pick.
+        try:
+            setup = getattr(wizard, "_setup", None)
+            if setup is not None and isValid(setup):
+                setup.on_leave()
+        except RuntimeError:
+            pass
+
+        MapController.instance().cancel_pick_mode(restore_host=False)
+
+        try:
+            wizard.reject()
+        except RuntimeError:
+            return
+
+        wizard.deleteLater()
+
+    def _open_observation_wizard(self) -> ObservationWizard:
+        """Return a fresh ObservationWizard; discard any abandoned instance."""
+
+        self._discard_observation_wizard()
 
         wizard = ObservationWizard(self)
         wizard.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -698,19 +733,11 @@ class DashboardPage(QWidget):
             return
 
         wizard = self._open_observation_wizard()
-
-        if wizard is None:
-            return
-
         wizard.start_edit(point)
 
     def _create_new(self) -> None:
 
         wizard = self._open_observation_wizard()
-
-        if wizard is None:
-            return
-
         wizard.start_setup()
 
     def _on_observation_wizard_destroyed(self, _object=None) -> None:
@@ -723,6 +750,11 @@ class DashboardPage(QWidget):
     def _on_observation_wizard_finished(self, result: int) -> None:
 
         with trace_block("DashboardPage._on_observation_wizard_finished"):
+            if self.sender() is not None and self._observation_wizard is not self.sender():
+                if result == QDialog.DialogCode.Accepted:
+                    self.refresh_observation()
+                return
+
             self._observation_wizard = None
 
             if result == QDialog.DialogCode.Accepted:
@@ -803,13 +835,24 @@ class DashboardPage(QWidget):
             return True
 
         dialog = ObservationPointWorkflowNoticeDialog(self.window())
+        result = dialog.exec()
 
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return False
+        if result == QDialog.DialogCode.Accepted:
+            if dialog.dont_show_again():
+                preferences_manager.set_observation_point_workflow_notice_dismissed(
+                    True
+                )
+            return True
 
-        if dialog.dont_show_again():
-            preferences_manager.set_observation_point_workflow_notice_dismissed(True)
-
+        # Esc / window close: do not silently abort Edit/Delete.
+        QMessageBox.information(
+            self.window(),
+            tr("Observation Point Workflow"),
+            tr(
+                "Edit and Delete always apply to the currently active "
+                "observation point. Continuing with the active point."
+            ),
+        )
         return True
 
     def _activate_observation_point(self, point_id: str) -> None:

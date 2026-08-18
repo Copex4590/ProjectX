@@ -636,5 +636,6 @@
   "Automatically fit window to current monitor": "Ablak automatikus igazítása az aktuális monitorhoz",
   "Always center window on startup": "Ablak középre igazítása indításkor",
   "Limit window size to current monitor work area": "Ablakméret korlátozása a monitor munkaasztalára",
-  "The current monitor is detected automatically. These options only control window behaviour on that screen.": "Az aktuális monitort a program automatikusan felismeri. Ezek az opciók csak az ablak viselkedését szabályozzák azon a képernyőn."
+  "The current monitor is detected automatically. These options only control window behaviour on that screen.": "Az aktuális monitort a program automatikusan felismeri. Ezek az opciók csak az ablak viselkedését szabályozzák azon a képernyőn.",
+  "Edit and Delete always apply to the currently active observation point. Continuing with the active point.": "A Szerkesztés és a Törlés mindig az aktuálisan aktív megfigyelési ponton hajtódik végre. Folytatás az aktív ponttal."
 }

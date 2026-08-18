@@ -389,13 +389,21 @@ class ObservationSetupWidget(QWidget):
         if host is not None and isValid(host):
             host.hide()
 
-        MapController.instance().begin_location_pick(
+        controller = MapController.instance()
+        controller.begin_location_pick(
             self._on_map_location,
             overlay_message=tr(
                 "To create an observation point, choose a location on the map."
             ),
             host=host,
         )
+
+        # Edit / re-pick: show the currently selected coords as a pick marker.
+        if self._picked_lat is not None and self._picked_lon is not None:
+            controller.widget().set_pick_marker(
+                self._picked_lat,
+                self._picked_lon,
+            )
 
     def _pick_host_dialog(self) -> QDialog | None:
 

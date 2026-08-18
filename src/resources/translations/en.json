@@ -636,5 +636,6 @@
   "Automatically fit window to current monitor": "Automatically fit window to current monitor",
   "Always center window on startup": "Always center window on startup",
   "Limit window size to current monitor work area": "Limit window size to current monitor work area",
-  "The current monitor is detected automatically. These options only control window behaviour on that screen.": "The current monitor is detected automatically. These options only control window behaviour on that screen."
+  "The current monitor is detected automatically. These options only control window behaviour on that screen.": "The current monitor is detected automatically. These options only control window behaviour on that screen.",
+  "Edit and Delete always apply to the currently active observation point. Continuing with the active point.": "Edit and Delete always apply to the currently active observation point. Continuing with the active point."
 }
