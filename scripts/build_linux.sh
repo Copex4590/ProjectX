@@ -105,6 +105,7 @@ assert paths.resource_path("translations", "en.json").exists(), "en.json missing
 assert paths.resource_path("map", "leaflet", "leaflet.js").exists(), "leaflet.js missing"
 assert paths.resource_path("branding", "projectx-logo.png").exists(), "logo missing"
 assert paths.resource_path("map", "map.html").exists(), "map.html missing"
+assert paths.resource_path("map", "google_map_3d.html").exists(), "google_map_3d.html missing"
 
 print("paths.py resolves bundled resources correctly.")
 PY
@@ -128,6 +129,12 @@ install_build_deps() {
     "$PYTHON" -m pip install -r "$ROOT/requirements.txt" pyinstaller
 }
 
+inject_google_maps_key() {
+    # Dev builds: inject when env key is present; otherwise skip (Leaflet fallback).
+    echo "Injecting Google Maps API key (optional for local builds)..."
+    "$PYTHON" "$ROOT/scripts/inject_google_maps_key.py" --allow-missing
+}
+
 run_pyinstaller() {
     if [[ -z "${PROJECTX_BUILD:-}" ]]; then
         local ver
@@ -142,10 +149,12 @@ PY
         export PROJECTX_BUILD="${ver}-$(date -u +%Y%m%d)"
     fi
     printf '%s\n' "$PROJECTX_BUILD" > "$ROOT/src/resources/build_stamp"
+    inject_google_maps_key
     echo "Running PyInstaller for Linux (PROJECTX_BUILD=$PROJECTX_BUILD)..."
     "$PYTHON" -m PyInstaller --noconfirm "$ROOT/installer/projectx.spec"
     echo "Linux bundle written to: $ROOT/dist/projectx/"
     "$PYTHON" "$ROOT/scripts/verify_bundle_no_data.py"
+    "$PYTHON" "$ROOT/scripts/verify_bundled_google_maps_key.py" "$ROOT/dist/projectx"
 }
 
 if [[ -z "$PYTHON" ]]; then

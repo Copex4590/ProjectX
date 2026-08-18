@@ -42,6 +42,8 @@ Environment:
   PROJECTX_PYTHON   Python for build (default: .venv/bin/python)
   PROJECTX_BUILD    Build id stamped into About (default: VERSION-YYYYMMDD)
   SKIP_DEB=1        Skip .deb generation
+  PROJECTX_GOOGLE_MAPS_API_KEY
+                    Required release secret (injected into bundle; never commit)
 EOF
 }
 
@@ -131,6 +133,7 @@ required = [
     paths.resource_path("translations", "hu.json"),
     paths.resource_path("map", "leaflet", "leaflet.js"),
     paths.resource_path("map", "map.html"),
+    paths.resource_path("map", "google_map_3d.html"),
     paths.resource_path("branding", "projectx-logo.png"),
     paths.resource_path("branding", "projectx.ico"),
     paths.bundle_dir() / "config" / "playback.json",
@@ -172,8 +175,15 @@ write_build_stamp() {
     echo "[OK] Build stamp written: ${stamp_file#${ROOT}/} ($PROJECTX_BUILD)"
 }
 
+inject_google_maps_key() {
+    # Release builds REQUIRE a secret key in the environment (never committed).
+    echo "Injecting Google Maps API key for release..."
+    "$PYTHON" "$ROOT/scripts/inject_google_maps_key.py" --required
+}
+
 run_pyinstaller() {
     write_build_stamp
+    inject_google_maps_key
     echo "Running PyInstaller..."
     echo "PROJECTX_BUILD=$PROJECTX_BUILD"
     "$PYTHON" -m PyInstaller --noconfirm "$ROOT/installer/projectx.spec"
@@ -191,6 +201,7 @@ run_pyinstaller() {
         echo "[FAIL] Bundled build_stamp mismatch: got '$bundled' expected '$PROJECTX_BUILD'" >&2
         exit 1
     fi
+    "$PYTHON" "$ROOT/scripts/verify_bundled_google_maps_key.py" --required "$ROOT/dist/projectx"
     echo "[OK] PyInstaller bundle: dist/projectx/ (build=$PROJECTX_BUILD)"
 }
 
@@ -204,6 +215,8 @@ verify_bundle_contents() {
         "$bundle/resources/translations/hu.json"
         "$bundle/resources/map/leaflet/leaflet.js"
         "$bundle/resources/map/map.html"
+        "$bundle/resources/map/google_map_3d.html"
+        "$bundle/resources/map/google_maps_api_key.bundled"
         "$bundle/resources/theme/colors.css"
         "$bundle/resources/branding/projectx-logo.png"
         "$bundle/projectx.ico"

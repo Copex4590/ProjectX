@@ -41,5 +41,8 @@ jobs:
       - name: Build Windows package
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Repository secret — never commit the key. Injected into the installer
+          # via scripts/inject_google_maps_key.py (gitignored bundled file).
+          PROJECTX_GOOGLE_MAPS_API_KEY: ${{ secrets.PROJECTX_GOOGLE_MAPS_API_KEY }}
         # Stream the full bat log; a non-zero exit fails this step and the job.
         run: scripts\build_windows.bat

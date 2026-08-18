@@ -162,6 +162,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
+echo Injecting Google Maps API key for release...
+"%VENV_PY%" "%ROOT%\scripts\inject_google_maps_key.py" --required
+if errorlevel 1 (
+    echo [FAIL] Google Maps API key injection failed. Set PROJECTX_GOOGLE_MAPS_API_KEY.
+    exit /b 1
+)
+
 echo Running PyInstaller ...
 echo PROJECTX_BUILD=%PROJECTX_BUILD%
 "%VENV_PY%" -m PyInstaller --noconfirm "%ROOT%\installer\projectx.spec"
@@ -181,6 +188,9 @@ if not exist "%BUNDLE%\resources\build_stamp" set "MISSING=!MISSING! resources\b
 if not exist "%BUNDLE%\resources\translations\en.json" set "MISSING=!MISSING! resources\translations\en.json"
 if not exist "%BUNDLE%\resources\translations\hu.json" set "MISSING=!MISSING! resources\translations\hu.json"
 if not exist "%BUNDLE%\resources\map\leaflet\leaflet.js" set "MISSING=!MISSING! resources\map\leaflet\leaflet.js"
+if not exist "%BUNDLE%\resources\map\map.html" set "MISSING=!MISSING! resources\map\map.html"
+if not exist "%BUNDLE%\resources\map\google_map_3d.html" set "MISSING=!MISSING! resources\map\google_map_3d.html"
+if not exist "%BUNDLE%\resources\map\google_maps_api_key.bundled" set "MISSING=!MISSING! resources\map\google_maps_api_key.bundled"
 if not exist "%BUNDLE%\resources\branding\projectx-logo.png" set "MISSING=!MISSING! resources\branding\projectx-logo.png"
 if not exist "%BUNDLE%\projectx.ico" set "MISSING=!MISSING! projectx.ico"
 if not exist "%BUNDLE%\config\playback.json" set "MISSING=!MISSING! config\playback.json"
@@ -196,8 +206,14 @@ if exist "%BUNDLE%\data" (
     exit /b 1
 )
 
+"%VENV_PY%" "%ROOT%\scripts\verify_bundled_google_maps_key.py" --required "%BUNDLE%"
+if errorlevel 1 (
+    echo [FAIL] Bundled Google Maps API key verification failed.
+    exit /b 1
+)
+
 echo [OK] PyInstaller bundle verified:
-echo        executable, translations, map, branding, icon, config
+echo        executable, translations, map, Google key, branding, icon, config
 echo.
 exit /b 0
 

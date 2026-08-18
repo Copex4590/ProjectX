@@ -33,13 +33,20 @@ Installer output: **`release/windows/ProjectX-Setup.exe`**
 From the repository root on native Windows:
 
 ```bat
+rem Release secret (never commit). Injected into the installer at build time.
+set PROJECTX_GOOGLE_MAPS_API_KEY=…
+
 scripts\build_windows.bat
 ```
 
 This runs:
 
-1. PyInstaller → `dist\projectx\projectx.exe`
-2. Inno Setup → `release\windows\ProjectX-Setup.exe`
+1. Inject Google Maps API key → gitignored `google_maps_api_key.bundled`
+2. PyInstaller → `dist\projectx\projectx.exe`
+3. Inno Setup → `release\windows\ProjectX-Setup.exe`
+
+End users do **not** enter a Google API key after install. GitHub Actions uses
+repository secret `PROJECTX_GOOGLE_MAPS_API_KEY`.
 
 PyInstaller-only (skip installer):
 

@@ -27,9 +27,16 @@ The `installer/linux/` directory is **developer-only** (source-tree install). It
 From the repository root on Linux:
 
 ```bash
+# Release secret (never commit). Injected into AppImage/.deb at build time.
+export PROJECTX_GOOGLE_MAPS_API_KEY="…"
+
 chmod +x scripts/build_linux_release.sh scripts/verify_linux_release.sh
 ./scripts/build_linux_release.sh
 ```
+
+The Google Maps API key is written only to the gitignored
+`src/resources/map/google_maps_api_key.bundled` file during the build and
+shipped inside the package. End users do **not** enter a key after install.
 
 Output:
 

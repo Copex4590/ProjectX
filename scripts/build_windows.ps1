@@ -83,6 +83,9 @@ if (-not $env:PROJECTX_BUILD) {
 }
 Set-Content -Path (Join-Path $Root "src\resources\build_stamp") -Value $env:PROJECTX_BUILD -NoNewline
 Write-Host "PROJECTX_BUILD=$($env:PROJECTX_BUILD)"
+Write-Host "Injecting Google Maps API key for release..."
+& $venvPython (Join-Path $Root "scripts\inject_google_maps_key.py") --required
+if ($LASTEXITCODE -ne 0) { throw "Google Maps API key injection failed. Set PROJECTX_GOOGLE_MAPS_API_KEY." }
 & $venvPython -m PyInstaller --noconfirm (Join-Path $Root "installer\projectx.spec")
 
     $bundleRoot = Join-Path $Root "dist\projectx"
@@ -93,6 +96,8 @@ Write-Host "PROJECTX_BUILD=$($env:PROJECTX_BUILD)"
         (Join-Path $bundleRoot "resources\translations\hu.json"),
         (Join-Path $bundleRoot "resources\map\leaflet\leaflet.js"),
         (Join-Path $bundleRoot "resources\map\map.html"),
+        (Join-Path $bundleRoot "resources\map\google_map_3d.html"),
+        (Join-Path $bundleRoot "resources\map\google_maps_api_key.bundled"),
         (Join-Path $bundleRoot "resources\theme\colors.css"),
         (Join-Path $bundleRoot "resources\branding\projectx-logo.png"),
         (Join-Path $bundleRoot "projectx.ico"),
@@ -108,7 +113,9 @@ Write-Host "PROJECTX_BUILD=$($env:PROJECTX_BUILD)"
     if (Test-Path (Join-Path $bundleRoot "data")) {
         throw "dist\projectx\data\ must not exist in release bundles."
     }
-    Write-Host "[OK] PyInstaller bundle verified: executable, translations, map, branding, icon, config`n"
+    & $venvPython (Join-Path $Root "scripts\verify_bundled_google_maps_key.py") --required $bundleRoot
+    if ($LASTEXITCODE -ne 0) { throw "Bundled Google Maps API key verification failed." }
+    Write-Host "[OK] PyInstaller bundle verified: executable, translations, map, Google key, branding, icon, config`n"
 
     $exePath = Join-Path $Root "dist\projectx\projectx.exe"
     if ($env:SKIP_INSTALLER -ne "1") {
