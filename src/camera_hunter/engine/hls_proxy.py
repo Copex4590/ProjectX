@@ -7,6 +7,7 @@ and rewrites playlist URIs to localhost so the player never talks to the CDN.
 
 from __future__ import annotations
 
+import errno
 import re
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -238,10 +239,30 @@ class _HlsProxyHandler(BaseHTTPRequestHandler):
             self.send_error(502)
             return
         diag("proxy_response_200", path=urlparse(self.path).path, content_type=ctype, bytes=len(body))
-        self.send_response(200)
-        self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError) as exc:
+            diag(
+                "proxy_client_disconnected",
+                path=urlparse(self.path).path,
+                error=type(exc).__name__,
+            )
+        except OSError as exc:
+            if getattr(exc, "errno", None) in (
+                errno.EPIPE,
+                errno.ECONNRESET,
+                errno.ECONNABORTED,
+            ):
+                diag(
+                    "proxy_client_disconnected",
+                    path=urlparse(self.path).path,
+                    error=str(exc),
+                )
+            else:
+                diag_exc("proxy_response_write_failed", path=self.path, error=str(exc))

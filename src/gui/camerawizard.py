@@ -33,6 +33,7 @@ from cameras import (
     validate_stream_url,
 )
 from gui.i18n_support import bind_language_refresh
+from gui.map_core import PickMode
 from gui.mapcontroller import MapController
 from gui.theme import DANGER, SUCCESS, TEXT_MUTED, wizard_shell_stylesheet
 from gui.thread_utils import stop_qthread
@@ -78,7 +79,10 @@ class CameraWizard(QDialog):
     ):
         super().__init__(parent)
 
-        self.setModal(True)
+        # Non-modal: QDialog.exec() nested loops deadlock with QWebEngineView +
+        # QMediaPlayer/FFmpeg on Linux (dialog never maps, main window freezes).
+        self.setModal(False)
+        self.setWindowModality(Qt.WindowModality.NonModal)
         self.setMinimumWidth(600)
         self.setMinimumHeight(560)
 
@@ -641,7 +645,9 @@ class CameraWizard(QDialog):
         self._map_panel.setVisible(use_map)
 
         if not use_map:
-            MapController.instance().cancel_pick_mode()
+            controller = MapController.instance()
+            if controller.pick_mode() != PickMode.NONE:
+                controller.cancel_pick_mode()
             point = observation_manager.get(self._observation_point_id)
 
             if point is not None:

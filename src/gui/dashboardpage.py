@@ -1,3 +1,5 @@
+import logging
+
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QActionGroup, QShowEvent
 from PySide6.QtWidgets import (
@@ -62,6 +64,8 @@ from preferences import (
     preferences_manager,
 )
 
+logger = logging.getLogger(__name__)
+
 _CARD_STYLE = dashboard_card_stylesheet()
 
 _BUTTON_STYLE = dashboard_button_stylesheet()
@@ -95,6 +99,7 @@ class DashboardPage(QWidget):
         )
 
         self._observation_wizard: ObservationWizard | None = None
+        self._camera_wizard: CameraWizard | None = None
 
         content = QWidget()
         layout = QVBoxLayout(content)
@@ -609,10 +614,7 @@ class DashboardPage(QWidget):
         if point_id is None:
             return
 
-        wizard = CameraWizard(point_id, self)
-
-        if wizard.exec() == QDialog.DialogCode.Accepted:
-            self.refresh_cameras()
+        self._open_camera_wizard(point_id)
 
     def _discover_camera(self) -> None:
 
@@ -649,9 +651,83 @@ class DashboardPage(QWidget):
         if point_id is None:
             return
 
-        wizard = CameraWizard(point_id, self, camera=camera)
+        self._open_camera_wizard(point_id, camera=camera)
 
-        if wizard.exec() == QDialog.DialogCode.Accepted:
+    def _discard_camera_wizard(self) -> None:
+        """Close any live camera wizard so Add/Edit can restart."""
+
+        wizard = self._camera_wizard
+        self._camera_wizard = None
+
+        if wizard is None:
+            return
+
+        from shiboken6 import isValid
+
+        if not isValid(wizard):
+            return
+
+        try:
+            wizard.finished.disconnect(self._on_camera_wizard_finished)
+        except (RuntimeError, TypeError):
+            pass
+
+        try:
+            wizard.destroyed.disconnect(self._on_camera_wizard_destroyed)
+        except (RuntimeError, TypeError):
+            pass
+
+        MapController.instance().cancel_pick_mode(restore_host=False)
+
+        try:
+            wizard.reject()
+        except RuntimeError:
+            return
+
+        wizard.deleteLater()
+
+    def _open_camera_wizard(self, point_id: str, camera=None) -> CameraWizard | None:
+        """Show CameraWizard without a nested dialog event loop (WebEngine/HLS freeze)."""
+
+        self._discard_camera_wizard()
+
+        try:
+            wizard = CameraWizard(point_id, self, camera=camera)
+        except Exception:
+            logger.exception("CameraWizard failed to open")
+            QMessageBox.warning(
+                self,
+                tr("Add Camera"),
+                tr("Unable to open the camera wizard."),
+            )
+            return None
+
+        wizard.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        wizard.finished.connect(self._on_camera_wizard_finished)
+        wizard.destroyed.connect(self._on_camera_wizard_destroyed)
+        self._camera_wizard = wizard
+        wizard.show()
+        wizard.raise_()
+        wizard.activateWindow()
+        return wizard
+
+    def _on_camera_wizard_destroyed(self, _object=None) -> None:
+
+        MapController.instance().cancel_pick_mode(restore_host=False)
+
+        if self._camera_wizard is self.sender():
+            self._camera_wizard = None
+
+    def _on_camera_wizard_finished(self, result: int) -> None:
+
+        if self.sender() is not None and self._camera_wizard is not self.sender():
+            if result == QDialog.DialogCode.Accepted:
+                self.refresh_cameras()
+            return
+
+        self._camera_wizard = None
+
+        if result == QDialog.DialogCode.Accepted:
             self.refresh_cameras()
 
     def _delete_camera(self, camera) -> None:

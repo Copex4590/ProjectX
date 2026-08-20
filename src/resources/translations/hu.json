@@ -296,6 +296,7 @@
   "Open Dashboard": "Vezérlőpult megnyitása",
   "Attached Cameras": "Csatolt kamerák",
   "Add Camera": "Kamera hozzáadása",
+  "Unable to open the camera wizard.": "A kamera varázslót nem sikerült megnyitni.",
   "Discover Camera": "Kamera felderítése",
   "Discover a live camera from a camera page URL": "Élő kamera felderítése kameraoldal URL-ről",
   "Camera page URL": "Kameraoldal URL",
