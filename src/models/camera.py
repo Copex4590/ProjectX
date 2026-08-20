@@ -26,6 +26,7 @@ FUTURE_CAMERA_TYPES = ("local", "youtube")
 SOURCE_CATALOG = "catalog"
 SOURCE_PACK = "pack"
 SOURCE_USER = "user"
+SOURCE_EARTHCAM = "earthcam"
 
 
 def _utc_now() -> datetime:
@@ -66,7 +67,7 @@ def _parse_datetime(value) -> datetime:
 
 @dataclass
 class Camera:
-    """Single camera record for catalog packs and user/OP-bound cameras."""
+    """Single camera record for catalog packs, network catalogs, and user cameras."""
 
     id: str
     name: str
@@ -88,6 +89,7 @@ class Camera:
     web_url: str = ""
     provider_name: str = ""
     city: str = ""
+    location: str = ""
     river: str = ""
     timezone: str = ""
     tags: tuple[str, ...] = field(default_factory=tuple)
@@ -185,6 +187,11 @@ class Camera:
     def playback_web_url(self) -> str:
 
         return self.safe_text(self.web_url)
+
+    @property
+    def thumbnail_url(self) -> str:
+
+        return self.safe_text(self.snapshot_url)
 
     @property
     def location_city(self) -> str:

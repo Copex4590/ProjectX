@@ -55,8 +55,52 @@ for _pkg in (
     _webengine_binaries += _binaries
     _webengine_hiddenimports += _hiddenimports
 
+# Vendored camera_hunter DiscoveryEngine import graph (not in PX src otherwise):
+#   cdp_monitor → QtWebSockets
+#   hls_player  → QtMultimedia + QtMultimediaWidgets
+_hunter_qt_datas = []
+_hunter_qt_binaries = []
+_hunter_qt_hiddenimports = []
+
+for _pkg in (
+    "PySide6.QtWebSockets",
+    "PySide6.QtMultimedia",
+    "PySide6.QtMultimediaWidgets",
+):
+    _datas, _binaries, _hiddenimports = collect_all(_pkg)
+    _hunter_qt_datas += _datas
+    _hunter_qt_binaries += _binaries
+    _hunter_qt_hiddenimports += _hiddenimports
+
+_camera_hunter_hiddenimports = [
+    "camera_hunter",
+    "camera_hunter.models",
+    "camera_hunter.models.camera_result",
+    "camera_hunter.models.camera_source",
+    "camera_hunter.engine",
+    "camera_hunter.engine.discovery",
+    "camera_hunter.engine.classifier",
+    "camera_hunter.engine.session",
+    "camera_hunter.engine.hls_capture",
+    "camera_hunter.engine.hls_diag",
+    "camera_hunter.engine.hls_player",
+    "camera_hunter.engine.hls_proxy",
+    "camera_hunter.engine.jpg_player",
+    "camera_hunter.engine.cdp_monitor",
+    "camera_hunter.engine.earthcam_consent",
+    "camera_hunter.engine.listing_catalog",
+    "camera_hunter.engine.listing_store",
+    "camera_hunter.engine.listing_scanner",
+    "camera_hunter.engine.providers",
+    "camera_hunter.engine.providers.earthcam",
+    "camera_hunter.app",
+    "camera_hunter.app.webengine_setup",
+]
+
 _hiddenimports = [
     *_webengine_hiddenimports,
+    *_hunter_qt_hiddenimports,
+    *_camera_hunter_hiddenimports,
     "openpyxl",
     "openpyxl.cell",
     "openpyxl.workbook",
@@ -70,8 +114,8 @@ block_cipher = None
 a = Analysis(
     [str(SRC / "main.py")],
     pathex=[str(SRC)],
-    binaries=_webengine_binaries,
-    datas=[*_resource_datas, *_webengine_datas],
+    binaries=[*_webengine_binaries, *_hunter_qt_binaries],
+    datas=[*_resource_datas, *_webengine_datas, *_hunter_qt_datas],
     hiddenimports=_hiddenimports,
     hookspath=[],
     hooksconfig={},

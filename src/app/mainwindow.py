@@ -1114,6 +1114,12 @@ class MainWindow(QMainWindow):
             map_page.select_vessel(int(focus_mmsi))
             map_controller.focus_ship(int(focus_mmsi))
 
+    def start_hunter_camera_discovery(self, page_url: str) -> bool:
+
+        self.navigate_to_map()
+        map_page = self._require_page("map_page")
+        return map_page.start_hunter_camera_discovery(page_url)
+
     def focus_ship(self, mmsi):
 
         self.navigate_to_map(focus_mmsi=int(mmsi))

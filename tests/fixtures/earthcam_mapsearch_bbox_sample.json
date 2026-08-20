@@ -1,0 +1,41 @@
+{
+  "places": [
+    {
+      "name": "Steyr Stadtplatz",
+      "url": "http://www.steyr.at/webcam",
+      "thumbnail": "https://static.earthcam.com/camshots/256x144/steyr.jpg",
+      "icon": "https://static.earthcam.com/camshots/256x144/steyr.jpg",
+      "posn": ["48.05000000000000", "14.41666670000000"],
+      "location": "Steyr, Austria",
+      "city": "Steyr",
+      "country": "Austria"
+    },
+    {
+      "name": "Cafe52 Cam",
+      "url": "http://www.cafe52.com/node/3",
+      "thumbnail": "https://static.earthcam.com/camshots/256x144/cafe52.jpg",
+      "icon": "https://static.earthcam.com/camshots/256x144/cafe52.jpg",
+      "posn": ["40.74286900000000", "-73.90377000000000"],
+      "location": "Woodside, NY",
+      "city": "Woodside",
+      "country": "United States"
+    },
+    {
+      "name": "Cafe52 Cam Duplicate",
+      "url": "http://www.cafe52.com/node/3",
+      "thumbnail": "https://static.earthcam.com/camshots/256x144/cafe52b.jpg",
+      "posn": ["40.74286900000000", "-73.90377000000000"],
+      "location": "Woodside, NY",
+      "city": "Woodside",
+      "country": "United States"
+    },
+    {
+      "name": "Zero Island",
+      "url": "http://example.com/zero",
+      "posn": ["0", "0"],
+      "location": "Nowhere",
+      "city": "",
+      "country": ""
+    }
+  ]
+}

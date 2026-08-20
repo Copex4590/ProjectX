@@ -11,13 +11,14 @@ from PySide6.QtWidgets import (
     QLabel,
     QMenu,
     QMessageBox,
-    QPushButton,
-    QScrollArea,
-    QVBoxLayout,
-    QWidget,
+        QPushButton,
+        QScrollArea,
+        QVBoxLayout,
+        QWidget,
 )
 
 from cameras import camera_manager
+from gui.discovercameradialog import DiscoverCameraDialog
 from debug.obs_freeze_trace import (
     begin_delete_trace_session,
     trace_block,
@@ -246,6 +247,10 @@ class DashboardPage(QWidget):
         self._add_camera_button.setStyleSheet(_BUTTON_STYLE)
         cameras_layout.addWidget(self._add_camera_button)
 
+        self._discover_camera_button = QPushButton()
+        self._discover_camera_button.setStyleSheet(_BUTTON_STYLE)
+        cameras_layout.addWidget(self._discover_camera_button)
+
         self._logbook_card = QFrame()
         self._logbook_card.setStyleSheet(_CARD_STYLE)
         logbook_layout = QVBoxLayout(self._logbook_card)
@@ -359,6 +364,7 @@ class DashboardPage(QWidget):
         self._language_combo.currentIndexChanged.connect(self._on_language_changed)
         self._layout_combo.currentIndexChanged.connect(self._on_layout_changed)
         self._add_camera_button.clicked.connect(self._add_camera)
+        self._discover_camera_button.clicked.connect(self._discover_camera)
         self._import_logbook_button.clicked.connect(self._import_legacy_logbook)
         self._cameras_help_button.clicked.connect(
             lambda: show_wizard_help(
@@ -428,6 +434,7 @@ class DashboardPage(QWidget):
         self._no_cameras_label.setText(tr("No cameras"))
         self._cameras_help_button.setText(tr("Help"))
         self._add_camera_button.setText(tr("Add Camera"))
+        self._discover_camera_button.setText(tr("Discover Camera"))
         self._logbook_title.setText(tr("Vessel Logbook"))
         self._import_logbook_button.setText(tr("Import Legacy Logbook"))
         self._configuration_title.setText(tr("Configuration"))
@@ -435,6 +442,9 @@ class DashboardPage(QWidget):
         self._create_button.setToolTip(tr("Create a new observation point"))
         self._add_camera_button.setToolTip(
             tr("Add a camera to the active observation point")
+        )
+        self._discover_camera_button.setToolTip(
+            tr("Discover a live camera from a camera page URL")
         )
 
         self._refresh_configuration_labels()
@@ -603,6 +613,34 @@ class DashboardPage(QWidget):
 
         if wizard.exec() == QDialog.DialogCode.Accepted:
             self.refresh_cameras()
+
+    def _discover_camera(self) -> None:
+
+        dialog = DiscoverCameraDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        page_url = dialog.page_url()
+        if not page_url.startswith(("http://", "https://")):
+            QMessageBox.warning(
+                self,
+                tr("Discover Camera"),
+                tr("Enter a camera page URL (https://...)."),
+            )
+            return
+
+        main_window = self.window()
+        start = getattr(main_window, "start_hunter_camera_discovery", None)
+        if not callable(start):
+            return
+
+        started = start(page_url)
+        if not started:
+            QMessageBox.warning(
+                self,
+                tr("Discover Camera"),
+                tr("Discovery already running."),
+            )
 
     def _edit_camera(self, camera) -> None:
 

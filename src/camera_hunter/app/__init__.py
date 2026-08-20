@@ -1,0 +1,1 @@
+"""Camera Hunter application package."""

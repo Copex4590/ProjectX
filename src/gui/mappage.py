@@ -74,6 +74,7 @@ class _CollapsibleSideHost(QWidget):
 
 _MAP_SHIPS_INTERVAL_MS = 200  # SAVE-106: max 5 Hz marker updates
 _MAP_POPUP_REFRESH_INTERVAL_MS = 2000
+_VALIDATED_CAMERA_REFRESH_MS = 30_000
 
 
 def _serialize_ship_marker(ship) -> dict:
@@ -87,6 +88,14 @@ def _serialize_ship_marker(ship) -> dict:
         "course": ship.course,
         "speed": ship.speed,
     }
+
+
+def _catalog_camera_markers(cameras) -> list[dict]:
+    """VALIDATED map markers (id/lat/lon). Listing-catalog cameras are not shown."""
+
+    from cameras.validated_catalog import validated_camera_markers
+
+    return validated_camera_markers(cameras)
 
 
 def _marker_fingerprint(ship) -> tuple:
@@ -691,6 +700,7 @@ class MapPage(QWidget):
         )
         self.map.openLogbookRequested.connect(self._open_logbook)
         self.map.shipSelected.connect(self.select_vessel)
+        self.map.cameraSelected.connect(self._on_catalog_camera_selected)
         clear_selection = getattr(self.map, "shipSelectionCleared", None)
         if clear_selection is not None:
             clear_selection.connect(self.clear_vessel_selection)
@@ -726,6 +736,21 @@ class MapPage(QWidget):
         except Exception:
             logger.exception("Failed to load camera pack inventory for MapPage")
 
+        self._validated_catalog = None
+        try:
+            from cameras.validated_catalog import ValidatedCatalogService
+
+            self._validated_catalog = ValidatedCatalogService(self)
+            self._validated_catalog.cameras_updated.connect(
+                self._on_validated_cameras_updated,
+                Qt.ConnectionType.QueuedConnection,
+            )
+            self._validated_catalog.start(_VALIDATED_CAMERA_REFRESH_MS)
+            if getattr(self.map, "_page_ready", False):
+                QTimer.singleShot(0, self._push_validated_cameras_now)
+        except Exception:
+            logger.exception("Failed to start VALIDATED camera map layer")
+
         details_init = getattr(self.vessel_details, "initialize", None)
         if callable(details_init):
             details_init()
@@ -736,6 +761,8 @@ class MapPage(QWidget):
         self.apply_personalization()
         if self._map_controller is not None:
             self._map_controller.refresh_observation_points()
+        self._refresh_catalog_camera_markers()
+        self._push_validated_cameras_now()
         details_activate = getattr(self.vessel_details, "activate", None)
         if callable(details_activate):
             details_activate()
@@ -750,6 +777,9 @@ class MapPage(QWidget):
         self._popup_timer.stop()
         self._panel_prefs_timer.stop()
         self._left_restore_poll.stop()
+        service = getattr(self, "_validated_catalog", None)
+        if service is not None:
+            service.stop()
         if self._map_controller is not None and self._map_controller.is_undocked():
             self._map_controller.redock()
         shutdown = getattr(self.vessel_details, "shutdown", None)
@@ -1000,6 +1030,48 @@ class MapPage(QWidget):
         with trace_block("MapPage._on_map_ready"):
             self.apply_personalization()
             self._map_controller.refresh_observation_points()
+            self._refresh_catalog_camera_markers()
+            self._push_validated_cameras_now()
+
+    def _on_validated_cameras_updated(self, markers) -> None:
+
+        if self.map is None:
+            return
+        self.map.set_cameras(list(markers or []))
+
+    def _push_validated_cameras_now(self) -> None:
+        """Put the current VALIDATED list on a map that is already loaded."""
+
+        if self.map is None:
+            return
+        service = getattr(self, "_validated_catalog", None)
+        if service is None:
+            return
+        if not service.has_loaded and not service.current_markers():
+            return
+        self.map.set_cameras(service.current_markers())
+
+    def _refresh_catalog_camera_markers(self) -> None:
+
+        if self.map is None:
+            return
+        service = getattr(self, "_validated_catalog", None)
+        if service is None:
+            return
+        service.refresh()
+
+    def _on_catalog_camera_selected(self, camera_id: str) -> None:
+        """Open the VALIDATED camera page through the existing Hunter discovery path."""
+
+        camera_id = str(camera_id or "").strip()
+        if not camera_id:
+            return
+        service = getattr(self, "_validated_catalog", None)
+        page_url = service.web_url_for(camera_id) if service is not None else ""
+        if not page_url:
+            logger.warning("Validated camera %s has no web_url", camera_id)
+            return
+        self.start_hunter_camera_discovery(page_url)
 
     def refresh_observation_point(self) -> None:
 
@@ -1213,6 +1285,10 @@ class MapPage(QWidget):
 
         self.vessel_details.set_mmsi(self._selected_mmsi)
         self._apply_camera_link_overlays()
+
+    def start_hunter_camera_discovery(self, page_url: str) -> bool:
+
+        return self.camera_preview.start_hunter_discovery(page_url)
 
     def _apply_camera_link_overlays(self) -> None:
 

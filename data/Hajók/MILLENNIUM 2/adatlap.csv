@@ -1,0 +1,87 @@
+Időpont;Távolság;Haladási irány;Sebesség;Célállomás + ETA;Hívójel;Merülés;MMSI;Hajótípus;Hossz;Szélesség
+08.18 - 21:21;1.4 km északra;észak felé halad;5.0 csomó; ;;;243070123;;;
+08.18 - 21:21;1.4 km északra;észak felé halad;5.0 csomó;;;None;243070123;;None;None
+08.18 - 21:22;1.65 km északra;észak felé halad;5.6 csomó; ;;;243070123;;;
+08.18 - 21:22;1.65 km északra;észak felé halad;5.6 csomó;;;None;243070123;;None;None
+08.18 - 21:23;1.73 km északra;észak felé halad;5.7 csomó; ;;;243070123;;;
+08.18 - 21:23;1.73 km északra;észak felé halad;5.7 csomó;;;None;243070123;;None;None
+08.18 - 21:23;1.82 km északra;észak felé halad;5.4 csomó; ;;;243070123;;;
+08.18 - 21:23;1.82 km északra;észak felé halad;5.4 csomó;;;None;243070123;;None;None
+08.18 - 21:24;1.91 km északra;Áll északra;; ;;;243070123;;;
+08.18 - 21:24;1.91 km északra;Áll északra;;;;None;243070123;;None;None
+08.18 - 21:34;1.99 km északra;észak felé halad;3.4 csomó; ;;;243070123;;;
+08.18 - 21:34;1.99 km északra;észak felé halad;3.4 csomó;;;None;243070123;;None;None
+08.18 - 21:35;1.89 km északra;dél felé halad;8.1 csomó; ;;;243070123;;;
+08.18 - 21:35;1.89 km északra;dél felé halad;8.1 csomó;;;None;243070123;;None;None
+08.18 - 21:35;1.85 km északra;dél felé halad;8.3 csomó; ;;;243070123;;;
+08.18 - 21:35;1.85 km északra;dél felé halad;8.3 csomó;;;None;243070123;;None;None
+08.18 - 21:36;1.63 km északra;dél felé halad;8.5 csomó; ;;;243070123;;;
+08.18 - 21:36;1.63 km északra;dél felé halad;8.5 csomó;;;None;243070123;;None;None
+08.18 - 21:36;1.59 km északra;dél felé halad;8.4 csomó; ;;;243070123;;;
+08.18 - 21:36;1.59 km északra;dél felé halad;8.4 csomó;;;None;243070123;;None;None
+08.18 - 21:36;1.54 km északra;dél felé halad;8.3 csomó; ;;;243070123;;;
+08.18 - 21:36;1.54 km északra;dél felé halad;8.3 csomó;;;None;243070123;;None;None
+08.18 - 21:36;1.5 km északra;dél felé halad;8.4 csomó; ;;;243070123;;;
+08.18 - 21:36;1.5 km északra;dél felé halad;8.4 csomó;;;None;243070123;;None;None
+08.18 - 21:37;1.41 km északra;dél felé halad;9.1 csomó; ;;;243070123;;;
+08.18 - 21:37;1.41 km északra;dél felé halad;9.1 csomó;;;None;243070123;;None;None
+08.18 - 22:13;0.59 km délre;észak felé halad;6.1 csomó; ;;;243070123;;;
+08.18 - 22:13;0.59 km délre;észak felé halad;6.1 csomó;;;None;243070123;;None;None
+08.18 - 22:15;0.3 km délre;észak felé halad;5.4 csomó; ;;;243070123;;;
+08.18 - 22:15;0.3 km délre;észak felé halad;5.4 csomó;;;None;243070123;;None;None
+08.19 - 19:16;1.93 km északra;dél felé halad;8.0 csomó; ;;;243070123;;;
+08.19 - 19:16;1.93 km északra;dél felé halad;8.0 csomó;;;None;243070123;;None;None
+08.19 - 19:16;1.85 km északra;dél felé halad;8.8 csomó; ;;;243070123;;;
+08.19 - 19:16;1.85 km északra;dél felé halad;8.8 csomó;;;None;243070123;;None;None
+08.19 - 19:17;1.8 km északra;dél felé halad;9.0 csomó; ;;;243070123;;;
+08.19 - 19:17;1.8 km északra;dél felé halad;9.0 csomó;;;None;243070123;;None;None
+08.19 - 19:17;1.71 km északra;dél felé halad;9.1 csomó; ;;;243070123;;;
+08.19 - 19:17;1.71 km északra;dél felé halad;9.1 csomó;;;None;243070123;;None;None
+08.19 - 19:17;1.66 km északra;dél felé halad;9.0 csomó; ;;;243070123;;;
+08.19 - 19:17;1.66 km északra;dél felé halad;9.0 csomó;;;None;243070123;;None;None
+08.19 - 19:17;1.62 km északra;dél felé halad;8.8 csomó; ;;;243070123;;;
+08.19 - 19:17;1.62 km északra;dél felé halad;8.8 csomó;;;None;243070123;;None;None
+08.19 - 19:18;1.53 km északra;dél felé halad;8.6 csomó;BUDAPEST 08.08 23:00;HGAW;1.1;243070123;60;38;7
+08.19 - 19:18;1.53 km északra;dél felé halad;8.6 csomó;BUDAPEST 08.08 23:00;HGAW;1.1;243070123;60;38;7
+08.19 - 19:18;1.49 km északra;dél felé halad;8.3 csomó;BUDAPEST 08.08 23:00;HGAW;1.1;243070123;60;38;7
+08.19 - 19:18;1.49 km északra;dél felé halad;8.3 csomó;BUDAPEST 08.08 23:00;HGAW;1.1;243070123;60;38;7
+08.19 - 19:18;1.44 km északra;dél felé halad;6.9 csomó;BUDAPEST 08.08 23:00;HGAW;1.1;243070123;60;38;7
+08.19 - 19:18;1.44 km északra;dél felé halad;6.9 csomó;BUDAPEST 08.08 23:00;HGAW;1.1;243070123;60;38;7
+08.19 - 19:19;1.21 km északra;dél felé halad;9.1 csomó;BUDAPEST 08.08 23:00;HGAW;1.1;243070123;60;38;7
+08.19 - 19:19;1.21 km északra;dél felé halad;9.1 csomó;BUDAPEST 08.08 23:00;HGAW;1.1;243070123;60;38;7
+08.19 - 19:54;1.87 km északra;észak felé halad;3.4 csomó; ;;;243070123;;;
+08.19 - 19:54;1.87 km északra;észak felé halad;3.4 csomó;;;None;243070123;;None;None
+08.19 - 19:54;1.9 km északra;észak felé halad;2.4 csomó; ;;;243070123;;;
+08.19 - 19:54;1.9 km északra;észak felé halad;2.4 csomó;;;None;243070123;;None;None
+08.19 - 19:55;1.91 km északra;észak felé halad;1.4 csomó; ;;;243070123;;;
+08.19 - 19:55;1.91 km északra;észak felé halad;1.4 csomó;;;None;243070123;;None;None
+08.19 - 20:08;1.97 km északra;észak felé halad;4.4 csomó; ;;;243070123;;;
+08.19 - 20:08;1.97 km északra;észak felé halad;4.4 csomó;;;None;243070123;;None;None
+08.19 - 20:09;1.97 km északra;dél felé halad;5.9 csomó; ;;;243070123;;;
+08.19 - 20:09;1.97 km északra;dél felé halad;5.9 csomó;;;None;243070123;;None;None
+08.19 - 20:09;1.86 km északra;dél felé halad;8.7 csomó; ;;;243070123;;;
+08.19 - 20:09;1.86 km északra;dél felé halad;8.7 csomó;;;None;243070123;;None;None
+08.19 - 20:09;1.77 km északra;dél felé halad;8.8 csomó; ;;;243070123;;;
+08.19 - 20:09;1.77 km északra;dél felé halad;8.8 csomó;;;None;243070123;;None;None
+08.19 - 20:10;1.64 km északra;dél felé halad;8.6 csomó; ;;;243070123;;;
+08.19 - 20:10;1.64 km északra;dél felé halad;8.6 csomó;;;None;243070123;;None;None
+08.19 - 20:10;1.6 km északra;dél felé halad;8.6 csomó; ;;;243070123;;;
+08.19 - 20:10;1.6 km északra;dél felé halad;8.6 csomó;;;None;243070123;;None;None
+08.19 - 20:10;1.56 km északra;dél felé halad;8.4 csomó; ;;;243070123;;;
+08.19 - 20:10;1.56 km északra;dél felé halad;8.4 csomó;;;None;243070123;;None;None
+08.19 - 20:10;1.51 km északra;dél felé halad;8.3 csomó; ;;;243070123;;;
+08.19 - 20:10;1.51 km északra;dél felé halad;8.3 csomó;;;None;243070123;;None;None
+08.19 - 20:11;1.38 km északra;dél felé halad;9.1 csomó; ;;;243070123;;;
+08.19 - 20:11;1.38 km északra;dél felé halad;9.1 csomó;;;None;243070123;;None;None
+08.19 - 20:11;1.37 km északra;dél felé halad;9.1 csomó; ;;;243070123;;;
+08.19 - 20:11;1.37 km északra;dél felé halad;9.1 csomó;;;None;243070123;;None;None
+08.19 - 20:11;1.34 km északra;dél felé halad;9.1 csomó; ;;;243070123;;;
+08.19 - 20:11;1.34 km északra;dél felé halad;9.1 csomó;;;None;243070123;;None;None
+08.19 - 20:13;0.79 km északra;dél felé halad;8.9 csomó; ;;;243070123;;;
+08.19 - 20:13;0.79 km északra;dél felé halad;8.9 csomó;;;None;243070123;;None;None
+08.19 - 20:14;0.52 km északra;dél felé halad;9.2 csomó; ;;;243070123;;;
+08.19 - 20:14;0.52 km északra;dél felé halad;9.2 csomó;;;None;243070123;;None;None
+08.19 - 20:14;0.51 km északra;dél felé halad;9.1 csomó;;;None;243070123;;None;None
+08.19 - 20:14;0.51 km északra;dél felé halad;9.1 csomó; ;;;243070123;;;
+08.19 - 20:14;0.44 km északra;dél felé halad;9.1 csomó; ;;;243070123;;;
+08.19 - 20:14;0.44 km északra;dél felé halad;9.1 csomó;;;None;243070123;;None;None

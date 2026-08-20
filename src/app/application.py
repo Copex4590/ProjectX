@@ -9,12 +9,13 @@ import logging
 import sys
 import time
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app.logging_config import configure_logging
 from app.mainwindow import MainWindow
 from app.paths import ensure_runtime_data_dirs
+from camera_hunter.app.webengine_setup import configure_remote_debugging
 from branding.assets import app_icon
 from gui.languagewelcome_dialog import run_language_welcome_if_needed
 from gui.splashscreen import create_splash_screen
@@ -95,6 +96,8 @@ class Application:
         ensure_runtime_data_dirs()
         _log_startup_phase("logging and runtime directories ready")
 
+        configure_remote_debugging()
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
         self.qt = QApplication(sys.argv)
         self.qt.setApplicationName(PROJECT_NAME)
         self.qt.setApplicationVersion(PROJECT_VERSION)

@@ -1,0 +1,25 @@
+Camera Hunter vendor snapshot for Project X
+
+Source:     /home/zoli/CameraHunter
+Pinned:     dfda8d9c04e541aa61a54ce99141916e94bd4f79
+Vendored:   2026-08-18
+
+This tree started as a byte-identical copy of the camera_hunter package
+modules required to import CameraResult and DiscoveryEngine.
+
+Local Project X patch on top of the pinned snapshot:
+  engine/discovery.py — pre-LIVE HLS fallback to the next already-accepted
+  candidate after playback/validation failure (no token synthesis, no
+  provider/scoring/acceptance change).
+
+Excluded from this snapshot (do not add without a new vendor slice):
+  research/
+  ui/
+  media/
+  tests/
+  app/main.py
+  engine/hls_live.py
+
+Project X runtime must import this in-tree package via src/camera_hunter.
+Using a sibling /home/zoli/CameraHunter path (sys.path / PYTHONPATH hack)
+is forbidden.

@@ -4,6 +4,11 @@ from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
 import logging
 
 from cameras import camera_manager
+from cameras.hunter_session import (
+    camera_result_provider_type,
+    camera_result_stream_url,
+    hunter_live_session,
+)
 from engines.camera import camera_selection_engine
 from gui.i18n_support import bind_language_refresh
 from gui.theme import ThemeColors
@@ -46,6 +51,8 @@ class CameraPreviewPanel(QFrame):
         self._last_mmsi = None
         self._last_camera_id = None
         self._workflow = live_camera_workflow
+        self._hunter = hunter_live_session
+        self._hunter_mode = False
         self._empty_message_key = "No camera available"
         self._error_message_key = None
         self._error_message_raw = None
@@ -115,6 +122,9 @@ class CameraPreviewPanel(QFrame):
 
         self.video_host = QFrame()
         self.video_host.setObjectName("videoHost")
+        self._video_layout = QVBoxLayout(self.video_host)
+        self._video_layout.setContentsMargins(0, 0, 0, 0)
+        self._video_layout.setSpacing(0)
         layout.addWidget(self.video_host)
 
         self.details = QWidget()
@@ -148,6 +158,10 @@ class CameraPreviewPanel(QFrame):
         layout.addWidget(self.empty_label)
 
         bind_language_refresh(self.refresh_translations)
+
+        self._hunter.live_ready.connect(self._on_hunter_live_ready)
+        self._hunter.status.connect(self._on_hunter_status)
+        self._hunter.failed.connect(self._on_hunter_failed)
 
         self.show_empty()
 
@@ -202,6 +216,9 @@ class CameraPreviewPanel(QFrame):
 
     def show_for_ship(self, ship: Ship | None):
 
+        if self._hunter_mode:
+            return
+
         try:
             self._show_for_ship(ship)
         except Exception:
@@ -212,6 +229,9 @@ class CameraPreviewPanel(QFrame):
 
     def show_for_match(self, ship: Ship | None, match) -> None:
         """Show a specific camera match (manual override). Does not change show_for_ship."""
+
+        if self._hunter_mode:
+            return
 
         try:
             self._show_for_match(ship, match)
@@ -326,6 +346,11 @@ class CameraPreviewPanel(QFrame):
     def show_empty(self, message_key: str = "No camera available"):
 
         self._workflow.stop()
+        if self._hunter_mode and self._hunter.is_active:
+            self._show_hunter_chrome()
+            return
+
+        self._detach_hunter_widget()
         self._last_mmsi = None
         self._last_camera_id = None
         self._camera_enabled = None
@@ -338,6 +363,125 @@ class CameraPreviewPanel(QFrame):
         self.error_label.setVisible(False)
         self.empty_label.setText(tr(message_key))
         self.empty_label.setVisible(True)
+
+    def start_hunter_discovery(self, page_url: str) -> bool:
+        """Discover a camera page and host Hunter HlsPlayer in video_host."""
+
+        self._workflow.stop()
+        self._last_mmsi = None
+        self._last_camera_id = None
+        self._hunter.ensure()
+        # A previous interactive session stays busy after LIVE. Replace it so a
+        # new marker click can start discovery; otherwise chrome keeps the old result.
+        self._hunter.stop()
+        self._host_hunter_player()
+        self._hunter_mode = True
+        self._show_hunter_chrome(status_key="Discovering…")
+        started = self._hunter.discover(page_url)
+        if not started:
+            self._hunter_mode = self._hunter.is_active
+        return started
+
+    def _host_hunter_player(self) -> None:
+
+        widget = self._hunter.player_widget()
+        if widget is None:
+            return
+        if widget.parent() is not self.video_host:
+            self._video_layout.addWidget(widget)
+        widget.show()
+
+    def _detach_hunter_widget(self) -> None:
+
+        widget = self._hunter.player_widget()
+        if widget is None:
+            return
+        if widget.parent() is self.video_host:
+            self._video_layout.removeWidget(widget)
+            widget.setParent(None)
+            widget.hide()
+
+    def _stop_hunter_mode(self) -> None:
+
+        if not self._hunter_mode and not self._hunter.is_active:
+            return
+        self._hunter_mode = False
+        self._hunter.stop()
+        self._detach_hunter_widget()
+
+    def _show_hunter_chrome(self, status_key: str | None = None) -> None:
+
+        self.details.setVisible(True)
+        self.empty_label.setVisible(False)
+        result = self._hunter.result
+        if result is not None:
+            self._apply_hunter_result(result)
+            return
+        self._value_labels["name"].setText(tr("Discover Camera"))
+        self._value_labels["country"].setText("—")
+        self._value_labels["distance"].setText("—")
+        self._value_labels["confidence"].setText("—")
+        self._value_labels["direction"].setText("—")
+        self._value_labels["radius"].setText("—")
+        self._camera_enabled = True
+        self._value_labels["status"].setText(tr("Enabled"))
+        self._playback_backend = None
+        self._playback_key = status_key or "Discovering…"
+        self._value_labels["playback"].setText(tr(self._playback_key))
+        self.error_label.setVisible(False)
+
+    def _apply_hunter_result(self, result: object) -> None:
+
+        name = str(getattr(result, "source_page", None) or "").strip()
+        stream = camera_result_stream_url(result)
+        provider = camera_result_provider_type(result)
+        self._value_labels["name"].setText(name or tr("Discover Camera"))
+        self._value_labels["country"].setText("—")
+        self._value_labels["distance"].setText("—")
+        self._value_labels["confidence"].setText("—")
+        self._value_labels["direction"].setText("—")
+        self._value_labels["radius"].setText("—")
+        self._camera_enabled = True
+        self._value_labels["status"].setText(tr("Enabled"))
+        self._playback_key = None
+        self._playback_backend = provider
+        self._value_labels["playback"].setText(provider)
+        self._error_message_key = None
+        self._error_message_raw = None
+        self.error_label.setVisible(False)
+        self.empty_label.setVisible(False)
+        self.details.setVisible(True)
+        if stream:
+            logger.info("Hunter preview stream_url=%s provider=%s", stream, provider)
+
+    def _on_hunter_live_ready(self, result: object) -> None:
+
+        if not self._hunter_mode:
+            return
+        self._host_hunter_player()
+        self._apply_hunter_result(result)
+
+    def _on_hunter_status(self, message: str) -> None:
+
+        if not self._hunter_mode or self._hunter.result is not None:
+            return
+        text = (message or "").strip()
+        if text:
+            self._playback_key = None
+            self._playback_backend = text
+            self._value_labels["playback"].setText(text)
+
+    def _on_hunter_failed(self, message: str) -> None:
+
+        if not self._hunter_mode:
+            return
+        self._playback_key = "Unavailable"
+        self._playback_backend = None
+        self._value_labels["playback"].setText(tr("Unavailable"))
+        self._error_message_key = None
+        self._error_message_raw = (message or "").strip() or tr("Camera playback failed")
+        self.error_label.setText(self._error_message_raw)
+        self.error_label.setVisible(True)
 
     def video_container(self) -> QFrame:
 

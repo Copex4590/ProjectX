@@ -1,0 +1,62 @@
+{
+  "status": 200,
+  "msg": "success",
+  "data": [
+    {
+      "places": [
+        {
+          "id": "9d4ed10fa9ccba996480f206e5619c9b",
+          "name": "Abbey Road Crossing Cam",
+          "url": "https://www.earthcam.com/world/england/london/abbeyroad/",
+          "thumbnail": "https://static.earthcam.com/camshots/256x144/abbey.jpg",
+          "icon": {
+            "icon": "https://static.earthcam.com/camshots/256x144/abbey-icon.jpg"
+          },
+          "posn": ["51.53214710000000", "-0.17795790000002"],
+          "location": "London, England",
+          "city": "London",
+          "country": "England"
+        },
+        {
+          "id": "a19469e27fce2fc8875594d3ebe4ad9a",
+          "name": "Budapest Cam",
+          "url": "https://www.earthcam.com/world/hungary/budapest/",
+          "thumbnail": "",
+          "icon": {
+            "icon": "https://static.earthcam.com/camshots/256x144/budapest.jpg"
+          },
+          "posn": ["47.50153040000000", "19.03971930000000"],
+          "location": "Budapest, Hungary",
+          "city": "Budapest",
+          "country": "Hungary"
+        },
+        {
+          "id": "zero-island",
+          "name": "Zero Island",
+          "url": "https://www.earthcam.com/invalid/",
+          "posn": ["0", "0"],
+          "location": "Nowhere",
+          "city": "",
+          "country": ""
+        },
+        {
+          "id": "bad-lat",
+          "name": "Out of range",
+          "url": "https://www.earthcam.com/invalid/",
+          "posn": ["999", "10"],
+          "location": "Invalid",
+          "city": "",
+          "country": ""
+        },
+        {
+          "id": "missing-posn",
+          "name": "No coordinates",
+          "url": "https://www.earthcam.com/invalid/",
+          "location": "Unknown",
+          "city": "",
+          "country": ""
+        }
+      ]
+    }
+  ]
+}

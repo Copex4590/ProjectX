@@ -54,6 +54,7 @@ class _MapBridge(QObject):
     locationSelected = Signal(float, float)
     shipSelected = Signal(int)
     shipSelectionCleared = Signal()
+    cameraSelected = Signal(str)
 
     @Slot(int)
     def openLogbook(self, mmsi: int):
@@ -75,6 +76,11 @@ class _MapBridge(QObject):
 
         self.shipSelectionCleared.emit()
 
+    @Slot(str)
+    def selectCamera(self, camera_id: str):
+
+        self.cameraSelected.emit(str(camera_id or ""))
+
 
 class MapWidget(QWebEngineView):
 
@@ -82,6 +88,7 @@ class MapWidget(QWebEngineView):
     locationSelected = Signal(float, float)
     shipSelected = Signal(int)
     shipSelectionCleared = Signal()
+    cameraSelected = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -107,6 +114,7 @@ class MapWidget(QWebEngineView):
         self._bridge.locationSelected.connect(self.locationSelected)
         self._bridge.shipSelected.connect(self.shipSelected)
         self._bridge.shipSelectionCleared.connect(self.shipSelectionCleared)
+        self._bridge.cameraSelected.connect(self.cameraSelected)
 
         channel = QWebChannel(self.page())
         channel.registerObject("bridge", self._bridge)
@@ -137,6 +145,8 @@ class MapWidget(QWebEngineView):
         self._pending_camera_coverage: list[dict] | None = None
         self._pending_camera_link: dict | None = None
         self._has_pending_camera_link = False
+        self._pending_cameras: list[dict] | None = None
+        self._cameras_flush_scheduled = False
 
     def set_observation_points(self, points: list[dict]) -> None:
 
@@ -286,6 +296,7 @@ class MapWidget(QWebEngineView):
                 self._apply_observation_points()
             self._flush_pending_playback()
             self._flush_pending_camera_overlays()
+            self._apply_catalog_cameras()
             return
 
         if self._pick_enabled and self._pick_overlay_message:
@@ -302,6 +313,7 @@ class MapWidget(QWebEngineView):
         self._flush_pending_ships()
         self._flush_pending_playback()
         self._flush_pending_camera_overlays()
+        self._apply_catalog_cameras()
 
     def _apply_location_pick(self) -> None:
 
@@ -456,6 +468,42 @@ class MapWidget(QWebEngineView):
     def clear_camera_link(self) -> None:
 
         self.set_camera_link(None)
+
+    def set_cameras(self, cameras: list[dict]) -> None:
+        """Show VALIDATED camera markers. JS flush runs on the GUI thread."""
+
+        self._pending_cameras = list(cameras)
+        if not self._page_ready:
+            return
+        if self._cameras_flush_scheduled:
+            return
+        self._cameras_flush_scheduled = True
+        QTimer.singleShot(0, self._flush_catalog_cameras)
+
+    def clear_cameras(self) -> None:
+
+        self._pending_cameras = []
+        if not self._page_ready:
+            return
+        if self._cameras_flush_scheduled:
+            return
+        self._cameras_flush_scheduled = True
+        QTimer.singleShot(0, self._flush_catalog_cameras)
+
+    def _flush_catalog_cameras(self) -> None:
+
+        self._cameras_flush_scheduled = False
+        self._apply_catalog_cameras()
+
+    def _apply_catalog_cameras(self) -> None:
+
+        if not self._page_ready:
+            return
+        if self._pending_cameras is None:
+            return
+
+        payload = json.dumps(self._pending_cameras)
+        self._run_js(f"updateCatalogCameras({payload});")
 
     def _flush_pending_camera_overlays(self) -> None:
 

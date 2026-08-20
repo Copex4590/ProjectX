@@ -1,0 +1,75 @@
+Időpont;Távolság;Haladási irány;Sebesség;Célállomás + ETA;Hívójel;Merülés;MMSI;Hajótípus;Hossz;Szélesség
+08.11 - 21:39;1.73 km északra;Áll északra;; ;;;243042933;;;
+08.11 - 21:39;1.73 km északra;Áll északra;;;;None;243042933;;None;None
+08.14 - 07:33;1.73 km északra;Áll északra;; ;;;243042933;;;
+08.14 - 07:33;1.73 km északra;Áll északra;;;;None;243042933;;None;None
+08.14 - 07:53;1.73 km északra;Áll északra;; ;;;243042933;;;
+08.14 - 07:53;1.73 km északra;Áll északra;;;;None;243042933;;None;None
+08.14 - 08:04;1.73 km északra;Áll északra;; ;;;243042933;;;
+08.14 - 08:04;1.73 km északra;Áll északra;;;;None;243042933;;None;None
+08.18 - 16:11;1.73 km északra;Áll északra;; ;;;243042933;;;
+08.18 - 16:11;1.73 km északra;Áll északra;;;;None;243042933;;None;None
+08.18 - 20:42;1.73 km északra;Áll északra;; ;;;243042933;;;
+08.18 - 20:42;1.73 km északra;Áll északra;;;;None;243042933;;None;None
+08.18 - 20:52;1.73 km északra;Áll északra;; ;;;243042933;;;
+08.18 - 20:52;1.73 km északra;Áll északra;;;;None;243042933;;None;None
+08.18 - 21:32;1.73 km északra;Áll északra;; ;;;243042933;;;
+08.18 - 21:32;1.73 km északra;Áll északra;;;;None;243042933;;None;None
+08.18 - 22:13;1.73 km északra;Áll északra;; ;;;243042933;;;
+08.18 - 22:13;1.73 km északra;Áll északra;;;;None;243042933;;None;None
+08.19 - 19:05;1.53 km északra;Áll északra;; ;;;243042933;;;
+08.19 - 19:05;1.53 km északra;Áll északra;;;;None;243042933;;None;None
+08.19 - 19:06;1.53 km északra;észak felé halad;0.5 csomó; ;;;243042933;;;
+08.19 - 19:06;1.53 km északra;észak felé halad;0.5 csomó;;;None;243042933;;None;None
+08.19 - 19:09;1.53 km északra;észak felé halad;0.5 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:09;1.53 km északra;észak felé halad;0.5 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:19;1.53 km északra;észak felé halad;0.7 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:19;1.53 km északra;észak felé halad;0.7 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:19;1.53 km északra;észak felé halad;0.9 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:19;1.53 km északra;észak felé halad;0.9 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:19;1.55 km északra;észak felé halad;1.7 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:19;1.55 km északra;észak felé halad;1.7 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:20;1.57 km északra;észak felé halad;2.3 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:20;1.57 km északra;észak felé halad;2.3 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:20;1.59 km északra;észak felé halad;2.6 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:20;1.59 km északra;észak felé halad;2.6 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:20;1.61 km északra;észak felé halad;2.7 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:20;1.61 km északra;észak felé halad;2.7 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:20;1.62 km északra;észak felé halad;2.8 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:20;1.62 km északra;észak felé halad;2.8 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:20;1.63 km északra;észak felé halad;2.8 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:20;1.63 km északra;észak felé halad;2.8 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:22;1.45 km északra;dél felé halad;7.3 csomó; ;;;243042933;;;
+08.19 - 19:22;1.45 km északra;dél felé halad;7.3 csomó;;;None;243042933;;None;None
+08.19 - 19:23;1.4 km északra;dél felé halad;7.9 csomó; ;;;243042933;;;
+08.19 - 19:23;1.4 km északra;dél felé halad;7.9 csomó;;;None;243042933;;None;None
+08.19 - 19:23;1.25 km északra;dél felé halad;7.9 csomó; ;;;243042933;;;
+08.19 - 19:23;1.25 km északra;dél felé halad;7.9 csomó;;;None;243042933;;None;None
+08.19 - 19:24;1.13 km északra;dél felé halad;7.9 csomó; ;;;243042933;;;
+08.19 - 19:24;1.13 km északra;dél felé halad;7.9 csomó;;;None;243042933;;None;None
+08.19 - 19:24;1.05 km északra;dél felé halad;7.6 csomó; ;;;243042933;;;
+08.19 - 19:24;1.05 km északra;dél felé halad;7.6 csomó;;;None;243042933;;None;None
+08.19 - 19:24;0.97 km északra;dél felé halad;7.5 csomó; ;;;243042933;;;
+08.19 - 19:24;0.97 km északra;dél felé halad;7.5 csomó;;;None;243042933;;None;None
+08.19 - 19:25;0.89 km északra;dél felé halad;7.5 csomó; ;;;243042933;;;
+08.19 - 19:25;0.89 km északra;dél felé halad;7.5 csomó;;;None;243042933;;None;None
+08.19 - 19:25;0.86 km északra;dél felé halad;7.4 csomó; ;;;243042933;;;
+08.19 - 19:25;0.86 km északra;dél felé halad;7.4 csomó;;;None;243042933;;None;None
+08.19 - 19:25;0.75 km északra;dél felé halad;7.0 csomó; ;;;243042933;;;
+08.19 - 19:25;0.75 km északra;dél felé halad;7.0 csomó;;;None;243042933;;None;None
+08.19 - 19:26;0.6 km északra;dél felé halad;6.8 csomó; ;;;243042933;;;
+08.19 - 19:26;0.6 km északra;dél felé halad;6.8 csomó;;;None;243042933;;None;None
+08.19 - 19:27;0.47 km északra;dél felé halad;6.9 csomó; ;;;243042933;;;
+08.19 - 19:27;0.47 km északra;dél felé halad;6.9 csomó;;;None;243042933;;None;None
+08.19 - 19:27;0.4 km északra;dél felé halad;6.9 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:27;0.4 km északra;dél felé halad;6.9 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:27;0.34 km északra;dél felé halad;6.7 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:27;0.34 km északra;dél felé halad;6.7 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:29;0.19 km északra;dél felé halad;6.6 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.19 - 19:29;0.19 km északra;dél felé halad;6.6 csomó;BUDAPEST 04.02 18:00;HGD2933;1.0;243042933;60;35;7
+08.20 - 04:39;1.73 km északra;Áll északra;; ;;;243042933;;;
+08.20 - 04:39;1.73 km északra;Áll északra;;;;None;243042933;;None;None
+08.20 - 04:54;1.73 km északra;Áll északra;; ;;;243042933;;;
+08.20 - 04:54;1.73 km északra;Áll északra;;;;None;243042933;;None;None
+08.20 - 05:02;1.73 km északra;Áll északra;; ;;;243042933;;;
+08.20 - 05:02;1.73 km északra;Áll északra;;;;None;243042933;;None;None

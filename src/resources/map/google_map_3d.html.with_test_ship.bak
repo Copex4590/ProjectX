@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project X — Google 3D Maps (experiment)</title>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #0b0e14;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+    }
+    #map-root {
+      width: 100%;
+      height: 100%;
+    }
+    #map-root gmp-map-3d {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #status {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      z-index: 10;
+      max-width: min(420px, calc(100% - 24px));
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(18, 21, 26, 0.92);
+      color: #e8eaed;
+      border: 1px solid #3a4556;
+      font-size: 13px;
+      line-height: 1.4;
+      pointer-events: none;
+    }
+    #status[data-kind="ok"] { border-color: #2f6f4e; color: #b6f0d0; }
+    #status[data-kind="warn"] { border-color: #8a6a2f; color: #f0e0b0; }
+    #status[data-kind="error"] { border-color: #8a3a3a; color: #f0b0b0; }
+    #status.hidden { display: none; }
+
+    /* Simple test panel — not Vessel Card (would need MapPage/AIS wiring). */
+    #ship-panel {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      z-index: 11;
+      min-width: 220px;
+      max-width: min(320px, calc(100% - 24px));
+      padding: 12px 14px 10px;
+      border-radius: 8px;
+      background: rgba(18, 21, 26, 0.94);
+      color: #e8eaed;
+      border: 1px solid #3a4556;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    #ship-panel.hidden { display: none; }
+    #ship-panel h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 650;
+      letter-spacing: 0.02em;
+      color: #8ab4f8;
+    }
+    #ship-panel dl {
+      margin: 0;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 4px 12px;
+    }
+    #ship-panel dt {
+      margin: 0;
+      color: #9aa3b2;
+      font-weight: 500;
+    }
+    #ship-panel dd {
+      margin: 0;
+      color: #e8eaed;
+      font-variant-numeric: tabular-nums;
+    }
+    #ship-panel .ship-panel-close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: #9aa3b2;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    #ship-panel .ship-panel-close:hover {
+      color: #e8eaed;
+      background: rgba(255, 255, 255, 0.06);
+    }
+  </style>
+</head>
+<body>
+  <div id="status" data-kind="info">Waiting for Google Maps API key from Project X…</div>
+  <div id="ship-panel" class="hidden" aria-live="polite">
+    <button type="button" class="ship-panel-close" id="ship-panel-close" aria-label="Close">×</button>
+    <h3 id="ship-panel-name">—</h3>
+    <dl>
+      <dt>MMSI</dt><dd id="ship-panel-mmsi">—</dd>
+      <dt>Speed</dt><dd id="ship-panel-speed">—</dd>
+      <dt>Heading</dt><dd id="ship-panel-heading">—</dd>
+    </dl>
+  </div>
+  <div id="map-root"></div>
+
+  <script>
+    /**
+     * EXPERIMENT: Google 3D Maps via Maps JavaScript API (maps3d / Map3DElement).
+     * CURRENT production map remains Leaflet in map.html.
+     *
+     * Proof ship (static, not AIS-wired):
+     *   Marker3DInteractiveElement (extends Marker3DElement) + gmp-click panel
+     */
+
+    const BUDAPEST = {
+      center: { lat: 47.4979, lng: 19.0402, altitude: 120 },
+      range: 2200,
+      tilt: 62,
+      heading: 25
+    };
+
+    /** Single static test vessel — not from AIS / ShipRegistry. */
+    const TEST_SHIP = {
+      name: "PROJECT X TEST",
+      mmsi: "999999999",
+      speedKn: 8.5,
+      heading: 90,
+      lat: 47.5015,
+      lng: 19.0399,
+      /** Metres above ground/water mesh — keeps marker clear of the river surface. */
+      altitudeM: 28
+    };
+
+    let map3d = null;
+    let mapsBootstrapped = false;
+    let testShipMarker = null;
+
+    function setStatus(message, kind) {
+      const el = document.getElementById("status");
+      if (!el) return;
+      if (!message) {
+        el.classList.add("hidden");
+        return;
+      }
+      el.classList.remove("hidden");
+      el.textContent = message;
+      el.dataset.kind = kind || "info";
+    }
+
+    function hideShipPanel() {
+      const panel = document.getElementById("ship-panel");
+      if (panel) panel.classList.add("hidden");
+    }
+
+    function showShipPanel(ship) {
+      const panel = document.getElementById("ship-panel");
+      if (!panel) return;
+      document.getElementById("ship-panel-name").textContent = ship.name;
+      document.getElementById("ship-panel-mmsi").textContent = String(ship.mmsi);
+      document.getElementById("ship-panel-speed").textContent =
+        Number(ship.speedKn).toFixed(1) + " kn";
+      document.getElementById("ship-panel-heading").textContent =
+        String(ship.heading) + "°";
+      panel.classList.remove("hidden");
+    }
+
+    /**
+     * Heading-aware ship glyph (bow = north / 0°). Rasterized into the 3D marker.
+     * Marker3D* has no native heading; orientation is encoded in the SVG.
+     */
+    function createHeadingShipGlyph(headingDeg) {
+      const svgNS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(svgNS, "svg");
+      svg.setAttribute("xmlns", svgNS);
+      svg.setAttribute("viewBox", "0 0 64 64");
+      svg.setAttribute("width", "40");
+      svg.setAttribute("height", "40");
+
+      const g = document.createElementNS(svgNS, "g");
+      g.setAttribute(
+        "transform",
+        "rotate(" + Number(headingDeg) + " 32 32)"
+      );
+
+      // Simple vessel silhouette: bow up at heading 0°.
+      const hull = document.createElementNS(svgNS, "path");
+      hull.setAttribute(
+        "d",
+        "M32 6 L48 28 L42 52 L22 52 L16 28 Z"
+      );
+      hull.setAttribute("fill", "#1a73e8");
+      hull.setAttribute("stroke", "#e8eaed");
+      hull.setAttribute("stroke-width", "3");
+      hull.setAttribute("stroke-linejoin", "round");
+
+      const bow = document.createElementNS(svgNS, "path");
+      bow.setAttribute("d", "M32 10 L38 24 L26 24 Z");
+      bow.setAttribute("fill", "#fdd663");
+
+      g.append(hull, bow);
+      svg.append(g);
+      return svg;
+    }
+
+    async function addProofTestShip(map) {
+      const maps3d = await google.maps.importLibrary("maps3d");
+      const Marker3DInteractiveElement = maps3d.Marker3DInteractiveElement;
+      const AltitudeMode = maps3d.AltitudeMode;
+
+      if (!Marker3DInteractiveElement) {
+        throw new Error("Marker3DInteractiveElement unavailable");
+      }
+
+      // Interactive subclass is required for gmp-click; it extends Marker3DElement.
+      const marker = new Marker3DInteractiveElement({
+        position: {
+          lat: TEST_SHIP.lat,
+          lng: TEST_SHIP.lng,
+          altitude: TEST_SHIP.altitudeM
+        },
+        altitudeMode:
+          AltitudeMode && AltitudeMode.RELATIVE_TO_GROUND
+            ? AltitudeMode.RELATIVE_TO_GROUND
+            : "RELATIVE_TO_GROUND",
+        extruded: true,
+        drawsWhenOccluded: true,
+        label: TEST_SHIP.name,
+        title: TEST_SHIP.name
+      });
+
+      // Prefer PinElement glyph (supported by Marker3DInteractiveElement).
+      try {
+        const markerLib = await google.maps.importLibrary("marker");
+        if (markerLib && markerLib.PinElement) {
+          const pin = new markerLib.PinElement({
+            background: "#0b3d91",
+            borderColor: "#8ab4f8",
+            glyphColor: "#ffffff",
+            scale: 1.55
+          });
+          pin.glyph = createHeadingShipGlyph(TEST_SHIP.heading);
+          marker.append(pin);
+        }
+      } catch (pinErr) {
+        console.warn("PinElement unavailable; using default marker pin", pinErr);
+      }
+
+      marker.addEventListener("gmp-click", (event) => {
+        if (event && typeof event.stopPropagation === "function") {
+          event.stopPropagation();
+        }
+        showShipPanel(TEST_SHIP);
+      });
+
+      map.append(marker);
+      testShipMarker = marker;
+      window.__projectxGoogle3dTestShip = {
+        marker,
+        ship: TEST_SHIP
+      };
+    }
+
+    document.getElementById("ship-panel-close")?.addEventListener(
+      "click",
+      hideShipPanel
+    );
+
+    // --- Leaflet API stubs so MapWidget JS calls stay harmless ---
+    function noop() {}
+    window.updateShips = noop;
+    window.enablePickMode = noop;
+    window.endLocationPick = noop;
+    window.resetMapToWorldView = function () {
+      if (!map3d) return;
+      try {
+        if (typeof map3d.stopCameraAnimation === "function") {
+          map3d.stopCameraAnimation();
+        }
+        map3d.flyCameraTo({
+          endCamera: {
+            center: { lat: 20, lng: 15, altitude: 0 },
+            range: 16000000,
+            tilt: 0,
+            heading: 0
+          },
+          durationMillis: 1500
+        });
+      } catch (e) {
+        console.warn("resetMapToWorldView", e);
+      }
+    };
+    window.refreshLocationPickView = noop;
+    window.beginLocationPick = noop;
+    window.setPickMarker = noop;
+    window.clearPickMarker = noop;
+    window.updateObservationPoints = noop;
+    window.clearObservationPoints = noop;
+    window.setPickOverlay = noop;
+    window.focusShip = noop;
+    window.setCameraCoverageZones = noop;
+    window.clearCameraCoverageZones = noop;
+    window.setCameraLink = noop;
+    window.clearCameraLink = noop;
+    window.clearPlayback = noop;
+    window.setPlaybackActive = noop;
+    window.setPlaybackTrail = noop;
+    window.setPlaybackCursor = noop;
+
+    function bootstrapMapsJavaScriptApi(apiKey) {
+      if (window.google && google.maps && google.maps.importLibrary) {
+        return Promise.resolve();
+      }
+
+      return new Promise((resolve, reject) => {
+        window.gm_authFailure = function () {
+          setStatus(
+            "Maps JavaScript API auth failed (key / billing / API not enabled).",
+            "error"
+          );
+        };
+
+        (g => {
+          var h, a, k, p = "The Google Maps JavaScript API", c = "google",
+            l = "importLibrary", q = "__ib__", m = document, b = window;
+          b = b[c] || (b[c] = {});
+          var d = b.maps || (b.maps = {}), r = new Set(), e = new URLSearchParams(),
+            u = () => h || (h = new Promise(async (f, n) => {
+              await (a = m.createElement("script"));
+              e.set("libraries", [...r] + "");
+              for (k in g) e.set(k.replace(/[A-Z]/g, t => "_" + t[0].toLowerCase()), g[k]);
+              e.set("callback", c + ".maps." + q);
+              a.src = `https://maps.${c}apis.com/maps/api/js?` + e;
+              d[q] = f;
+              a.onerror = () => h = n(Error(p + " could not load."));
+              a.nonce = m.querySelector("script[nonce]")?.nonce || "";
+              m.head.append(a);
+            }));
+          d[l] ? console.warn(p + " only loads once. Ignoring:", g)
+            : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n));
+        })({
+          key: apiKey,
+          v: "alpha"
+        });
+
+        mapsBootstrapped = true;
+        google.maps.importLibrary("maps3d").then(resolve).catch(reject);
+      });
+    }
+
+    async function startGoogle3dMap(apiKey) {
+      if (!apiKey || apiKey === "YOUR_GOOGLE_MAPS_API_KEY") {
+        setStatus(
+          "Google Maps API key required (PROJECTX_GOOGLE_MAPS_DEMO_KEY).",
+          "warn"
+        );
+        return;
+      }
+
+      setStatus("Loading Google 3D Maps (maps3d / Map3DElement)…", "info");
+
+      try {
+        await bootstrapMapsJavaScriptApi(apiKey);
+        const { Map3DElement, MapMode } = await google.maps.importLibrary("maps3d");
+
+        const root = document.getElementById("map-root");
+        root.replaceChildren();
+
+        map3d = new Map3DElement({
+          center: BUDAPEST.center,
+          range: BUDAPEST.range,
+          tilt: BUDAPEST.tilt,
+          heading: BUDAPEST.heading,
+          mode: MapMode && MapMode.SATELLITE ? MapMode.SATELLITE : "SATELLITE"
+        });
+
+        // Do not hide Google attribution / default UI chrome.
+        root.append(map3d);
+        window.__projectxGoogle3dMap = map3d;
+
+        // Single static proof ship (Marker3D* family). Does not alter camera.
+        try {
+          await addProofTestShip(map3d);
+          setStatus(
+            "Google 3D Maps — Budapest + PROJECT X TEST ship. Pan / zoom / rotate / tilt enabled.",
+            "ok"
+          );
+        } catch (shipErr) {
+          console.error(shipErr);
+          setStatus(
+            "Google 3D Maps OK; test ship failed: " +
+              String(shipErr && shipErr.message ? shipErr.message : shipErr),
+            "warn"
+          );
+        }
+        // Keep banner briefly; auth failures may arrive after element construction.
+        setTimeout(() => {
+          const el = document.getElementById("status");
+          if (el && el.dataset.kind === "ok") setStatus("", "ok");
+        }, 8000);
+      } catch (err) {
+        console.error(err);
+        const msg = String(err && err.message ? err.message : err);
+        if (/billing/i.test(msg)) {
+          setStatus("Billing required for Maps JavaScript API / 3D Maps.", "error");
+        } else if (/not enabled|ApiNotActivated|maps3d/i.test(msg)) {
+          setStatus(
+            "Enable Maps JavaScript API and 3D Maps (alpha) for this key.",
+            "error"
+          );
+        } else {
+          setStatus("Google 3D Maps failed: " + msg, "error");
+        }
+      }
+    }
+
+    // Called from MapWidget at runtime (key never stored in this HTML file).
+    window.__projectxStartGoogle3d = startGoogle3dMap;
+  </script>
+</body>
+</html>

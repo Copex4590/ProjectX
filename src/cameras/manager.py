@@ -2,11 +2,11 @@
 # Project X
 # Unified Camera Manager (SAVE-231)
 # ============================================================================
-"""Single CameraManager for catalog packs and user/OP cameras.
+"""Single CameraManager for catalog packs, Hunter listing catalog, and user cameras.
 
-Catalog + enabled packs load via ``load()``. User cameras persist to
-``cameras.json`` and participate in selection/preview/scoring through the
-shared ``database.camera_registry``.
+Catalog + enabled packs + Hunter listing-catalog cameras load via ``load()``.
+User cameras persist to ``cameras.json``. The EarthCam mapsearch inventory is
+produced by the Hunter listing scanner, not fetched here.
 """
 
 from __future__ import annotations
@@ -22,10 +22,12 @@ from debug.obs_freeze_trace import trace_enter, trace_exit
 from PySide6.QtCore import QObject, Signal
 
 from app.paths import runtime_config_path
+from cameras.hunter_catalog import load_listing_cameras
 from cameras.loader import CameraLoader
 from cameras.pack_manager import CameraPackManager, camera_pack_manager
 from database.camera_registry import CameraRegistry, camera_registry
 from models.camera import (
+    SOURCE_EARTHCAM,
     SOURCE_USER,
     Camera,
     normalize_camera_type,
@@ -49,7 +51,7 @@ def _utc_now() -> datetime:
 
 
 class CameraManager(QObject):
-    """Process-wide camera façade (catalog + packs + user CRUD)."""
+    """Process-wide camera façade (catalog + packs + Hunter listing + user CRUD)."""
 
     changed = Signal()
 
@@ -59,6 +61,7 @@ class CameraManager(QObject):
         config_dir: Path | None = None,
         user_path: Path | None = None,
         pack_manager: CameraPackManager | None = None,
+        hunter_catalog_loader=None,
     ):
 
         super().__init__()
@@ -66,6 +69,7 @@ class CameraManager(QObject):
         self.registry = registry or camera_registry
         self.loader = CameraLoader(config_dir)
         self._pack_manager = pack_manager or camera_pack_manager
+        self._hunter_catalog_loader = hunter_catalog_loader or load_listing_cameras
         self._user_path = Path(user_path or CAMERAS_FILE)
         self._lock = Lock()
         self._catalog_loaded = False
@@ -74,7 +78,7 @@ class CameraManager(QObject):
         self._merge_into_registry(user_cameras=self._read_user_cameras())
 
     def load(self) -> int:
-        """Load catalog + enabled packs + user cameras into the registry."""
+        """Load catalog + packs + Hunter listing catalog + user cameras."""
 
         with self._lock:
             catalog = self.loader.load_cameras()
@@ -83,8 +87,9 @@ class CameraManager(QObject):
             except Exception:
                 logger.exception("Failed loading enabled camera packs")
                 packs = []
+            hunter = self._load_hunter_listing_unlocked()
             users = self._read_user_cameras_unlocked()
-            merged = self._merge_lists(catalog, packs, users)
+            merged = self._merge_lists(catalog, packs, hunter, users)
             self.registry.replace_all(merged)
             self._catalog_loaded = True
             return len(merged)
@@ -94,6 +99,29 @@ class CameraManager(QObject):
         self.registry.clear()
         self._catalog_loaded = False
         return self.load()
+
+    def reload_hunter_catalog(self) -> int:
+        """Reload Hunter listing cameras from disk without dropping other sources."""
+
+        with self._lock:
+            hunter = self._load_hunter_listing_unlocked()
+            others = [
+                camera
+                for camera in self.registry.all()
+                if camera.source != SOURCE_EARTHCAM
+            ]
+            users = [
+                camera for camera in others if camera.source == SOURCE_USER
+            ]
+            rest = [
+                camera for camera in others if camera.source != SOURCE_USER
+            ]
+            merged = self._merge_lists(rest, hunter, users)
+            self.registry.replace_all(merged)
+            count = len(hunter)
+
+        self.changed.emit()
+        return count
 
     def ensure_loaded(self) -> int:
 
@@ -282,6 +310,14 @@ class CameraManager(QObject):
         if camera.source != SOURCE_USER and not camera.observation_point_id:
             raise KeyError(f"Not a user camera: {camera_id}")
         return camera
+
+    def _load_hunter_listing_unlocked(self) -> list[Camera]:
+
+        try:
+            return list(self._hunter_catalog_loader() or [])
+        except Exception:
+            logger.exception("Failed loading Hunter listing catalog")
+            return []
 
     def _merge_into_registry(self, *, user_cameras: list[Camera]) -> None:
 

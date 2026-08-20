@@ -2,6 +2,7 @@
 # Project X — Cameras package (SAVE-231 unified)
 # ============================================================================
 
+from cameras.hunter_catalog import HunterListingCatalogService
 from cameras.loader import CameraLoader, CameraLoadError
 from cameras.manager import CameraManager, camera_manager
 from cameras.pack_manager import CameraPack, CameraPackManager, camera_pack_manager
@@ -16,6 +17,7 @@ from models.camera import (
     CAMERA_TYPES,
     FUTURE_CAMERA_TYPES,
     SOURCE_CATALOG,
+    SOURCE_EARTHCAM,
     SOURCE_PACK,
     SOURCE_USER,
     SUPPORTED_CAMERA_TYPES,
@@ -29,8 +31,10 @@ __all__ = [
     "SUPPORTED_CAMERA_TYPES",
     "FUTURE_CAMERA_TYPES",
     "SOURCE_CATALOG",
+    "SOURCE_EARTHCAM",
     "SOURCE_PACK",
     "SOURCE_USER",
+    "HunterListingCatalogService",
     "normalize_camera_type",
     "CameraLoader",
     "CameraLoadError",
