@@ -3,11 +3,12 @@ import logging
 from collections import Counter
 
 from PySide6.QtCore import Qt, QSize, QTimer, QUrl
-from PySide6.QtGui import QKeyEvent, QHideEvent, QShowEvent
+from PySide6.QtGui import QCursor, QKeyEvent, QHideEvent, QShowEvent
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QMenu,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -21,6 +22,7 @@ from database.voyage_store import voyage_store
 from engines.camera import camera_selection_engine
 from engines.camera.link_manager import CameraLinkSnapshot, intelligent_camera_link_manager
 from engines.camera.link_states import CameraLinkMode
+from observation import observation_manager
 from observation.geo_context import geo_context
 from debug.obs_freeze_trace import (
     schedule_traced_single_shot,
@@ -701,6 +703,9 @@ class MapPage(QWidget):
         self.map.openLogbookRequested.connect(self._open_logbook)
         self.map.shipSelected.connect(self.select_vessel)
         self.map.cameraSelected.connect(self._on_catalog_camera_selected)
+        self.map.observationContextMenuRequested.connect(
+            self._on_observation_context_menu
+        )
         clear_selection = getattr(self.map, "shipSelectionCleared", None)
         if clear_selection is not None:
             clear_selection.connect(self.clear_vessel_selection)
@@ -1072,6 +1077,46 @@ class MapPage(QWidget):
             logger.warning("Validated camera %s has no web_url", camera_id)
             return
         self.start_hunter_camera_discovery(page_url)
+
+    def _on_observation_context_menu(self, point_id: str) -> None:
+        """Right-click on a saved observation pin: select that location."""
+
+        point_id = str(point_id or "").strip()
+        if not point_id:
+            return
+
+        controller = getattr(self, "_map_controller", None)
+        if controller is not None and controller.pick_mode() == PickMode.LOCATION:
+            return
+
+        point = observation_manager.get(point_id)
+        if point is None:
+            return
+
+        menu = QMenu(self.map if self.map is not None else self)
+        if point.name:
+            header = menu.addAction(point.name)
+            header.setEnabled(False)
+        action = menu.addAction(tr("Select Observation Point"))
+        active = observation_manager.active()
+        if active is not None and active.id == point.id:
+            action.setEnabled(False)
+
+        chosen = menu.exec(QCursor.pos())
+        if chosen is not action:
+            return
+        self._activate_observation_point(point.id)
+
+    def _activate_observation_point(self, point_id: str) -> None:
+        """Same switch as DashboardPage: observation_manager.set_active."""
+
+        point_id = str(point_id or "").strip()
+        if not point_id:
+            return
+        active = observation_manager.active()
+        if active is not None and active.id == point_id:
+            return
+        observation_manager.set_active(point_id)
 
     def refresh_observation_point(self) -> None:
 

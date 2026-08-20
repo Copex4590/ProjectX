@@ -585,6 +585,15 @@
       };
     }
 
+    // Observation-point right-click hit-test reuses this projection.
+    // Does not change ship-overlay drawing.
+    window.__projectxProjectLatLng = function projectLatLngToMapRoot(lat, lng) {
+      const root = document.getElementById("map-root");
+      const width = (root && root.clientWidth) || window.innerWidth || 1;
+      const height = (root && root.clientHeight) || window.innerHeight || 1;
+      return projectLatLng(Number(lat), Number(lng), readCamera(), width, height);
+    };
+
     function resizeTrailCanvas() {
       if (!trailCanvas) return;
       const dpr = window.devicePixelRatio || 1;
@@ -1007,8 +1016,10 @@
   </script>
   <!--
     Observation Point markers on Google 3D (active = green, inactive = red).
-    Uses Marker3DElement + PinElement — separate from location pick and #ship-overlay.
+    Uses Marker3DInteractiveElement + PinElement — separate from location pick and #ship-overlay.
     sizePreserved keeps the pin at a constant screen size (not world-scaled).
+    Right-click: document capture-phase contextmenu + projectLatLng hit-test
+    (3D markers do not emit DOM contextmenu). Hits call bridge.observationContextMenu.
   -->
   <script>
     (function installObservationPointMarkers() {
@@ -1021,8 +1032,18 @@
         return window.__projectxGoogle3dMap || null;
       }
 
+      function getInteractiveCtor() {
+        return window.__projectxMarker3DInteractiveElement || null;
+      }
+
       function getMarkerCtor() {
-        return window.__projectxMarker3DElement || null;
+        return getInteractiveCtor() || window.__projectxMarker3DElement || null;
+      }
+
+      function isInteractiveMarker(marker) {
+        if (!marker) return false;
+        const name = String(marker.localName || marker.tagName || "").toLowerCase();
+        return name.indexOf("interactive") !== -1;
       }
 
       function isLocationPickUiActive() {
@@ -1048,6 +1069,100 @@
           glyphColor: "#ffffff",
           scale: 1.05
         });
+      }
+
+      function reportObservationContextMenu(pointId) {
+        if (isLocationPickUiActive()) return;
+        const id = String(pointId || "");
+        if (!id) return;
+        const bridge = window.__projectxMapBridge;
+        if (bridge && typeof bridge.observationContextMenu === "function") {
+          bridge.observationContextMenu(id);
+        }
+      }
+
+      // Marker3DInteractiveElement does not fire DOM contextmenu. Hit-test the
+      // pin in screen space (same projection as the ship overlay).
+      const PIN_HIT_RADIUS_PX = 28;
+      const PIN_BODY_OFFSET_Y = 20;
+      let contextMenuBound = false;
+
+      function mapRootRect() {
+        const root = document.getElementById("map-root");
+        if (root && typeof root.getBoundingClientRect === "function") {
+          return root.getBoundingClientRect();
+        }
+        return {
+          left: 0,
+          top: 0,
+          width: window.innerWidth || 1,
+          height: window.innerHeight || 1
+        };
+      }
+
+      function observationIdAtClient(clientX, clientY) {
+        const project = window.__projectxProjectLatLng;
+        if (typeof project !== "function") return "";
+        const rect = mapRootRect();
+        const x = Number(clientX) - rect.left;
+        const y = Number(clientY) - rect.top;
+        let bestId = "";
+        let bestDist = PIN_HIT_RADIUS_PX;
+        for (const pointId in observationMarkers) {
+          const entry = observationMarkers[pointId];
+          const lat = Number(entry && entry.lat);
+          const lon = Number(entry && entry.lon);
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+          const screen = project(lat, lon);
+          if (!screen) continue;
+          const dx = x - screen.x;
+          const dy = y - (screen.y - PIN_BODY_OFFSET_Y);
+          const dist = Math.hypot(dx, dy);
+          if (dist <= bestDist) {
+            bestDist = dist;
+            bestId = pointId;
+          }
+        }
+        return bestId;
+      }
+
+      function eventFromUiOverlay(event) {
+        const target = event && event.target;
+        if (!target || typeof target.closest !== "function") return false;
+        return !!(
+          target.closest(".ship-hit") ||
+          target.closest(".g3d-vessel-card-anchor")
+        );
+      }
+
+      function onContextMenuCapture(event) {
+        if (isLocationPickUiActive()) return;
+        if (eventFromUiOverlay(event)) return;
+        const id = observationIdAtClient(event.clientX, event.clientY);
+        if (!id) return;
+        if (typeof event.preventDefault === "function") event.preventDefault();
+        if (typeof event.stopPropagation === "function") event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") {
+          event.stopImmediatePropagation();
+        }
+        reportObservationContextMenu(id);
+      }
+
+      function onPointerDownCapture(event) {
+        if (!event || event.button !== 2) return;
+        if (isLocationPickUiActive()) return;
+        if (eventFromUiOverlay(event)) return;
+        const id = observationIdAtClient(event.clientX, event.clientY);
+        if (!id) return;
+        if (typeof event.preventDefault === "function") event.preventDefault();
+        if (typeof event.stopPropagation === "function") event.stopPropagation();
+      }
+
+      function bindObservationContextMenuCapture() {
+        if (contextMenuBound) return;
+        contextMenuBound = true;
+        document.addEventListener("contextmenu", onContextMenuCapture, true);
+        document.addEventListener("pointerdown", onPointerDownCapture, true);
       }
 
       function resetObservationPointMarkers() {
@@ -1117,6 +1232,16 @@
           seen[pointId] = true;
 
           let entry = observationMarkers[pointId];
+          const Interactive = getInteractiveCtor();
+          if (entry && entry.marker && Interactive && !isInteractiveMarker(entry.marker)) {
+            try {
+              entry.marker.remove();
+            } catch (_err) {
+              /* ignore */
+            }
+            delete observationMarkers[pointId];
+            entry = null;
+          }
           if (!entry || !entry.marker) {
             const marker = new Marker3DElement({
               position: { lat: lat, lng: lon, altitude: 0 },
@@ -1132,7 +1257,9 @@
             observationMarkers[pointId] = {
               marker: marker,
               active: isActive,
-              name: name
+              name: name,
+              lat: lat,
+              lon: lon
             };
             continue;
           }
@@ -1157,6 +1284,8 @@
             }
           }
           entry.name = name;
+          entry.lat = lat;
+          entry.lon = lon;
         }
 
         for (const pointId in observationMarkers) {
@@ -1202,6 +1331,7 @@
       window.clearObservationPoints = clearObservationPoints;
       window.__projectxFlushObservationPoints = flushObservationPoints;
       window.__projectxResetObservationPointMarkers = resetObservationPointMarkers;
+      bindObservationContextMenuCapture();
       window.__projectxObservationMarkerDebug = function observationMarkerDebug() {
         const tracked = [];
         for (const pointId in observationMarkers) {

@@ -55,6 +55,7 @@ class _MapBridge(QObject):
     shipSelected = Signal(int)
     shipSelectionCleared = Signal()
     cameraSelected = Signal(str)
+    observationContextMenuRequested = Signal(str)
 
     @Slot(int)
     def openLogbook(self, mmsi: int):
@@ -81,6 +82,11 @@ class _MapBridge(QObject):
 
         self.cameraSelected.emit(str(camera_id or ""))
 
+    @Slot(str)
+    def observationContextMenu(self, point_id: str):
+
+        self.observationContextMenuRequested.emit(str(point_id or ""))
+
 
 class MapWidget(QWebEngineView):
 
@@ -89,6 +95,7 @@ class MapWidget(QWebEngineView):
     shipSelected = Signal(int)
     shipSelectionCleared = Signal()
     cameraSelected = Signal(str)
+    observationContextMenuRequested = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -115,6 +122,9 @@ class MapWidget(QWebEngineView):
         self._bridge.shipSelected.connect(self.shipSelected)
         self._bridge.shipSelectionCleared.connect(self.shipSelectionCleared)
         self._bridge.cameraSelected.connect(self.cameraSelected)
+        self._bridge.observationContextMenuRequested.connect(
+            self.observationContextMenuRequested
+        )
 
         channel = QWebChannel(self.page())
         channel.registerObject("bridge", self._bridge)

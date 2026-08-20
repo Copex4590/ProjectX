@@ -537,6 +537,19 @@ function observationIcon(active)
     });
 }
 
+function reportObservationContextMenu(pointId)
+{
+    if (pickEnabled)
+        return;
+
+    const id = String(pointId || "");
+    if (!id)
+        return;
+
+    if (bridge && bridge.observationContextMenu)
+        bridge.observationContextMenu(id);
+}
+
 function hideContextMenu()
 {
 }
@@ -705,9 +718,16 @@ function updateObservationPoints(points)
 
         if (!observationMarkers[pointId])
         {
-            observationMarkers[pointId] = L.marker(position, {
+            const marker = L.marker(position, {
                 icon: observationIcon(!!point.active)
             }).addTo(map);
+            marker.on("contextmenu", function(event)
+            {
+                L.DomEvent.preventDefault(event);
+                L.DomEvent.stop(event);
+                reportObservationContextMenu(pointId);
+            });
+            observationMarkers[pointId] = marker;
         }
         else
         {
